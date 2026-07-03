@@ -171,6 +171,10 @@ export class ErpApiService {
     return this.http.post<Exam>(`${this.baseUrl}/exams/generate`, payload, this.options());
   }
 
+  generateExamFromPdf(formData: FormData): Observable<Exam> {
+    return this.http.post<Exam>(`${this.baseUrl}/exams/generate-from-pdf`, formData, this.options());
+  }
+
   updateExam(id: string, payload: Record<string, unknown>): Observable<Exam> {
     return this.http.patch<Exam>(`${this.baseUrl}/exams/${id}`, payload, this.options());
   }

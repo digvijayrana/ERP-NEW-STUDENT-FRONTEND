@@ -44,12 +44,18 @@ export interface FeeInvoice {
   _id: string;
   invoiceNumber: string;
   student: Student | string;
+  classRoom: ClassRoom | string;
+  academicYear: AcademicYear | string;
   dueDate: string;
   items: Array<{ label: string; amount: number }>;
+  discount: number;
+  fine: number;
+  payments: Array<{ amount: number; mode: string; date: string }>;
   status: string;
   totalAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  createdAt?: string;
 }
 
 export interface DashboardSummary {

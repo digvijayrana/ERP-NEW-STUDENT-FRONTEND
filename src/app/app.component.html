@@ -61,6 +61,7 @@
         <span aria-hidden="true">{{ isSidebarCollapsed ? '>' : '<' }}</span>
       </button>
     </div>
+    <div class="sidebar-accent"></div>
 
     <nav class="nav-list" aria-label="ERP modules">
       <button *ngFor="let tab of tabs" type="button" [class.active]="activeTab === tab.key" (click)="setTab(tab.key)">
@@ -69,7 +70,7 @@
       </button>
     </nav>
 
-    <div class="sidebar-profile card-soft">
+    <div class="sidebar-profile">
       <p class="eyebrow">Signed in</p>
       <strong>{{ currentUser.name }}</strong>
       <span class="role-pill small" [attr.data-role]="currentUser.role">{{ roleLabel }}</span>
@@ -86,8 +87,9 @@
 
       <div class="actions">
         <button type="button" class="ghost action-button refresh-button" (click)="refresh()" [disabled]="loading">
-          <span class="button-icon" data-icon="refresh" aria-hidden="true"></span>
-          <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
+          <span *ngIf="!loading" class="button-icon" data-icon="refresh" aria-hidden="true"></span>
+          <span *ngIf="loading" class="btn-spinner"><span class="spinner-ring"></span></span>
+          <span>{{ loading ? 'Syncing...' : 'Refresh' }}</span>
         </button>
         <div class="profile-menu-wrap" [class.open]="isProfileMenuOpen">
           <button type="button" class="profile-trigger" (click)="toggleProfileMenu()">
@@ -108,7 +110,6 @@
     </header>
 
     <div class="toast success" *ngIf="message && currentUser">{{ message }}</div>
-    <div class="toast muted" *ngIf="loading">Loading workspace data...</div>
 
     <app-dashboard-page *ngIf="activeTab === 'dashboard'" [vm]="pageVm"></app-dashboard-page>
     <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>

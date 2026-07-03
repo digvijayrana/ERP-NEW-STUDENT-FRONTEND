@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.students.length">
+    <app-spinner [show]="true" label="Loading students..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.students.length">
   <form [formGroup]="vm.admissionForm" (ngSubmit)="vm.saveAdmission()" class="panel span-12">
     <div class="section-head">
       <div>
@@ -84,4 +88,5 @@
     </div>
     <ng-template #noDocuments><div class="empty-state">Select a student to review uploaded files.</div></ng-template>
   </section>
+  </ng-container>
 </section>

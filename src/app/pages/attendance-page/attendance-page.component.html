@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.attendance.length && !vm.students.length">
+    <app-spinner [show]="true" label="Loading attendance records..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.attendance.length || vm.students.length">
   <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.attendanceForm" (ngSubmit)="vm.saveAttendance()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Mark attendance</h3></div></div>
     <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
@@ -38,4 +42,5 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.filteredAttendance"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>

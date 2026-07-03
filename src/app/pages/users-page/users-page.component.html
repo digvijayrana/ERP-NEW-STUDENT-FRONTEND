@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.users.length">
+    <app-spinner [show]="true" label="Loading user accounts..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.users.length">
   <form [formGroup]="vm.userForm" (ngSubmit)="vm.saveUser()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Access</p><h3>Create role login</h3></div></div>
     <label>Name<input formControlName="name"></label>
@@ -39,4 +43,5 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="users" [items]="vm.filteredUsers"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>

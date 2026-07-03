@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.timetable.length && !vm.classes.length">
+    <app-spinner [show]="true" label="Loading timetable..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.timetable.length || vm.classes.length">
   <form *ngIf="vm.isAdmin" [formGroup]="vm.timetableForm" (ngSubmit)="vm.saveTimetable()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Timetable</p><h3>Add Period</h3></div></div>
     <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
@@ -47,4 +51,5 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="timetable" [items]="vm.filteredTimetable"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>

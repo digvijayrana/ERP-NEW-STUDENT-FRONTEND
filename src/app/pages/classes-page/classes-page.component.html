@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.classes.length">
+    <app-spinner [show]="true" label="Loading classes..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.classes.length">
   <form *ngIf="vm.isAdmin" [formGroup]="vm.academicYearForm" (ngSubmit)="vm.saveAcademicYear()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Academic</p><h3>Academic year</h3></div></div>
     <label>Name<input formControlName="name" placeholder="2026-2027"></label>
@@ -42,4 +46,5 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="classes" [items]="vm.filteredClasses"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>

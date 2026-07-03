@@ -17,6 +17,7 @@ import { StudentsPageComponent } from './pages/students-page/students-page.compo
 import { TeachersPageComponent } from './pages/teachers-page/teachers-page.component';
 import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
 import { UsersPageComponent } from './pages/users-page/users-page.component';
+import { SpinnerComponent } from './shared/spinner.component';
 import { ErpApiService } from './services/erp-api.service';
 
 type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users';
@@ -40,7 +41,8 @@ type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'pay
     TimetablePageComponent,
     ExamsPageComponent,
     StudentProfilePageComponent,
-    UsersPageComponent
+    UsersPageComponent,
+    SpinnerComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
@@ -72,6 +74,7 @@ export class AppComponent implements OnInit {
   examReport: ExamClassReport | null = null;
   activeExamAttempt: { exam: Exam; submission: ExamSubmission } | null = null;
   generatingExam = false;
+  examPdfFile: File | null = null;
   selectedLoginRole: UserRole = 'admin';
   users: Array<AuthUser & { _id?: string; isActive?: boolean }> = [];
   studentProfile: StudentProfile | null = null;
@@ -104,6 +107,9 @@ export class AppComponent implements OnInit {
     teacherSearch: '',
     invoiceSearch: '',
     invoiceStatus: '',
+    invoiceYear: '',
+    invoiceClass: '',
+    invoiceMonth: '',
     payrollSearch: '',
     payrollStatus: '',
     attendanceSearch: '',
@@ -848,6 +854,38 @@ export class AppComponent implements OnInit {
     });
   }
 
+  onExamPdfFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.examPdfFile = input.files?.item(0) || null;
+  }
+
+  generateExamFromPdf(): void {
+    if (!this.examPdfFile) return;
+    this.generatingExam = true;
+    this.message = '';
+
+    const formData = new FormData();
+    formData.append('chapterPdf', this.examPdfFile);
+    const values = this.examForm.getRawValue();
+    for (const [key, value] of Object.entries(values)) {
+      if (value != null && value !== '') formData.append(key, String(value));
+    }
+
+    this.api.generateExamFromPdf(formData).subscribe({
+      next: (exam) => {
+        this.generatingExam = false;
+        this.message = `AI exam "${exam.title}" created from PDF with ${exam.questions.length} questions`;
+        this.examForm.reset({ difficulty: 'medium', questionCount: APP_CONSTANTS.DEFAULT_EXAM_QUESTION_COUNT, durationMinutes: APP_CONSTANTS.DEFAULT_EXAM_DURATION });
+        this.examPdfFile = null;
+        this.refresh();
+      },
+      error: (error) => {
+        this.generatingExam = false;
+        this.message = error.error?.message || 'Could not generate exam from PDF';
+      }
+    });
+  }
+
   publishExamPaper(examId: string): void {
     this.submit(this.api.publishExam(examId), 'Exam published for students');
   }
@@ -995,7 +1033,20 @@ export class AppComponent implements OnInit {
     return this.invoices.filter((invoice) => {
       const matchesSearch = !search || `${invoice.invoiceNumber} ${this.studentName(invoice.student)}`.toLowerCase().includes(search);
       const matchesStatus = !this.filters.invoiceStatus || invoice.status === this.filters.invoiceStatus;
-      return matchesSearch && matchesStatus;
+      const matchesYear = !this.filters.invoiceYear || (
+        typeof invoice.academicYear === 'string'
+          ? invoice.academicYear === this.filters.invoiceYear
+          : invoice.academicYear?._id === this.filters.invoiceYear
+      );
+      const matchesClass = !this.filters.invoiceClass || (
+        typeof invoice.classRoom === 'string'
+          ? invoice.classRoom === this.filters.invoiceClass
+          : invoice.classRoom?._id === this.filters.invoiceClass
+      );
+      const matchesMonth = !this.filters.invoiceMonth || (
+        invoice.dueDate && (new Date(invoice.dueDate).getMonth() + 1) === Number(this.filters.invoiceMonth)
+      );
+      return matchesSearch && matchesStatus && matchesYear && matchesClass && matchesMonth;
     });
   }
 

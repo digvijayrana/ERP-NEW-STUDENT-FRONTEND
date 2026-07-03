@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.exams.length && !vm.students.length">
+    <app-spinner [show]="true" label="Loading exam data..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.exams.length || vm.students.length">
   <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.examForm" (ngSubmit)="vm.generateExamPaper()" class="panel span-4 form-card">
     <div class="section-head">
       <div>
@@ -11,12 +15,21 @@
     <label>Chapter<input formControlName="chapter" placeholder="Fractions"></label>
     <label>Book reference<input formControlName="bookReference" placeholder="NCERT Class 8"></label>
     <label>Additional context<textarea formControlName="additionalContext" rows="2" placeholder="Focus on word problems"></textarea></label>
+    <label>Upload chapter PDF (optional)<input type="file" accept="application/pdf" (change)="vm.onExamPdfFile($event)"></label>
     <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
     <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
     <label>Difficulty<select formControlName="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></label>
     <label>Question count<input type="number" formControlName="questionCount" min="3" max="20"></label>
     <label>Duration (minutes)<input type="number" formControlName="durationMinutes" min="5"></label>
-    <button type="submit" [disabled]="vm.examForm.invalid || vm.generatingExam">{{ vm.generatingExam ? 'Generating...' : 'Generate with AI' }}</button>
+    <button type="submit" [disabled]="vm.examForm.invalid || vm.generatingExam">
+      <span *ngIf="!vm.generatingExam">Generate with AI</span>
+      <span *ngIf="vm.generatingExam" class="btn-spinner"><span class="spinner-ring"></span> Generating...</span>
+    </button>
+    <button type="button" [disabled]="vm.examForm.invalid || !vm.examPdfFile || vm.generatingExam" (click)="vm.generateExamFromPdf()">
+      <span *ngIf="!vm.generatingExam">Generate from PDF</span>
+      <span *ngIf="vm.generatingExam" class="btn-spinner"><span class="spinner-ring"></span> Generating...</span>
+    </button>
+    <app-spinner [show]="vm.generatingExam" label="AI is generating your exam paper..." mode="inline"></app-spinner>
   </form>
 
   <section class="data-card" [class.span-8]="vm.isAdmin || vm.isTeacher" [class.span-12]="vm.isStudent || vm.isParent">
@@ -35,39 +48,37 @@
         <option value="closed">Closed</option>
       </select>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th><th>Subject</th><th>Chapter</th><th>Class</th><th>Marks</th><th>Status</th>
-            <th *ngIf="vm.isAdmin || vm.isTeacher">Actions</th>
-            <th *ngIf="vm.isStudent">Attempt</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let exam of vm.paged('exams', vm.filteredExams)">
-            <td>{{ exam.title }}</td>
-            <td>{{ exam.subject }}</td>
-            <td>{{ exam.chapter }}</td>
-            <td>{{ vm.className(exam.classRoom) }}</td>
-            <td>{{ exam.totalMarks }}</td>
-            <td><span class="status-badge" [ngClass]="exam.status">{{ exam.status }}</span></td>
-            <td *ngIf="vm.isAdmin || vm.isTeacher">
-              <div class="table-actions">
-                <button type="button" class="ghost small" *ngIf="exam.status === 'draft'" (click)="vm.publishExamPaper(exam._id)">Publish</button>
-                <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.closeExamPaper(exam._id)">Close</button>
-                <button type="button" class="ghost small" (click)="vm.viewExamReport(exam._id)">Report</button>
-                <button type="button" class="danger-btn small" *ngIf="exam.status === 'draft'" (click)="vm.deleteExamPaper(exam._id)">Delete</button>
-              </div>
-            </td>
-            <td *ngIf="vm.isStudent">
-              <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.startExam(exam._id)">Start</button>
-            </td>
-          </tr>
-          <tr *ngIf="!vm.filteredExams.length"><td colspan="7" class="empty-cell">No exams found</td></tr>
-        </tbody>
-      </table>
+    <div class="exam-cards">
+      <article *ngFor="let exam of vm.paged('exams', vm.filteredExams)" class="exam-card" [attr.data-status]="exam.status">
+        <div class="exam-card-header">
+          <h4 class="exam-card-title">{{ exam.title }}</h4>
+          <span class="status-badge" [ngClass]="exam.status">{{ exam.status }}</span>
+        </div>
+        <div class="exam-card-body">
+          <div class="exam-card-tags">
+            <span class="exam-tag subject">{{ exam.subject }}</span>
+            <span class="exam-tag chapter">{{ exam.chapter }}</span>
+          </div>
+          <div class="exam-card-meta">
+            <span class="exam-meta-item"><strong>Class:</strong> {{ vm.className(exam.classRoom) }}</span>
+            <span class="exam-meta-item"><strong>Marks:</strong> {{ exam.totalMarks }}</span>
+            <span class="exam-meta-item"><strong>Duration:</strong> {{ exam.durationMinutes }}min</span>
+          </div>
+        </div>
+        <div class="exam-card-footer">
+          <ng-container *ngIf="vm.isAdmin || vm.isTeacher">
+            <button type="button" class="ghost small" *ngIf="exam.status === 'draft'" (click)="vm.publishExamPaper(exam._id)">Publish</button>
+            <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.closeExamPaper(exam._id)">Close</button>
+            <button type="button" class="ghost small" (click)="vm.viewExamReport(exam._id)">Report</button>
+            <button type="button" class="danger-btn small" *ngIf="exam.status === 'draft'" (click)="vm.deleteExamPaper(exam._id)">Delete</button>
+          </ng-container>
+          <ng-container *ngIf="vm.isStudent">
+            <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.startExam(exam._id)">Start Exam</button>
+          </ng-container>
+        </div>
+      </article>
     </div>
+    <div *ngIf="!vm.filteredExams.length" class="empty-state"><p>No exams found</p></div>
     <app-pagination-bar [vm]="vm" listKey="exams" [items]="vm.filteredExams"></app-pagination-bar>
   </section>
 
@@ -142,4 +153,5 @@
       <article class="metric-card accent-orange"><span>Lowest</span><strong>{{ vm.examReport.summary.lowestScore }}%</strong></article>
     </div>
   </section>
+  </ng-container>
 </section>

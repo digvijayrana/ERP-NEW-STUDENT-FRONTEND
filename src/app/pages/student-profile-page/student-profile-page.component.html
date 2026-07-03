@@ -18,7 +18,9 @@
     <span *ngIf="vm.isAdmin || vm.isTeacher">Select a student from the dropdown above.</span>
   </div>
 
-  <div class="toast muted span-12" *ngIf="vm.profileLoading">Loading student profile and AI insights...</div>
+  <div class="page-spinner-wrap" *ngIf="vm.profileLoading">
+    <app-spinner [show]="true" label="Loading student profile and AI insights..."></app-spinner>
+  </div>
 
   <ng-container *ngIf="vm.studentProfile as p">
     <section class="profile-hero span-12">

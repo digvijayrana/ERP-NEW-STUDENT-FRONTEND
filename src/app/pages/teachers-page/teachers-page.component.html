@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.teachers.length">
+    <app-spinner [show]="true" label="Loading teachers..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.teachers.length">
   <form *ngIf="vm.isAdmin" [formGroup]="vm.teacherForm" (ngSubmit)="vm.saveTeacher()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Teacher</p><h3>{{ vm.editingTeacherId ? 'Update teacher' : 'Teacher profile' }}</h3></div></div>
     <label>Employee code<input formControlName="employeeCode"></label>
@@ -32,4 +36,5 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.filteredTeachers"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>

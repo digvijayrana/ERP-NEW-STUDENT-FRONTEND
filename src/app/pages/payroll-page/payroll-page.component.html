@@ -1,4 +1,8 @@
 <section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.payrolls.length && !vm.teachers.length">
+    <app-spinner [show]="true" label="Loading payroll records..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.payrolls.length || vm.teachers.length">
   <form [formGroup]="vm.payrollForm" (ngSubmit)="vm.savePayroll()" class="panel span-12">
     <div class="section-head"><div><p class="eyebrow">Payroll</p><h3>{{ vm.editingPayrollId ? 'Update Salary Record' : 'Create Salary Record' }}</h3></div></div>
     <div class="form-grid compact">
@@ -68,4 +72,5 @@
     <div *ngIf="!vm.filteredPayrolls.length" class="empty-state"><p>No payroll records found</p></div>
     <app-pagination-bar [vm]="vm" listKey="payroll" [items]="vm.filteredPayrolls"></app-pagination-bar>
   </section>
+  </ng-container>
 </section>
