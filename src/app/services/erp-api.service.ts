@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { APP_CONSTANTS } from '../core/constants';
 import {
   AcademicYear,
   AttendanceRecord,
@@ -34,7 +35,7 @@ export class ErpApiService {
     return this.http.post(`${this.baseUrl}/auth/users`, payload, this.options());
   }
 
-  dashboard(rangeDays = 30): Observable<DashboardSummary> {
+  dashboard(rangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS): Observable<DashboardSummary> {
     return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard?rangeDays=${rangeDays}`, this.options());
   }
 
@@ -208,7 +209,7 @@ export class ErpApiService {
   }
 
   private options(): { headers: HttpHeaders } {
-    const token = localStorage.getItem('erp_token') || '';
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
     return { headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders() };
   }
 }

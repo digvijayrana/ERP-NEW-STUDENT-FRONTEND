@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, forkJoin, of } from 'rxjs';
 
 import { AcademicYear, AttendanceRecord, AuthUser, ClassRoom, DashboardSummary, Exam, ExamClassReport, ExamSubmission, FeeInvoice, PayrollRecord, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
+import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
 import { ClassesPageComponent } from './pages/classes-page/classes-page.component';
 import { DashboardPageComponent } from './pages/dashboard-page/dashboard-page.component';
@@ -52,7 +53,7 @@ export class AppComponent implements OnInit {
   activeTab: TabKey = 'dashboard';
   loading = false;
   message = '';
-  token = localStorage.getItem('erp_token');
+  token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
   currentUser: AuthUser | null = this.readStoredUser();
   pageVm = this;
   isProfileMenuOpen = false;
@@ -93,13 +94,9 @@ export class AppComponent implements OnInit {
   editingTeacherId = '';
   editingClassId = '';
   editingPayrollId = '';
-  financeRangeDays = 30;
-  readonly financeRanges = [
-    { label: '7 days', value: 7 },
-    { label: '30 days', value: 30 },
-    { label: '1 year', value: 365 }
-  ];
-  readonly pageSize = 8;
+  financeRangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS;
+  readonly financeRanges = APP_CONSTANTS.FINANCE_RANGES;
+  readonly pageSize = APP_CONSTANTS.PAGE_SIZE;
   readonly filters = {
     studentSearch: '',
     studentClass: '',
@@ -190,8 +187,8 @@ export class AppComponent implements OnInit {
 
   classForm = this.fb.group({
     name: ['', Validators.required],
-    section: ['A', Validators.required],
-    capacity: [40, Validators.required],
+    section: [APP_CONSTANTS.DEFAULT_SECTION, Validators.required],
+    capacity: [APP_CONSTANTS.DEFAULT_CAPACITY, Validators.required],
     academicYear: ['', Validators.required],
     classTeacher: [''],
     monthlyFee: [0, Validators.required]
@@ -201,7 +198,7 @@ export class AppComponent implements OnInit {
     employeeCode: ['', Validators.required],
     firstName: ['', Validators.required],
     lastName: [''],
-    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    phone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     email: [''],
     qualification: [''],
     baseSalary: [0, Validators.required]
@@ -213,14 +210,14 @@ export class AppComponent implements OnInit {
     lastName: [''],
     gender: ['male', Validators.required],
     dateOfBirth: ['', Validators.required],
-    aadhaarNumber: ['', Validators.pattern(/^\d{12}$/)],
+    aadhaarNumber: ['', Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
     line1: ['', Validators.required],
     city: ['', Validators.required],
     state: ['', Validators.required],
     pincode: ['', Validators.required],
     guardianName: ['', Validators.required],
-    guardianRelation: ['Father', Validators.required],
-    guardianPhone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    guardianRelation: [APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION, Validators.required],
+    guardianPhone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
     rollNumber: [''],
@@ -233,7 +230,7 @@ export class AppComponent implements OnInit {
     classRoom: ['', Validators.required],
     invoiceNumber: [''],
     dueDate: ['', Validators.required],
-    label: ['Tuition fee', Validators.required],
+    label: [APP_CONSTANTS.DEFAULT_FEE_LABEL, Validators.required],
     amount: [0, Validators.required],
     discount: [0],
     fine: [0]
@@ -242,7 +239,7 @@ export class AppComponent implements OnInit {
   paymentForm = this.fb.group({
     invoiceId: ['', Validators.required],
     amount: [0, Validators.required],
-    mode: ['cash', Validators.required],
+    mode: [PAYMENT_MODES.CASH, Validators.required],
     referenceNumber: ['']
   });
 
@@ -266,7 +263,7 @@ export class AppComponent implements OnInit {
     classRoom: ['', Validators.required],
     academicYear: ['', Validators.required],
     date: [new Date().toISOString().slice(0, 10), Validators.required],
-    status: ['present', Validators.required],
+    status: [ATTENDANCE_STATUS.PRESENT, Validators.required],
     remarks: ['']
   });
 
@@ -289,9 +286,9 @@ export class AppComponent implements OnInit {
     additionalContext: [''],
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
-    difficulty: ['medium', Validators.required],
-    questionCount: [10, Validators.required],
-    durationMinutes: [60, Validators.required]
+    difficulty: [EXAM_DIFFICULTY.MEDIUM, Validators.required],
+    questionCount: [APP_CONSTANTS.DEFAULT_EXAM_QUESTION_COUNT, Validators.required],
+    durationMinutes: [APP_CONSTANTS.DEFAULT_EXAM_DURATION, Validators.required]
   });
 
   examAttemptForm = this.fb.group({});
@@ -1081,29 +1078,29 @@ export class AppComponent implements OnInit {
 
   private readStoredUser(): AuthUser | null {
     try {
-      return JSON.parse(localStorage.getItem('erp_user') || 'null');
+      return JSON.parse(localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY) || 'null');
     } catch {
-      localStorage.removeItem('erp_user');
+      localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY);
       return null;
     }
   }
 
   private persistSession(token: string, user: AuthUser): void {
-    localStorage.setItem('erp_token', token);
-    localStorage.setItem('erp_user', JSON.stringify(user));
+    localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY, token);
+    localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     this.token = token;
     this.currentUser = user;
   }
 
   private clearSession(): void {
-    localStorage.removeItem('erp_token');
-    localStorage.removeItem('erp_user');
+    localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
+    localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY);
     this.token = null;
     this.currentUser = null;
   }
 
   private openProtectedPdf(url: string): void {
-    const token = localStorage.getItem('erp_token');
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
     if (!token) return;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((response) => response.blob())
