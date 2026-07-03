@@ -526,14 +526,14 @@ export class AppComponent implements OnInit {
   }
 
   saveAcademicYear(): void {
-    this.submit(this.api.createAcademicYear(this.academicYearForm.getRawValue() as Partial<AcademicYear>), 'Academic year saved');
+    this.submit(this.api.createAcademicYear(this.academicYearForm.getRawValue() as Partial<AcademicYear>), 'Academic year saved', this.academicYearForm);
   }
 
   saveClass(): void {
     const request = this.editingClassId
       ? this.api.updateClass(this.editingClassId, this.classForm.getRawValue())
       : this.api.createClass(this.classForm.getRawValue());
-    this.submit(request, this.editingClassId ? 'Class updated' : 'Class saved');
+    this.submit(request, this.editingClassId ? 'Class updated' : 'Class saved', this.classForm);
     this.editingClassId = '';
   }
 
@@ -576,7 +576,7 @@ export class AppComponent implements OnInit {
     const request = this.editingTeacherId
       ? this.api.updateTeacher(this.editingTeacherId, this.teacherForm.getRawValue())
       : this.api.createTeacher(this.teacherForm.getRawValue());
-    this.submit(request, this.editingTeacherId ? 'Teacher updated' : 'Teacher saved');
+    this.submit(request, this.editingTeacherId ? 'Teacher updated' : 'Teacher saved', this.teacherForm);
     this.editingTeacherId = '';
   }
 
@@ -632,7 +632,7 @@ export class AppComponent implements OnInit {
             ]
           : undefined
       };
-      this.submit(this.api.updateStudent(this.editingStudentId, payload), 'Student updated');
+      this.submit(this.api.updateStudent(this.editingStudentId, payload), 'Student updated', this.admissionForm);
       this.editingStudentId = '';
       return;
     }
@@ -677,7 +677,8 @@ export class AppComponent implements OnInit {
       Array.from(otherDocuments).forEach((file) => formData.append('otherDocuments', file));
     }
 
-    this.submit(this.api.createAdmission(formData), 'Student admission saved');
+    this.submit(this.api.createAdmission(formData), 'Student admission saved', this.admissionForm);
+    this.files = {};
   }
 
   editStudent(student: Student): void {
@@ -721,7 +722,8 @@ export class AppComponent implements OnInit {
         fine: value.fine,
         items: [{ label: value.label, amount: value.amount }]
       }),
-      'Fee invoice created'
+      'Fee invoice created',
+      this.feeForm
     );
   }
 
@@ -733,7 +735,8 @@ export class AppComponent implements OnInit {
         mode: value.mode,
         referenceNumber: value.referenceNumber
       }),
-      'Payment recorded'
+      'Payment recorded',
+      this.paymentForm
     );
   }
 
@@ -741,7 +744,7 @@ export class AppComponent implements OnInit {
     const request = this.editingPayrollId
       ? this.api.updatePayroll(this.editingPayrollId, this.payrollForm.getRawValue())
       : this.api.createPayroll(this.payrollForm.getRawValue());
-    this.submit(request, this.editingPayrollId ? 'Payroll updated' : 'Payroll record created');
+    this.submit(request, this.editingPayrollId ? 'Payroll updated' : 'Payroll record created', this.payrollForm);
     this.editingPayrollId = '';
   }
 
@@ -775,7 +778,7 @@ export class AppComponent implements OnInit {
   }
 
   saveUser(): void {
-    this.submit(this.api.createUser(this.userForm.getRawValue()), 'User account created');
+    this.submit(this.api.createUser(this.userForm.getRawValue()), 'User account created', this.userForm);
   }
 
   saveAttendance(): void {
@@ -793,7 +796,8 @@ export class AppComponent implements OnInit {
           }
         ]
       }),
-      'Attendance saved'
+      'Attendance saved',
+      this.attendanceForm
     );
   }
 
@@ -814,7 +818,8 @@ export class AppComponent implements OnInit {
           }
         ]
       }),
-      'Timetable saved'
+      'Timetable saved',
+      this.timetableForm
     );
   }
 
@@ -825,6 +830,7 @@ export class AppComponent implements OnInit {
       next: (exam) => {
         this.generatingExam = false;
         this.message = `AI exam "${exam.title}" created with ${exam.questions.length} questions`;
+        this.examForm.reset({ difficulty: 'medium', questionCount: APP_CONSTANTS.DEFAULT_EXAM_QUESTION_COUNT, durationMinutes: APP_CONSTANTS.DEFAULT_EXAM_DURATION });
         this.refresh();
       },
       error: (error) => {
@@ -914,8 +920,10 @@ export class AppComponent implements OnInit {
         toAcademicYear: value.toAcademicYear,
         toClassRoom: value.toClassRoom
       }),
-      'Students promoted'
+      'Students promoted',
+      this.promotionForm
     );
+    this.selectedStudentIds.clear();
   }
 
   teacherName(teacher?: Teacher | string): string {
@@ -1107,15 +1115,18 @@ export class AppComponent implements OnInit {
       .then((blob) => window.open(URL.createObjectURL(blob), '_blank'));
   }
 
-  private submit(request: Observable<unknown>, successMessage: string): void {
+  private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }): void {
     this.message = '';
+    this.loading = true;
     request.subscribe({
       next: () => {
         this.message = successMessage;
+        if (formToReset) formToReset.reset();
         this.refresh();
       },
       error: (error) => {
         this.message = error.error?.message || 'Could not save record';
+        this.loading = false;
       }
     });
   }
