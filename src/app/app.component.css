@@ -1735,3 +1735,323 @@ tbody tr:hover {
     width: 100%;
   }
 }
+
+/* ─── Timetable Visual ─── */
+.timetable-visual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.tt-day-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tt-day-header {
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+
+.tt-day-name {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.tt-class-badge {
+  background: rgba(255,255,255,0.2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+}
+
+.tt-periods {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.tt-period-card {
+  background: var(--surface);
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  transition: background 0.15s;
+}
+
+.tt-period-card:hover {
+  background: var(--primary-soft);
+}
+
+.tt-period-num {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-weight: 800;
+  font-size: 11px;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tt-period-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tt-subject {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-time {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.tt-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.tt-teacher {
+  font-size: 11px;
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+.tt-room {
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.tt-empty {
+  background: var(--surface);
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ─── Invoice Cards ─── */
+.invoice-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.invoice-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.invoice-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border-color: var(--primary);
+}
+
+.inv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.inv-number {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--primary-strong);
+  font-family: monospace;
+}
+
+.inv-student {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.inv-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.inv-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inv-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.inv-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.inv-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.inv-due {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ─── Payroll Cards ─── */
+.payroll-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.payroll-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.payroll-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border-color: var(--primary);
+}
+
+.pr-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pr-teacher {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pr-period {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.pr-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pr-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.pr-total {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--primary-strong);
+  border-top: 2px solid var(--primary);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.pr-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* ─── Shared Helpers ─── */
+.success-text { color: var(--success) !important; }
+.danger-text { color: var(--danger) !important; }
+
+.readonly-field {
+  background: var(--primary-soft) !important;
+  cursor: not-allowed;
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-state p {
+  font-size: 14px;
+  font-style: italic;
+}
+
+.danger-btn {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.danger-btn:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .timetable-visual { padding: var(--space-2); }
+  .tt-periods { grid-template-columns: 1fr; }
+  .invoice-cards { grid-template-columns: 1fr; padding: var(--space-2); }
+  .payroll-cards { grid-template-columns: 1fr; padding: var(--space-2); }
+  .inv-details { grid-template-columns: 1fr; }
+}

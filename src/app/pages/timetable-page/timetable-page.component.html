@@ -1,34 +1,49 @@
 <section class="workspace">
   <form *ngIf="vm.isAdmin" [formGroup]="vm.timetableForm" (ngSubmit)="vm.saveTimetable()" class="panel span-4">
-    <div class="section-head"><div><p class="eyebrow">Timetable</p><h3>Build timetable</h3></div></div>
+    <div class="section-head"><div><p class="eyebrow">Timetable</p><h3>Add Period</h3></div></div>
     <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
     <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
     <label>Day<select formControlName="dayOfWeek"><option value="monday">Monday</option><option value="tuesday">Tuesday</option><option value="wednesday">Wednesday</option><option value="thursday">Thursday</option><option value="friday">Friday</option><option value="saturday">Saturday</option></select></label>
-    <label>Start<input type="time" formControlName="startTime"></label>
-    <label>End<input type="time" formControlName="endTime"></label>
-    <label>Subject<input formControlName="subject"></label>
+    <div class="form-grid compact">
+      <label>Start time<input type="time" formControlName="startTime"></label>
+      <label>End time<input type="time" formControlName="endTime"></label>
+    </div>
+    <label>Subject<input formControlName="subject" placeholder="e.g. Mathematics"></label>
     <label>Teacher<select formControlName="teacher"><option value="">Select</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
-    <label>Room<input formControlName="room"></label>
+    <label>Room / Hall<input formControlName="room" placeholder="e.g. Room 101"></label>
     <button type="submit" [disabled]="vm.timetableForm.invalid">Save period</button>
   </form>
 
-  <section class="data-card span-8">
-    <div class="section-head"><div><p class="eyebrow">Schedule</p><h3>Class timetable</h3></div></div>
+  <section class="data-card" [class.span-8]="vm.isAdmin" [class.span-12]="!vm.isAdmin">
+    <div class="section-head"><div><p class="eyebrow">Weekly Schedule</p><h3>Class Timetable</h3></div></div>
     <div class="toolbar">
-      <div class="search-box"><input placeholder="Search day, class, subject" [value]="vm.filters.timetableSearch" (input)="vm.filters.timetableSearch = $any($event.target).value; vm.resetPage('timetable')"></div>
+      <div class="search-box"><input placeholder="Search day, class, subject..." [value]="vm.filters.timetableSearch" (input)="vm.filters.timetableSearch = $any($event.target).value; vm.resetPage('timetable')"></div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Day</th><th>Class</th><th>Periods</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of vm.paged('timetable', vm.filteredTimetable)">
-            <td>{{ row.dayOfWeek | titlecase }}</td>
-            <td>{{ vm.className(row.classRoom) }}</td>
-            <td><span class="period-chip" *ngFor="let period of row.periods">{{ period.startTime }}-{{ period.endTime }} {{ period.subject }}</span></td>
-          </tr>
-          <tr *ngIf="!vm.filteredTimetable.length"><td colspan="3" class="empty-cell">No timetable configured</td></tr>
-        </tbody>
-      </table>
+
+    <div *ngIf="vm.filteredTimetable.length" class="timetable-visual">
+      <div *ngFor="let row of vm.paged('timetable', vm.filteredTimetable)" class="tt-day-card">
+        <div class="tt-day-header">
+          <span class="tt-day-name">{{ row.dayOfWeek | titlecase }}</span>
+          <span class="tt-class-badge">{{ vm.className(row.classRoom) }}</span>
+        </div>
+        <div class="tt-periods">
+          <div *ngFor="let period of row.periods; let i = index" class="tt-period-card" [attr.data-index]="i">
+            <div class="tt-period-num">P{{ i + 1 }}</div>
+            <div class="tt-period-info">
+              <div class="tt-subject">{{ period.subject }}</div>
+              <div class="tt-time">{{ period.startTime }} – {{ period.endTime }}</div>
+            </div>
+            <div class="tt-meta">
+              <span class="tt-teacher" *ngIf="period.teacher">{{ vm.teacherName(period.teacher) }}</span>
+              <span class="tt-room" *ngIf="period.room">{{ period.room }}</span>
+            </div>
+          </div>
+          <div *ngIf="!row.periods.length" class="tt-empty">No periods scheduled</div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!vm.filteredTimetable.length" class="empty-state">
+      <p>No timetable configured yet</p>
     </div>
     <app-pagination-bar [vm]="vm" listKey="timetable" [items]="vm.filteredTimetable"></app-pagination-bar>
   </section>

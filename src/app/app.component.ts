@@ -710,6 +710,14 @@ export class AppComponent implements OnInit {
     this.submit(this.api.deleteStudent(id), 'Student archived');
   }
 
+  onFeeClassChange(): void {
+    const classId = this.feeForm.get('classRoom')?.value;
+    const room = this.classes.find((c) => c._id === classId);
+    if (room) {
+      this.feeForm.patchValue({ amount: room.monthlyFee || 0 });
+    }
+  }
+
   saveFeeInvoice(): void {
     const value = this.feeForm.getRawValue();
     this.submit(

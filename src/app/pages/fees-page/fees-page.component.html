@@ -1,49 +1,80 @@
 <section class="workspace">
   <form *ngIf="vm.isAdmin" [formGroup]="vm.feeForm" (ngSubmit)="vm.saveFeeInvoice()" class="panel span-6">
-    <div class="section-head"><div><p class="eyebrow">Fees</p><h3>Create invoice</h3></div></div>
+    <div class="section-head"><div><p class="eyebrow">Fees</p><h3>Create Invoice</h3></div></div>
     <div class="form-grid compact">
-      <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
-      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-      <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Student<select formControlName="student"><option value="">Select student</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class<select formControlName="classRoom" (change)="vm.onFeeClassChange()"><option value="">Select class</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }} (&#8377;{{ room.monthlyFee }}/month)</option></select></label>
       <label>Due date<input type="date" formControlName="dueDate"></label>
       <label>Fee label<input formControlName="label"></label>
-      <label>Amount<input type="number" formControlName="amount"></label>
-      <label>Discount<input type="number" formControlName="discount"></label>
-      <label>Fine<input type="number" formControlName="fine"></label>
+      <label>Amount<input type="number" formControlName="amount" readonly class="readonly-field"></label>
+      <label>Discount<input type="number" formControlName="discount" placeholder="0"></label>
+      <label>Fine<input type="number" formControlName="fine" placeholder="0"></label>
     </div>
-    <button type="submit" [disabled]="vm.feeForm.invalid">Create invoice</button>
+    <button type="submit" [disabled]="vm.feeForm.invalid">Create Invoice</button>
   </form>
 
   <form *ngIf="vm.isAdmin" [formGroup]="vm.paymentForm" (ngSubmit)="vm.savePayment()" class="panel span-6">
-    <div class="section-head"><div><p class="eyebrow">Collection</p><h3>Collect payment</h3></div></div>
-    <label>Invoice<select formControlName="invoiceId"><option value="">Select</option><option *ngFor="let invoice of vm.invoices" [value]="invoice._id">{{ invoice.invoiceNumber }} - {{ invoice.balanceAmount | currency: 'INR' }}</option></select></label>
-    <label>Amount<input type="number" formControlName="amount"></label>
-    <label>Mode<select formControlName="mode"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option></select></label>
-    <label>Reference<input formControlName="referenceNumber"></label>
-    <button type="submit" [disabled]="vm.paymentForm.invalid">Record payment</button>
+    <div class="section-head"><div><p class="eyebrow">Collection</p><h3>Collect Payment</h3></div></div>
+    <label>Invoice
+      <select formControlName="invoiceId">
+        <option value="">Select invoice</option>
+        <option *ngFor="let invoice of vm.invoices" [value]="invoice._id">
+          {{ invoice.invoiceNumber }} — {{ vm.studentName(invoice.student) }} — Balance: {{ invoice.balanceAmount | currency: 'INR' }}
+        </option>
+      </select>
+    </label>
+    <div class="form-grid compact">
+      <label>Amount<input type="number" formControlName="amount"></label>
+      <label>Payment mode
+        <select formControlName="mode">
+          <option value="cash">Cash</option>
+          <option value="upi">UPI</option>
+          <option value="card">Card</option>
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="cheque">Cheque</option>
+        </select>
+      </label>
+    </div>
+    <label>Reference / Transaction No.<input formControlName="referenceNumber" placeholder="Optional"></label>
+    <button type="submit" [disabled]="vm.paymentForm.invalid">Record Payment</button>
   </form>
 
   <section class="data-card span-12">
-    <div class="section-head"><div><p class="eyebrow">Invoices</p><h3>Fee invoices</h3></div></div>
+    <div class="section-head"><div><p class="eyebrow">Invoices</p><h3>Fee Records</h3></div></div>
     <div class="toolbar">
-      <div class="search-box"><input placeholder="Search invoice or student" [value]="vm.filters.invoiceSearch" (input)="vm.filters.invoiceSearch = $any($event.target).value; vm.resetPage('invoices')"></div>
+      <div class="search-box"><input placeholder="Search by invoice no or student name..." [value]="vm.filters.invoiceSearch" (input)="vm.filters.invoiceSearch = $any($event.target).value; vm.resetPage('invoices')"></div>
       <select class="filter-select" [value]="vm.filters.invoiceStatus" (change)="vm.filters.invoiceStatus = $any($event.target).value; vm.resetPage('invoices')"><option value="">All status</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>No</th><th>Student</th><th>Status</th><th>Balance</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let invoice of vm.paged('invoices', vm.filteredInvoices)">
-            <td>{{ invoice.invoiceNumber }}</td>
-            <td>{{ vm.studentName(invoice.student) }}</td>
-            <td><span class="status-badge" [ngClass]="invoice.status">{{ invoice.status }}</span></td>
-            <td>{{ invoice.balanceAmount | currency: 'INR' }}</td>
-            <td><button type="button" class="ghost small" (click)="vm.openInvoicePdf(invoice._id)">PDF</button></td>
-          </tr>
-          <tr *ngIf="!vm.filteredInvoices.length"><td colspan="5" class="empty-cell">No invoices found</td></tr>
-        </tbody>
-      </table>
+
+    <div class="invoice-cards">
+      <div *ngFor="let invoice of vm.paged('invoices', vm.filteredInvoices)" class="invoice-card">
+        <div class="inv-header">
+          <div class="inv-number">{{ invoice.invoiceNumber }}</div>
+          <span class="status-badge" [ngClass]="invoice.status">{{ invoice.status }}</span>
+        </div>
+        <div class="inv-student">{{ vm.studentName(invoice.student) }}</div>
+        <div class="inv-details">
+          <div class="inv-detail">
+            <span class="inv-label">Total</span>
+            <span class="inv-value">{{ invoice.totalAmount | currency: 'INR' }}</span>
+          </div>
+          <div class="inv-detail">
+            <span class="inv-label">Paid</span>
+            <span class="inv-value success-text">{{ invoice.paidAmount | currency: 'INR' }}</span>
+          </div>
+          <div class="inv-detail">
+            <span class="inv-label">Balance</span>
+            <span class="inv-value" [class.danger-text]="invoice.balanceAmount > 0">{{ invoice.balanceAmount | currency: 'INR' }}</span>
+          </div>
+        </div>
+        <div class="inv-footer">
+          <span class="inv-due">Due: {{ invoice.dueDate | date: 'dd MMM yyyy' }}</span>
+          <button type="button" class="ghost small" (click)="vm.openInvoicePdf(invoice._id)">Download PDF</button>
+        </div>
+      </div>
     </div>
+    <div *ngIf="!vm.filteredInvoices.length" class="empty-state"><p>No invoices found</p></div>
     <app-pagination-bar [vm]="vm" listKey="invoices" [items]="vm.filteredInvoices"></app-pagination-bar>
   </section>
 </section>
