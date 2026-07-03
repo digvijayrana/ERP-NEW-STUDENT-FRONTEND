@@ -6,7 +6,7 @@ export const APP_CONSTANTS = {
     { label: '7 days', value: 7 },
     { label: '30 days', value: 30 },
     { label: '1 year', value: 365 }
-  ] as const,
+  ],
   DEFAULT_FINANCE_RANGE_DAYS: 30,
   DEFAULT_SECTION: 'A',
   DEFAULT_CAPACITY: 40,
@@ -22,7 +22,7 @@ export const APP_CONSTANTS = {
   DEFAULT_EXAM_DURATION: 60,
   MIN_EXAM_DURATION: 5,
   PASS_PERCENTAGE: 40
-} as const;
+};
 
 export const ROLES = {
   ADMIN: 'admin',

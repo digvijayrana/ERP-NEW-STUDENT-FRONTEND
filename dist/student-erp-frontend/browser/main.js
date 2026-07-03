@@ -42023,6 +42023,52 @@ var ReactiveFormsModule = class _ReactiveFormsModule {
   }], null, null);
 })();
 
+// src/app/core/constants.ts
+var APP_CONSTANTS = {
+  PAGE_SIZE: 8,
+  LOCAL_STORAGE_TOKEN_KEY: "erp_token",
+  LOCAL_STORAGE_USER_KEY: "erp_user",
+  FINANCE_RANGES: [
+    { label: "7 days", value: 7 },
+    { label: "30 days", value: 30 },
+    { label: "1 year", value: 365 }
+  ],
+  DEFAULT_FINANCE_RANGE_DAYS: 30,
+  DEFAULT_SECTION: "A",
+  DEFAULT_CAPACITY: 40,
+  DEFAULT_FEE_LABEL: "Tuition fee",
+  DEFAULT_GUARDIAN_RELATION: "Father",
+  PHONE_PATTERN: /^\d{10}$/,
+  AADHAAR_PATTERN: /^\d{12}$/,
+  AADHAAR_MAX_LENGTH: 12,
+  PHONE_MAX_LENGTH: 10,
+  MIN_EXAM_QUESTIONS: 3,
+  MAX_EXAM_QUESTIONS: 20,
+  DEFAULT_EXAM_QUESTION_COUNT: 10,
+  DEFAULT_EXAM_DURATION: 60,
+  MIN_EXAM_DURATION: 5,
+  PASS_PERCENTAGE: 40
+};
+var EXAM_DIFFICULTY = {
+  EASY: "easy",
+  MEDIUM: "medium",
+  HARD: "hard",
+  MIXED: "mixed"
+};
+var ATTENDANCE_STATUS = {
+  PRESENT: "present",
+  ABSENT: "absent",
+  LATE: "late",
+  HALF_DAY: "half_day"
+};
+var PAYMENT_MODES = {
+  CASH: "cash",
+  UPI: "upi",
+  CARD: "card",
+  BANK_TRANSFER: "bank_transfer",
+  CHEQUE: "cheque"
+};
+
 // src/app/shared/pagination-bar.component.ts
 function PaginationBarComponent_footer_0_div_8_Template(rf, ctx) {
   if (rf & 1) {
@@ -46387,7 +46433,7 @@ var UsersPageComponent = class _UsersPageComponent {
 // src/environments/environment.ts
 var environment = {
   production: false,
-  apiBaseUrl: "http://localhost:5000/api"
+  apiBaseUrl: "https://erp-new-student-backend.onrender.com/api"
 };
 
 // src/app/services/erp-api.service.ts
@@ -46403,7 +46449,7 @@ var ErpApiService = class _ErpApiService {
   createUser(payload) {
     return this.http.post(`${this.baseUrl}/auth/users`, payload, this.options());
   }
-  dashboard(rangeDays = 30) {
+  dashboard(rangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS) {
     return this.http.get(`${this.baseUrl}/dashboard?rangeDays=${rangeDays}`, this.options());
   }
   academicYears() {
@@ -46534,7 +46580,7 @@ var ErpApiService = class _ErpApiService {
     return this.http.get(`${this.baseUrl}/auth/users`, this.options());
   }
   options() {
-    const token = localStorage.getItem("erp_token") || "";
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || "";
     return { headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders() };
   }
   static \u0275fac = function ErpApiService_Factory(__ngFactoryType__) {
@@ -46991,7 +47037,7 @@ var AppComponent = class _AppComponent {
   activeTab = "dashboard";
   loading = false;
   message = "";
-  token = localStorage.getItem("erp_token");
+  token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
   currentUser = this.readStoredUser();
   pageVm = this;
   isProfileMenuOpen = false;
@@ -47031,13 +47077,9 @@ var AppComponent = class _AppComponent {
   editingTeacherId = "";
   editingClassId = "";
   editingPayrollId = "";
-  financeRangeDays = 30;
-  financeRanges = [
-    { label: "7 days", value: 7 },
-    { label: "30 days", value: 30 },
-    { label: "1 year", value: 365 }
-  ];
-  pageSize = 8;
+  financeRangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS;
+  financeRanges = APP_CONSTANTS.FINANCE_RANGES;
+  pageSize = APP_CONSTANTS.PAGE_SIZE;
   filters = {
     studentSearch: "",
     studentClass: "",
@@ -47122,8 +47164,8 @@ var AppComponent = class _AppComponent {
   });
   classForm = this.fb.group({
     name: ["", Validators.required],
-    section: ["A", Validators.required],
-    capacity: [40, Validators.required],
+    section: [APP_CONSTANTS.DEFAULT_SECTION, Validators.required],
+    capacity: [APP_CONSTANTS.DEFAULT_CAPACITY, Validators.required],
     academicYear: ["", Validators.required],
     classTeacher: [""],
     monthlyFee: [0, Validators.required]
@@ -47132,7 +47174,7 @@ var AppComponent = class _AppComponent {
     employeeCode: ["", Validators.required],
     firstName: ["", Validators.required],
     lastName: [""],
-    phone: ["", [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    phone: ["", [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     email: [""],
     qualification: [""],
     baseSalary: [0, Validators.required]
@@ -47143,14 +47185,14 @@ var AppComponent = class _AppComponent {
     lastName: [""],
     gender: ["male", Validators.required],
     dateOfBirth: ["", Validators.required],
-    aadhaarNumber: ["", Validators.pattern(/^\d{12}$/)],
+    aadhaarNumber: ["", Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
     line1: ["", Validators.required],
     city: ["", Validators.required],
     state: ["", Validators.required],
     pincode: ["", Validators.required],
     guardianName: ["", Validators.required],
-    guardianRelation: ["Father", Validators.required],
-    guardianPhone: ["", [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    guardianRelation: [APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION, Validators.required],
+    guardianPhone: ["", [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     academicYear: ["", Validators.required],
     classRoom: ["", Validators.required],
     rollNumber: [""],
@@ -47162,7 +47204,7 @@ var AppComponent = class _AppComponent {
     classRoom: ["", Validators.required],
     invoiceNumber: [""],
     dueDate: ["", Validators.required],
-    label: ["Tuition fee", Validators.required],
+    label: [APP_CONSTANTS.DEFAULT_FEE_LABEL, Validators.required],
     amount: [0, Validators.required],
     discount: [0],
     fine: [0]
@@ -47170,7 +47212,7 @@ var AppComponent = class _AppComponent {
   paymentForm = this.fb.group({
     invoiceId: ["", Validators.required],
     amount: [0, Validators.required],
-    mode: ["cash", Validators.required],
+    mode: [PAYMENT_MODES.CASH, Validators.required],
     referenceNumber: [""]
   });
   payrollForm = this.fb.group({
@@ -47191,7 +47233,7 @@ var AppComponent = class _AppComponent {
     classRoom: ["", Validators.required],
     academicYear: ["", Validators.required],
     date: [(/* @__PURE__ */ new Date()).toISOString().slice(0, 10), Validators.required],
-    status: ["present", Validators.required],
+    status: [ATTENDANCE_STATUS.PRESENT, Validators.required],
     remarks: [""]
   });
   timetableForm = this.fb.group({
@@ -47212,9 +47254,9 @@ var AppComponent = class _AppComponent {
     additionalContext: [""],
     academicYear: ["", Validators.required],
     classRoom: ["", Validators.required],
-    difficulty: ["medium", Validators.required],
-    questionCount: [10, Validators.required],
-    durationMinutes: [60, Validators.required]
+    difficulty: [EXAM_DIFFICULTY.MEDIUM, Validators.required],
+    questionCount: [APP_CONSTANTS.DEFAULT_EXAM_QUESTION_COUNT, Validators.required],
+    durationMinutes: [APP_CONSTANTS.DEFAULT_EXAM_DURATION, Validators.required]
   });
   examAttemptForm = this.fb.group({});
   ngOnInit() {
@@ -47905,26 +47947,26 @@ var AppComponent = class _AppComponent {
   }
   readStoredUser() {
     try {
-      return JSON.parse(localStorage.getItem("erp_user") || "null");
+      return JSON.parse(localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY) || "null");
     } catch {
-      localStorage.removeItem("erp_user");
+      localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY);
       return null;
     }
   }
   persistSession(token, user) {
-    localStorage.setItem("erp_token", token);
-    localStorage.setItem("erp_user", JSON.stringify(user));
+    localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY, token);
+    localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     this.token = token;
     this.currentUser = user;
   }
   clearSession() {
-    localStorage.removeItem("erp_token");
-    localStorage.removeItem("erp_user");
+    localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
+    localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY);
     this.token = null;
     this.currentUser = null;
   }
   openProtectedPdf(url) {
-    const token = localStorage.getItem("erp_token");
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
     if (!token)
       return;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then((response) => response.blob()).then((blob) => window.open(URL.createObjectURL(blob), "_blank"));
@@ -49722,7 +49764,7 @@ tbody tr:hover {
 `], encapsulation: 2 });
 };
 (() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(AppComponent, { className: "AppComponent", filePath: "src\\app\\app.component.ts", lineNumber: 48 });
+  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(AppComponent, { className: "AppComponent", filePath: "src\\app\\app.component.ts", lineNumber: 49 });
 })();
 
 // src/main.ts
