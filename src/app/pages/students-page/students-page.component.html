@@ -1,0 +1,87 @@
+<section class="workspace">
+  <form [formGroup]="vm.admissionForm" (ngSubmit)="vm.saveAdmission()" class="panel span-12">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Student</p>
+        <h3>{{ vm.editingStudentId ? 'Update student profile' : 'New admission' }}</h3>
+      </div>
+    </div>
+    <div class="form-grid">
+      <label *ngIf="vm.editingStudentId">Admission no<input formControlName="admissionNumber"></label>
+      <label>First name<input formControlName="firstName"></label>
+      <label>Last name<input formControlName="lastName"></label>
+      <label>Gender<select formControlName="gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
+      <label>Date of birth<input type="date" formControlName="dateOfBirth"></label>
+      <label>Aadhaar no<input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
+      <label>Address<input formControlName="line1"></label>
+      <label>City<input formControlName="city"></label>
+      <label>State<input formControlName="state"></label>
+      <label>Pincode<input formControlName="pincode"></label>
+      <label>Guardian<input formControlName="guardianName"></label>
+      <label>Relation<input formControlName="guardianRelation"></label>
+      <label>Guardian phone<input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Roll no<input formControlName="rollNumber"></label>
+      <label>Previous school<input formControlName="previousSchool"></label>
+      <label>Photo<input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
+      <label>Aadhaar file<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('aadhaar', $event)"></label>
+      <label>Birth certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.admissionForm.invalid">{{ vm.editingStudentId ? 'Update student' : 'Save admission' }}</button>
+    </div>
+  </form>
+
+  <section class="data-card span-8">
+    <div class="section-head"><div><p class="eyebrow">Directory</p><h3>Students</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search admission no or name" [value]="vm.filters.studentSearch" (input)="vm.filters.studentSearch = $any($event.target).value; vm.resetPage('students')"></div>
+      <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.filters.studentClass = $any($event.target).value; vm.resetPage('students')">
+        <option value="">All classes</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Adm no</th><th>Name</th><th>Class</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let student of vm.paged('students', vm.filteredStudents)">
+            <td>{{ student.admissionNumber }}</td>
+            <td>{{ vm.studentName(student) }}</td>
+            <td>{{ vm.enrollmentClassName(student) }}</td>
+            <td><span class="status-badge" [ngClass]="student.status">{{ student.status }}</span></td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="ghost small" (click)="vm.openStudentProfile(student._id)">Profile</button>
+                <button type="button" class="ghost small" (click)="vm.loadStudentDocuments(student._id)">Docs</button>
+                <button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editStudent(student)">Edit</button>
+                <button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteStudent(student._id)">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.filteredStudents.length"><td colspan="5" class="empty-cell">No students found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="students" [items]="vm.filteredStudents"></app-pagination-bar>
+  </section>
+
+  <section class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Documents</p><h3>Document vault</h3></div></div>
+    <label>Select student
+      <select [value]="vm.selectedStudentId" (change)="vm.loadStudentDocuments($any($event.target).value)">
+        <option value="">Choose a student</option>
+        <option *ngFor="let student of vm.students" [value]="student._id">{{ vm.studentName(student) }} · {{ student.admissionNumber }}</option>
+      </select>
+    </label>
+    <div class="document-list" *ngIf="vm.selectedStudentDocuments.length; else noDocuments">
+      <article *ngFor="let document of vm.selectedStudentDocuments" class="document-card">
+        <strong>{{ document.title }}</strong>
+        <span>{{ document.type | titlecase }}</span>
+        <a [href]="document.fileUrl" target="_blank" rel="noopener noreferrer">Open file</a>
+      </article>
+    </div>
+    <ng-template #noDocuments><div class="empty-state">Select a student to review uploaded files.</div></ng-template>
+  </section>
+</section>

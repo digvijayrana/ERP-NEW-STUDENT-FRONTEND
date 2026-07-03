@@ -1,0 +1,35 @@
+<section class="workspace">
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.teacherForm" (ngSubmit)="vm.saveTeacher()" class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Teacher</p><h3>{{ vm.editingTeacherId ? 'Update teacher' : 'Teacher profile' }}</h3></div></div>
+    <label>Employee code<input formControlName="employeeCode"></label>
+    <label>First name<input formControlName="firstName"></label>
+    <label>Last name<input formControlName="lastName"></label>
+    <label>Phone<input formControlName="phone"></label>
+    <label>Email<input formControlName="email"></label>
+    <label>Qualification<input formControlName="qualification"></label>
+    <label>Base salary<input type="number" formControlName="baseSalary"></label>
+    <button type="submit" [disabled]="vm.teacherForm.invalid">{{ vm.editingTeacherId ? 'Update teacher' : 'Save teacher' }}</button>
+  </form>
+
+  <section class="data-card span-8">
+    <div class="section-head"><div><p class="eyebrow">Roster</p><h3>Teacher roster</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search teacher, employee code, phone" [value]="vm.filters.teacherSearch" (input)="vm.filters.teacherSearch = $any($event.target).value; vm.resetPage('teachers')"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Base salary</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let teacher of vm.paged('teachers', vm.filteredTeachers)">
+            <td>{{ vm.teacherName(teacher) }}</td>
+            <td>{{ teacher.phone }}</td>
+            <td>{{ teacher.baseSalary | currency: 'INR' }}</td>
+            <td><div class="table-actions"><button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editTeacher(teacher)">Edit</button><button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteTeacher(teacher._id)">Delete</button></div></td>
+          </tr>
+          <tr *ngIf="!vm.filteredTeachers.length"><td colspan="4" class="empty-cell">No teachers found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.filteredTeachers"></app-pagination-bar>
+  </section>
+</section>

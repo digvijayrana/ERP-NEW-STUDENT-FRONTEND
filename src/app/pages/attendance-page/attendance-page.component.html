@@ -1,0 +1,41 @@
+<section class="workspace">
+  <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.attendanceForm" (ngSubmit)="vm.saveAttendance()" class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Mark attendance</h3></div></div>
+    <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+    <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+    <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+    <label>Date<input type="date" formControlName="date"></label>
+    <label>Status<select formControlName="status"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option><option value="half_day">Half day</option></select></label>
+    <label>Remarks<input formControlName="remarks"></label>
+    <button type="submit" [disabled]="vm.attendanceForm.invalid">Save attendance</button>
+  </form>
+
+  <section class="data-card" [class.span-8]="vm.isAdmin || vm.isTeacher" [class.span-12]="vm.isStudent || vm.isParent">
+    <div class="section-head"><div><p class="eyebrow">Records</p><h3>Attendance records</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search student, class, status" [value]="vm.filters.attendanceSearch" (input)="vm.filters.attendanceSearch = $any($event.target).value; vm.resetPage('attendance')"></div>
+      <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('attendance')">
+        <option value="">All status</option>
+        <option value="present">Present</option>
+        <option value="absent">Absent</option>
+        <option value="late">Late</option>
+        <option value="half_day">Half day</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of vm.paged('attendance', vm.filteredAttendance)">
+            <td>{{ row.date | date }}</td>
+            <td>{{ vm.studentName(row.student) }}</td>
+            <td>{{ vm.className(row.classRoom) }}</td>
+            <td><span class="status-badge" [ngClass]="row.status">{{ row.status }}</span></td>
+          </tr>
+          <tr *ngIf="!vm.filteredAttendance.length"><td colspan="4" class="empty-cell">No attendance records</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+  </section>
+</section>

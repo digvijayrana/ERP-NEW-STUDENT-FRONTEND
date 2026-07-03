@@ -1,0 +1,143 @@
+<section class="workspace dashboard-view">
+  <div class="page-hero">
+    <div>
+      <p class="eyebrow">Executive overview</p>
+      <h3>{{ vm.isAdmin ? 'School command center' : vm.isTeacher ? 'Teacher workspace' : vm.isParent ? 'Parent dashboard' : 'Student portal' }}</h3>
+      <p>Track students, revenue, exams, attendance, and academic operations from one structured workspace.</p>
+    </div>
+    <div class="segmented">
+      <button *ngFor="let range of vm.financeRanges" type="button" [class.active]="vm.financeRangeDays === range.value" (click)="vm.setFinanceRange(range.value)">
+        {{ range.label }}
+      </button>
+    </div>
+  </div>
+
+  <div class="metrics-grid">
+    <article class="metric-card" *ngIf="vm.summary"><span>Students</span><strong>{{ vm.summary.students }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary && !vm.isStudent && !vm.isParent"><span>Teachers</span><strong>{{ vm.summary.teachers }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary && !vm.isStudent && !vm.isParent"><span>Total revenue</span><strong>{{ vm.summary.feeCollected | currency: 'INR' }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary"><span>Fee due</span><strong>{{ vm.summary.feeDue | currency: 'INR' }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary && vm.isAdmin"><span>Payroll</span><strong>{{ vm.summary.payrollDue | currency: 'INR' }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary && vm.summary.exams !== undefined"><span>Exams</span><strong>{{ vm.summary.exams }}</strong></article>
+    <article class="metric-card" *ngIf="vm.summary && vm.summary.averageExamScore !== undefined"><span>Avg exam score</span><strong>{{ vm.summary.averageExamScore }}%</strong></article>
+  </div>
+
+  <section class="panel span-12">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Quick action</p>
+        <h3>Open module</h3>
+      </div>
+    </div>
+    <div class="module-card-grid">
+      <button type="button" class="module-card" *ngIf="vm.isAdmin || vm.isTeacher" (click)="vm.setTab('students')"><strong>Admissions</strong><span>Student records</span></button>
+      <button type="button" class="module-card" *ngIf="vm.isAdmin || vm.isTeacher" (click)="vm.setTab('classes')"><strong>Classes</strong><span>Sections & fees</span></button>
+      <button type="button" class="module-card" (click)="vm.setTab('fees')"><strong>Fees</strong><span>Invoices & dues</span></button>
+      <button type="button" class="module-card" *ngIf="vm.isAdmin" (click)="vm.setTab('payroll')"><strong>Payroll</strong><span>Teacher salaries</span></button>
+      <button type="button" class="module-card" (click)="vm.setTab('exams')"><strong>AI Exams</strong><span>Unit tests</span></button>
+      <button type="button" class="module-card" (click)="vm.setTab('profile')"><strong>Profiles</strong><span>AI student insights</span></button>
+      <button type="button" class="module-card" (click)="vm.setTab('attendance')"><strong>Attendance</strong><span>Daily records</span></button>
+    </div>
+  </section>
+
+  <section class="data-card span-8">
+    <div class="section-head">
+      <div><p class="eyebrow">Students</p><h3>Student directory</h3></div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search admission no or name" [value]="vm.filters.studentSearch" (input)="vm.filters.studentSearch = $any($event.target).value; vm.resetPage('dashboardStudents')"></div>
+      <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.filters.studentClass = $any($event.target).value; vm.resetPage('dashboardStudents')">
+        <option value="">All classes</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Adm no</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let student of vm.paged('dashboardStudents', vm.filteredStudents)">
+            <td>{{ student.admissionNumber }}</td>
+            <td>{{ vm.studentName(student) }}</td>
+            <td>{{ vm.enrollmentClassName(student) }}</td>
+            <td><span class="status-badge" [ngClass]="student.status">{{ student.status }}</span></td>
+          </tr>
+          <tr *ngIf="!vm.filteredStudents.length"><td colspan="4" class="empty-cell">No students found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="dashboardStudents" [items]="vm.filteredStudents"></app-pagination-bar>
+  </section>
+
+  <section class="data-card span-4" *ngIf="!vm.isStudent && !vm.isParent">
+    <div class="section-head"><div><p class="eyebrow">Teachers</p><h3>Roster</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search teacher" [value]="vm.filters.teacherSearch" (input)="vm.filters.teacherSearch = $any($event.target).value; vm.resetPage('dashboardTeachers')"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Salary</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let teacher of vm.paged('dashboardTeachers', vm.filteredTeachers)">
+            <td>{{ vm.teacherName(teacher) }}</td>
+            <td>{{ teacher.baseSalary | currency: 'INR' }}</td>
+          </tr>
+          <tr *ngIf="!vm.filteredTeachers.length"><td colspan="2" class="empty-cell">No teachers found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="dashboardTeachers" [items]="vm.filteredTeachers"></app-pagination-bar>
+  </section>
+
+  <section class="data-card span-7" *ngIf="vm.isAdmin">
+    <div class="section-head"><div><p class="eyebrow">Payroll</p><h3>Payroll search</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search teacher" [value]="vm.filters.payrollSearch" (input)="vm.filters.payrollSearch = $any($event.target).value; vm.resetPage('dashboardPayroll')"></div>
+      <select class="filter-select" [value]="vm.filters.payrollStatus" (change)="vm.filters.payrollStatus = $any($event.target).value; vm.resetPage('dashboardPayroll')">
+        <option value="">All status</option><option value="pending">Pending</option><option value="paid">Paid</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Teacher</th><th>Month</th><th>Net</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let payroll of vm.paged('dashboardPayroll', vm.filteredPayrolls)">
+            <td>{{ vm.payrollTeacherName(payroll.teacher) }}</td>
+            <td>{{ vm.getMonthName(payroll.month) }} {{ payroll.year }}</td>
+            <td>{{ (payroll.basicSalary + payroll.allowances - payroll.deductions) | currency: 'INR' }}</td>
+            <td><span class="status-badge" [ngClass]="payroll.status">{{ payroll.status }}</span></td>
+          </tr>
+          <tr *ngIf="!vm.filteredPayrolls.length"><td colspan="4" class="empty-cell">No payroll records</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="dashboardPayroll" [items]="vm.filteredPayrolls"></app-pagination-bar>
+  </section>
+
+  <section class="data-card" [class.span-5]="vm.isAdmin" [class.span-12]="!vm.isAdmin">
+    <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Recent records</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search attendance" [value]="vm.filters.attendanceSearch" (input)="vm.filters.attendanceSearch = $any($event.target).value; vm.resetPage('dashboardAttendance')"></div>
+      <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('dashboardAttendance')">
+        <option value="">All status</option>
+        <option value="present">Present</option>
+        <option value="absent">Absent</option>
+        <option value="late">Late</option>
+        <option value="half_day">Half day</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let record of vm.paged('dashboardAttendance', vm.filteredAttendance)">
+            <td>{{ vm.studentName(record.student) }}</td>
+            <td><span class="status-badge" [ngClass]="record.status">{{ record.status }}</span></td>
+            <td>{{ record.date | date }}</td>
+          </tr>
+          <tr *ngIf="!vm.filteredAttendance.length"><td colspan="3" class="empty-cell">No attendance records</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="dashboardAttendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+  </section>
+</section>

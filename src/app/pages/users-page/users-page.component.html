@@ -1,0 +1,42 @@
+<section class="workspace">
+  <form [formGroup]="vm.userForm" (ngSubmit)="vm.saveUser()" class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Access</p><h3>Create role login</h3></div></div>
+    <label>Name<input formControlName="name"></label>
+    <label>Email<input type="email" formControlName="email"></label>
+    <label>Password<input type="password" formControlName="password"></label>
+    <label>Role<select formControlName="role"><option value="admin">Admin</option><option value="teacher">Teacher</option><option value="student">Student</option><option value="parent">Parent / Guardian</option></select></label>
+    <label>Teacher profile<select formControlName="teacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
+    <label>Student profile<select formControlName="student"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+    <label>Linked child (for parent)<select formControlName="linkedStudent"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+    <button type="submit" [disabled]="vm.userForm.invalid">Create account</button>
+  </form>
+
+  <section class="data-card span-8">
+    <div class="section-head"><div><p class="eyebrow">Accounts</p><h3>User directory</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search name or email" [value]="vm.filters.userSearch" (input)="vm.filters.userSearch = $any($event.target).value; vm.resetPage('users')"></div>
+      <select class="filter-select" [value]="vm.filters.userRole" (change)="vm.filters.userRole = $any($event.target).value; vm.resetPage('users')">
+        <option value="">All roles</option>
+        <option value="admin">Admin</option>
+        <option value="teacher">Teacher</option>
+        <option value="student">Student</option>
+        <option value="parent">Parent</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let user of vm.paged('users', vm.filteredUsers)">
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td><span class="role-pill small" [attr.data-role]="user.role">{{ user.role }}</span></td>
+            <td><span class="status-badge" [ngClass]="user.isActive === false ? 'inactive' : 'active'">{{ user.isActive === false ? 'inactive' : 'active' }}</span></td>
+          </tr>
+          <tr *ngIf="!vm.filteredUsers.length"><td colspan="4" class="empty-cell">No user accounts found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="users" [items]="vm.filteredUsers"></app-pagination-bar>
+  </section>
+</section>

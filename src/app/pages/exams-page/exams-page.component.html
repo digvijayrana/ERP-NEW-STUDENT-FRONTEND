@@ -1,0 +1,145 @@
+<section class="workspace">
+  <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.examForm" (ngSubmit)="vm.generateExamPaper()" class="panel span-4 form-card">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">AI Unit Test</p>
+        <h3>Generate exam from chapter</h3>
+      </div>
+    </div>
+    <label>Exam title<input formControlName="title" placeholder="Chapter 5 Unit Test"></label>
+    <label>Subject<input formControlName="subject" placeholder="Mathematics"></label>
+    <label>Chapter<input formControlName="chapter" placeholder="Fractions"></label>
+    <label>Book reference<input formControlName="bookReference" placeholder="NCERT Class 8"></label>
+    <label>Additional context<textarea formControlName="additionalContext" rows="2" placeholder="Focus on word problems"></textarea></label>
+    <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+    <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+    <label>Difficulty<select formControlName="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></label>
+    <label>Question count<input type="number" formControlName="questionCount" min="3" max="20"></label>
+    <label>Duration (minutes)<input type="number" formControlName="durationMinutes" min="5"></label>
+    <button type="submit" [disabled]="vm.examForm.invalid || vm.generatingExam">{{ vm.generatingExam ? 'Generating...' : 'Generate with AI' }}</button>
+  </form>
+
+  <section class="data-card" [class.span-8]="vm.isAdmin || vm.isTeacher" [class.span-12]="vm.isStudent || vm.isParent">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">{{ vm.isStudent ? 'My exams' : vm.isParent ? 'Child exams' : 'Exam papers' }}</p>
+        <h3>{{ vm.isStudent ? 'Available unit tests' : vm.isParent ? 'Child performance' : 'Exam library' }}</h3>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search title, subject, chapter" [value]="vm.filters.examSearch" (input)="vm.filters.examSearch = $any($event.target).value; vm.resetPage('exams')"></div>
+      <select class="filter-select" [value]="vm.filters.examStatus" (change)="vm.filters.examStatus = $any($event.target).value; vm.resetPage('exams')">
+        <option value="">All status</option>
+        <option value="draft">Draft</option>
+        <option value="published">Published</option>
+        <option value="closed">Closed</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th><th>Subject</th><th>Chapter</th><th>Class</th><th>Marks</th><th>Status</th>
+            <th *ngIf="vm.isAdmin || vm.isTeacher">Actions</th>
+            <th *ngIf="vm.isStudent">Attempt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let exam of vm.paged('exams', vm.filteredExams)">
+            <td>{{ exam.title }}</td>
+            <td>{{ exam.subject }}</td>
+            <td>{{ exam.chapter }}</td>
+            <td>{{ vm.className(exam.classRoom) }}</td>
+            <td>{{ exam.totalMarks }}</td>
+            <td><span class="status-badge" [ngClass]="exam.status">{{ exam.status }}</span></td>
+            <td *ngIf="vm.isAdmin || vm.isTeacher">
+              <div class="table-actions">
+                <button type="button" class="ghost small" *ngIf="exam.status === 'draft'" (click)="vm.publishExamPaper(exam._id)">Publish</button>
+                <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.closeExamPaper(exam._id)">Close</button>
+                <button type="button" class="ghost small" (click)="vm.viewExamReport(exam._id)">Report</button>
+                <button type="button" class="danger-btn small" *ngIf="exam.status === 'draft'" (click)="vm.deleteExamPaper(exam._id)">Delete</button>
+              </div>
+            </td>
+            <td *ngIf="vm.isStudent">
+              <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.startExam(exam._id)">Start</button>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.filteredExams.length"><td colspan="7" class="empty-cell">No exams found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="exams" [items]="vm.filteredExams"></app-pagination-bar>
+  </section>
+
+  <section class="panel span-12 live-exam-card" *ngIf="vm.activeExamAttempt">
+    <div class="section-head">
+      <div><p class="eyebrow">Live attempt</p><h3>{{ vm.activeExamAttempt.exam.title }}</h3></div>
+    </div>
+    <form [formGroup]="vm.examAttemptForm" (ngSubmit)="vm.submitExam()">
+      <div *ngFor="let question of vm.activeExamAttempt.exam.questions; let i = index" class="question-block">
+        <p><strong>Q{{ i + 1 }}.</strong> {{ question.text }} <span class="muted">({{ question.marks }} mark{{ question.marks > 1 ? 's' : '' }})</span></p>
+        <div *ngIf="question.type === 'mcq' || question.type === 'true_false'">
+          <label *ngFor="let option of question.options" class="option-row">
+            <input type="radio" [value]="option" [formControlName]="'q_' + question._id"> {{ option }}
+          </label>
+        </div>
+        <label *ngIf="question.type === 'short_answer'">Your answer<textarea [formControlName]="'q_' + question._id" rows="2"></textarea></label>
+      </div>
+      <button type="submit">Submit exam</button>
+    </form>
+  </section>
+
+  <section class="data-card span-12 results-section">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Results</p>
+        <h3>Student reports & scores</h3>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search student or exam" [value]="vm.filters.examResultSearch" (input)="vm.filters.examResultSearch = $any($event.target).value; vm.resetPage('examResults')"></div>
+      <select class="filter-select" [value]="vm.filters.examResultGrade" (change)="vm.filters.examResultGrade = $any($event.target).value; vm.resetPage('examResults')">
+        <option value="">All grades</option>
+        <option value="A+">A+</option><option value="A">A</option><option value="B+">B+</option>
+        <option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="F">F</option>
+      </select>
+    </div>
+
+    <div class="score-card-grid" *ngIf="vm.filteredExamResults.length; else noResults">
+      <article class="score-card result-card" *ngFor="let result of vm.paged('examResults', vm.filteredExamResults)" [class.pass]="result.percentage >= 40" [class.fail]="result.percentage < 40">
+        <div class="score-card-top">
+          <span class="student-tag">{{ vm.studentName(result.student) }}</span>
+          <span class="grade-badge" [class.high]="result.percentage >= 75">{{ result.grade || '—' }}</span>
+        </div>
+        <h4>{{ vm.examTitle(result.exam) }}</h4>
+        <div class="score-bar-wrap"><div class="score-bar" [style.width.%]="result.percentage"></div></div>
+        <div class="score-footer">
+          <strong>{{ result.score }}/{{ result.maxScore }}</strong>
+          <span class="percent-pill">{{ result.percentage }}%</span>
+        </div>
+        <small>{{ result.submittedAt | date:'medium' }}</small>
+      </article>
+    </div>
+    <ng-template #noResults>
+      <div class="premium-empty">
+        <strong>No exam results yet</strong>
+        <span>Publish a unit test and have students attempt it to see scores here.</span>
+      </div>
+    </ng-template>
+    <app-pagination-bar [vm]="vm" listKey="examResults" [items]="vm.filteredExamResults"></app-pagination-bar>
+  </section>
+
+  <section class="panel span-12 report-panel" *ngIf="vm.examReport">
+    <div class="section-head">
+      <div><p class="eyebrow">Class report</p><h3>{{ vm.examReport.exam.title }} — performance summary</h3></div>
+      <button type="button" class="ghost small" (click)="vm.examReport = null">Close</button>
+    </div>
+    <div class="metrics-grid">
+      <article class="metric-card accent-blue"><span>Attempted</span><strong>{{ vm.examReport.summary.attempted }}</strong></article>
+      <article class="metric-card accent-teal"><span>Average</span><strong>{{ vm.examReport.summary.averageScore }}%</strong></article>
+      <article class="metric-card accent-green"><span>Pass rate</span><strong>{{ vm.examReport.summary.passRate }}%</strong></article>
+      <article class="metric-card accent-purple"><span>Highest</span><strong>{{ vm.examReport.summary.highestScore }}%</strong></article>
+      <article class="metric-card accent-orange"><span>Lowest</span><strong>{{ vm.examReport.summary.lowestScore }}%</strong></article>
+    </div>
+  </section>
+</section>

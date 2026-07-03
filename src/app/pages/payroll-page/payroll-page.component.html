@@ -1,0 +1,38 @@
+<section class="workspace">
+  <form [formGroup]="vm.payrollForm" (ngSubmit)="vm.savePayroll()" class="panel span-12">
+    <div class="section-head"><div><p class="eyebrow">Payroll</p><h3>{{ vm.editingPayrollId ? 'Update payroll' : 'Payroll planner' }}</h3></div></div>
+    <div class="form-grid compact">
+      <label>Teacher<select formControlName="teacher"><option value="">Select</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
+      <label>Month<input type="number" min="1" max="12" formControlName="month"></label>
+      <label>Year<input type="number" formControlName="year"></label>
+      <label>Basic salary<input type="number" formControlName="basicSalary"></label>
+      <label>Allowances<input type="number" formControlName="allowances"></label>
+      <label>Deductions<input type="number" formControlName="deductions"></label>
+    </div>
+    <button type="submit" [disabled]="vm.payrollForm.invalid">{{ vm.editingPayrollId ? 'Update payroll' : 'Create payroll' }}</button>
+  </form>
+
+  <section class="data-card span-12">
+    <div class="section-head"><div><p class="eyebrow">Teacher payroll</p><h3>Payroll records</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search payroll" [value]="vm.filters.payrollSearch" (input)="vm.filters.payrollSearch = $any($event.target).value; vm.resetPage('payroll')"></div>
+      <select class="filter-select" [value]="vm.filters.payrollStatus" (change)="vm.filters.payrollStatus = $any($event.target).value; vm.resetPage('payroll')"><option value="">All status</option><option value="pending">Pending</option><option value="paid">Paid</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Teacher</th><th>Month</th><th>Net salary</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let payroll of vm.paged('payroll', vm.filteredPayrolls)">
+            <td>{{ vm.payrollTeacherName(payroll.teacher) }}</td>
+            <td>{{ vm.getMonthName(payroll.month) }} {{ payroll.year }}</td>
+            <td>{{ (payroll.basicSalary + payroll.allowances - payroll.deductions) | currency: 'INR' }}</td>
+            <td><span class="status-badge" [ngClass]="payroll.status">{{ payroll.status }}</span></td>
+            <td><div class="table-actions"><button type="button" class="ghost small" (click)="vm.openPayrollPdf(payroll._id)">PDF</button><button type="button" class="ghost small" (click)="vm.editPayroll(payroll)">Edit</button><button type="button" class="danger-btn small" (click)="vm.deletePayroll(payroll._id)">Delete</button></div></td>
+          </tr>
+          <tr *ngIf="!vm.filteredPayrolls.length"><td colspan="5" class="empty-cell">No payroll records</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="payroll" [items]="vm.filteredPayrolls"></app-pagination-bar>
+  </section>
+</section>

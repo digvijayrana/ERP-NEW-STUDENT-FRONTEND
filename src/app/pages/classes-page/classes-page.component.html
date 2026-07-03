@@ -1,0 +1,45 @@
+<section class="workspace">
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.academicYearForm" (ngSubmit)="vm.saveAcademicYear()" class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Academic</p><h3>Academic year</h3></div></div>
+    <label>Name<input formControlName="name" placeholder="2026-2027"></label>
+    <label>Start<input type="date" formControlName="startDate"></label>
+    <label>End<input type="date" formControlName="endDate"></label>
+    <label class="inline"><input type="checkbox" formControlName="isActive"> Active year</label>
+    <button type="submit" [disabled]="vm.academicYearForm.invalid">Save year</button>
+  </form>
+
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.classForm" (ngSubmit)="vm.saveClass()" class="panel span-8">
+    <div class="section-head"><div><p class="eyebrow">Class & section</p><h3>{{ vm.editingClassId ? 'Update class' : 'Class configuration' }}</h3></div></div>
+    <div class="form-grid compact">
+      <label>Class<input formControlName="name" placeholder="1, 2, 10"></label>
+      <label>Section<input formControlName="section"></label>
+      <label>Capacity<input type="number" formControlName="capacity"></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class teacher<select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
+      <label>Monthly fee<input type="number" formControlName="monthlyFee"></label>
+    </div>
+    <button type="submit" [disabled]="vm.classForm.invalid">{{ vm.editingClassId ? 'Update class' : 'Save class' }}</button>
+  </form>
+
+  <section class="data-card span-12">
+    <div class="section-head"><div><p class="eyebrow">Overview</p><h3>Classes and sections</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search class or teacher" [value]="vm.filters.classSearch" (input)="vm.filters.classSearch = $any($event.target).value; vm.resetPage('classes')"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Class</th><th>Teacher</th><th>Monthly fee</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let room of vm.paged('classes', vm.filteredClasses)">
+            <td>{{ room.name }}-{{ room.section }}</td>
+            <td>{{ vm.teacherName(room.classTeacher) }}</td>
+            <td>{{ room.monthlyFee | currency: 'INR' }}</td>
+            <td><div class="table-actions"><button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editClass(room)">Edit</button><button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteClass(room._id)">Delete</button></div></td>
+          </tr>
+          <tr *ngIf="!vm.filteredClasses.length"><td colspan="4" class="empty-cell">No classes found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="classes" [items]="vm.filteredClasses"></app-pagination-bar>
+  </section>
+</section>

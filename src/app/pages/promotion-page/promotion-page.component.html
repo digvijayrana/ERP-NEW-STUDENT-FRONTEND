@@ -1,0 +1,32 @@
+<section class="workspace">
+  <form [formGroup]="vm.promotionForm" (ngSubmit)="vm.promoteStudents()" class="panel span-4">
+    <div class="section-head"><div><p class="eyebrow">Promotion</p><h3>Promote students</h3></div></div>
+    <label>From year<select formControlName="fromAcademicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+    <label>To year<select formControlName="toAcademicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+    <label>To class<select formControlName="toClassRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+    <button type="submit" [disabled]="vm.promotionForm.invalid || vm.selectedStudentIds.size === 0">Promote selected ({{ vm.selectedStudentIds.size }})</button>
+  </form>
+
+  <section class="data-card span-8">
+    <div class="section-head"><div><p class="eyebrow">Selection</p><h3>Select students</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search students" [value]="vm.filters.studentSearch" (input)="vm.filters.studentSearch = $any($event.target).value; vm.resetPage('promotion')"></div>
+      <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.filters.studentClass = $any($event.target).value; vm.resetPage('promotion')"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Admission</th><th>Name</th><th>Class</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let student of vm.paged('promotion', vm.filteredStudents)">
+            <td><input type="checkbox" (change)="vm.toggleStudent(student._id, $any($event.target).checked)"></td>
+            <td>{{ student.admissionNumber }}</td>
+            <td>{{ vm.studentName(student) }}</td>
+            <td>{{ vm.enrollmentClassName(student) }}</td>
+          </tr>
+          <tr *ngIf="!vm.filteredStudents.length"><td colspan="4" class="empty-cell">No students found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="promotion" [items]="vm.filteredStudents"></app-pagination-bar>
+  </section>
+</section>

@@ -1,0 +1,49 @@
+<section class="workspace">
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.feeForm" (ngSubmit)="vm.saveFeeInvoice()" class="panel span-6">
+    <div class="section-head"><div><p class="eyebrow">Fees</p><h3>Create invoice</h3></div></div>
+    <div class="form-grid compact">
+      <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Due date<input type="date" formControlName="dueDate"></label>
+      <label>Fee label<input formControlName="label"></label>
+      <label>Amount<input type="number" formControlName="amount"></label>
+      <label>Discount<input type="number" formControlName="discount"></label>
+      <label>Fine<input type="number" formControlName="fine"></label>
+    </div>
+    <button type="submit" [disabled]="vm.feeForm.invalid">Create invoice</button>
+  </form>
+
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.paymentForm" (ngSubmit)="vm.savePayment()" class="panel span-6">
+    <div class="section-head"><div><p class="eyebrow">Collection</p><h3>Collect payment</h3></div></div>
+    <label>Invoice<select formControlName="invoiceId"><option value="">Select</option><option *ngFor="let invoice of vm.invoices" [value]="invoice._id">{{ invoice.invoiceNumber }} - {{ invoice.balanceAmount | currency: 'INR' }}</option></select></label>
+    <label>Amount<input type="number" formControlName="amount"></label>
+    <label>Mode<select formControlName="mode"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option></select></label>
+    <label>Reference<input formControlName="referenceNumber"></label>
+    <button type="submit" [disabled]="vm.paymentForm.invalid">Record payment</button>
+  </form>
+
+  <section class="data-card span-12">
+    <div class="section-head"><div><p class="eyebrow">Invoices</p><h3>Fee invoices</h3></div></div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search invoice or student" [value]="vm.filters.invoiceSearch" (input)="vm.filters.invoiceSearch = $any($event.target).value; vm.resetPage('invoices')"></div>
+      <select class="filter-select" [value]="vm.filters.invoiceStatus" (change)="vm.filters.invoiceStatus = $any($event.target).value; vm.resetPage('invoices')"><option value="">All status</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>No</th><th>Student</th><th>Status</th><th>Balance</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let invoice of vm.paged('invoices', vm.filteredInvoices)">
+            <td>{{ invoice.invoiceNumber }}</td>
+            <td>{{ vm.studentName(invoice.student) }}</td>
+            <td><span class="status-badge" [ngClass]="invoice.status">{{ invoice.status }}</span></td>
+            <td>{{ invoice.balanceAmount | currency: 'INR' }}</td>
+            <td><button type="button" class="ghost small" (click)="vm.openInvoicePdf(invoice._id)">PDF</button></td>
+          </tr>
+          <tr *ngIf="!vm.filteredInvoices.length"><td colspan="5" class="empty-cell">No invoices found</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="invoices" [items]="vm.filteredInvoices"></app-pagination-bar>
+  </section>
+</section>

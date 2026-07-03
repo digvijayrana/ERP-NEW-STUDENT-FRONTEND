@@ -1,0 +1,126 @@
+<main class="login-shell" *ngIf="!currentUser">
+  <div class="login-layout">
+    <aside class="login-brand-panel">
+      <div class="login-brand-content">
+        <p class="eyebrow">CampusFlow ERP</p>
+        <h1>Smart school management</h1>
+        <p class="login-copy">Admissions, fees, payroll, AI exams, and parent insights — all in one place.</p>
+      </div>
+
+      <div class="role-grid" role="listbox" aria-label="Select your role">
+        <button
+          *ngFor="let role of loginRoles"
+          type="button"
+          class="role-card"
+          [class.active]="selectedLoginRole === role.key"
+          (click)="selectLoginRole(role.key)"
+        >
+          <span class="role-icon" [attr.data-role]="role.key" aria-hidden="true"></span>
+          <strong>{{ role.label }}</strong>
+          <span>{{ role.description }}</span>
+        </button>
+      </div>
+    </aside>
+
+    <section class="login-card">
+      <div class="login-card-header">
+        <span class="role-pill" [attr.data-role]="selectedLoginRole">{{ selectedRoleLabel }} login</span>
+        <h2>Welcome back</h2>
+        <p class="login-hint">{{ selectedRoleHint }}</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <label class="field-label">
+          <span>Email address</span>
+          <input type="email" formControlName="email" [placeholder]="selectedRolePlaceholder" autocomplete="username">
+        </label>
+        <label class="field-label">
+          <span>Password</span>
+          <input type="password" formControlName="password" placeholder="Enter your password" autocomplete="current-password">
+        </label>
+        <button type="submit" class="login-submit" [disabled]="loginForm.invalid">
+          Sign in as {{ selectedRoleLabel }}
+        </button>
+      </form>
+
+      <p class="status error" *ngIf="message">{{ message }}</p>
+      <p class="login-footer-note">Default admin: admin&#64;schoolerp.local / Admin&#64;12345</p>
+    </section>
+  </div>
+</main>
+
+<main class="app-shell" *ngIf="currentUser">
+  <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
+    <div class="sidebar-header">
+      <div class="brand-block">
+        <p class="eyebrow">School ERP</p>
+        <h1 class="brand-full">CampusFlow</h1>
+        <span class="brand-short">CF</span>
+      </div>
+      <button type="button" class="icon-button sidebar-toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+        <span aria-hidden="true">{{ isSidebarCollapsed ? '>' : '<' }}</span>
+      </button>
+    </div>
+
+    <nav class="nav-list" aria-label="ERP modules">
+      <button *ngFor="let tab of tabs" type="button" [class.active]="activeTab === tab.key" (click)="setTab(tab.key)">
+        <span class="nav-icon" [attr.data-icon]="tab.icon" aria-hidden="true"></span>
+        <span class="nav-label">{{ tab.label }}</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-profile card-soft">
+      <p class="eyebrow">Signed in</p>
+      <strong>{{ currentUser.name }}</strong>
+      <span class="role-pill small" [attr.data-role]="currentUser.role">{{ roleLabel }}</span>
+    </div>
+  </aside>
+
+  <section class="main-panel">
+    <header class="topbar">
+      <div class="topbar-title">
+        <p class="eyebrow">{{ activeTabLabel }}</p>
+        <h2>{{ workspaceTitle }}</h2>
+        <p>{{ currentUser.name }} &middot; <span class="role-pill inline" [attr.data-role]="currentUser.role">{{ roleLabel }}</span></p>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="ghost action-button refresh-button" (click)="refresh()" [disabled]="loading">
+          <span class="button-icon" data-icon="refresh" aria-hidden="true"></span>
+          <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
+        </button>
+        <div class="profile-menu-wrap" [class.open]="isProfileMenuOpen">
+          <button type="button" class="profile-trigger" (click)="toggleProfileMenu()">
+            <span class="avatar" [attr.data-role]="currentUser.role">{{ currentUser.name.charAt(0) || 'U' }}</span>
+            <span class="profile-name">{{ currentUser.name }}</span>
+            <span class="chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="profile-menu" *ngIf="isProfileMenuOpen">
+            <div class="profile-menu-header">
+              <strong>{{ currentUser.name }}</strong>
+              <span class="role-pill small" [attr.data-role]="currentUser.role">{{ roleLabel }}</span>
+            </div>
+            <button type="button" class="menu-item" (click)="openMyProfile(); closeProfileMenu()">My profile</button>
+            <button type="button" class="menu-item danger" (click)="logout()">Logout</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="toast success" *ngIf="message && currentUser">{{ message }}</div>
+    <div class="toast muted" *ngIf="loading">Loading workspace data...</div>
+
+    <app-dashboard-page *ngIf="activeTab === 'dashboard'" [vm]="pageVm"></app-dashboard-page>
+    <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
+    <app-classes-page *ngIf="activeTab === 'classes'" [vm]="pageVm"></app-classes-page>
+    <app-teachers-page *ngIf="activeTab === 'teachers'" [vm]="pageVm"></app-teachers-page>
+    <app-fees-page *ngIf="activeTab === 'fees'" [vm]="pageVm"></app-fees-page>
+    <app-payroll-page *ngIf="activeTab === 'payroll'" [vm]="pageVm"></app-payroll-page>
+    <app-promotion-page *ngIf="activeTab === 'promotion'" [vm]="pageVm"></app-promotion-page>
+    <app-attendance-page *ngIf="activeTab === 'attendance'" [vm]="pageVm"></app-attendance-page>
+    <app-timetable-page *ngIf="activeTab === 'timetable'" [vm]="pageVm"></app-timetable-page>
+    <app-exams-page *ngIf="activeTab === 'exams'" [vm]="pageVm"></app-exams-page>
+    <app-student-profile-page *ngIf="activeTab === 'profile'" [vm]="pageVm"></app-student-profile-page>
+    <app-users-page *ngIf="activeTab === 'users'" [vm]="pageVm"></app-users-page>
+  </section>
+</main>

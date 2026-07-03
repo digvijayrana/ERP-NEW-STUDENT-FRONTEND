@@ -1,0 +1,166 @@
+<section class="workspace profile-view">
+  <div class="profile-selector panel span-12" *ngIf="vm.isAdmin || vm.isTeacher">
+    <div class="section-head">
+      <div><p class="eyebrow">Student profile</p><h3>Select a student to view full report</h3></div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box"><input placeholder="Search student" [value]="vm.filters.profileSearch" (input)="vm.filters.profileSearch = $any($event.target).value"></div>
+      <select class="filter-select" [value]="vm.profileStudentId" (change)="vm.loadStudentProfile($any($event.target).value)">
+        <option value="">Choose student</option>
+        <option *ngFor="let student of vm.profileStudentOptions" [value]="student._id">{{ student.admissionNumber }} — {{ vm.studentName(student) }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="empty-state premium-empty span-12" *ngIf="!vm.studentProfile && !vm.profileLoading">
+    <strong>No student profile loaded</strong>
+    <span *ngIf="vm.isStudent || vm.isParent">Your profile will load automatically.</span>
+    <span *ngIf="vm.isAdmin || vm.isTeacher">Select a student from the dropdown above.</span>
+  </div>
+
+  <div class="toast muted span-12" *ngIf="vm.profileLoading">Loading student profile and AI insights...</div>
+
+  <ng-container *ngIf="vm.studentProfile as p">
+    <section class="profile-hero span-12">
+      <div class="profile-hero-left">
+        <div class="profile-avatar" [class.has-photo]="p.student.photoUrl">
+          <img *ngIf="p.student.photoUrl" [src]="p.student.photoUrl" alt="Student photo">
+          <span *ngIf="!p.student.photoUrl">{{ p.student.firstName.charAt(0) }}{{ p.student.lastName?.charAt(0) || '' }}</span>
+        </div>
+        <div>
+          <p class="eyebrow">Student profile</p>
+          <h3>{{ vm.studentName(p.student) }}</h3>
+          <div class="profile-meta-row">
+            <span class="meta-chip">ID: {{ p.student.admissionNumber }}</span>
+            <span class="meta-chip">Class: {{ p.academic.className }}</span>
+            <span class="meta-chip">Roll: {{ p.academic.rollNumber }}</span>
+            <span class="status-badge" [ngClass]="p.student.status">{{ p.student.status }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="ai-rating-card" [attr.data-rating]="p.aiInsights.performanceRating">
+        <span class="eyebrow">AI performance rating</span>
+        <strong class="ai-score">{{ p.aiInsights.ratingScore }}<small>/100</small></strong>
+        <span class="rating-label">{{ p.aiInsights.performanceRating | titlecase }}</span>
+      </div>
+    </section>
+
+    <div class="metrics-grid span-12">
+      <article class="metric-card accent-blue"><span>Attendance</span><strong>{{ p.attendance.percentage }}%</strong><small>{{ p.attendance.present }} present · {{ p.attendance.absent }} absent</small></article>
+      <article class="metric-card accent-teal"><span>Avg exam score</span><strong>{{ p.academics.averageScore }}%</strong><small>{{ p.academics.examCount }} exams taken</small></article>
+      <article class="metric-card accent-purple"><span>Class rank</span><strong>{{ p.academic.classRank || '—' }}</strong><small>Among classmates</small></article>
+      <article class="metric-card accent-orange"><span>Fee status</span><strong>{{ p.fees.status | titlecase }}</strong><small>Due: {{ p.fees.totalDue | currency:'INR' }}</small></article>
+      <article class="metric-card accent-green"><span>Behavior</span><strong>{{ p.behavior.score }}</strong><small>{{ p.behavior.remarks }}</small></article>
+    </div>
+
+    <section class="panel ai-panel span-7">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">🤖 AI learning advisor</p>
+          <h3>Areas that need more work</h3>
+        </div>
+      </div>
+      <p class="ai-summary">{{ p.aiInsights.summary }}</p>
+      <div class="insight-grid">
+        <article class="insight-card strength">
+          <h4>Strengths</h4>
+          <ul><li *ngFor="let item of p.aiInsights.strengths">{{ item }}</li></ul>
+        </article>
+        <article class="insight-card focus">
+          <h4>Needs more work</h4>
+          <ul><li *ngFor="let item of p.aiInsights.needsWork">{{ item }}</li></ul>
+        </article>
+        <article class="insight-card recommend">
+          <h4>AI recommendations</h4>
+          <ul><li *ngFor="let item of p.aiInsights.recommendations">{{ item }}</li></ul>
+        </article>
+      </div>
+      <p class="parent-advice"><strong>Parent advice:</strong> {{ p.aiInsights.parentAdvice }}</p>
+    </section>
+
+    <section class="panel span-5">
+      <div class="section-head"><div><p class="eyebrow">Guardian</p><h3>Parent information</h3></div></div>
+      <div class="guardian-card" *ngFor="let g of p.student.guardians">
+        <strong>{{ g.name }}</strong>
+        <span>{{ g.relation }} · {{ g.phone }}</span>
+        <span *ngIf="g.isPrimary" class="status-badge active">Primary</span>
+      </div>
+      <div class="section-head" style="margin-top:1.5rem"><div><p class="eyebrow">Transport</p><h3>Route details</h3></div></div>
+      <div class="info-list">
+        <div><span>Route</span><strong>{{ p.transport.route }}</strong></div>
+        <div><span>Bus</span><strong>{{ p.transport.busNumber }}</strong></div>
+        <div><span>Pickup</span><strong>{{ p.transport.pickupPoint }}</strong></div>
+      </div>
+    </section>
+
+    <section class="data-card span-7">
+      <div class="section-head"><div><p class="eyebrow">📊 Exam results</p><h3>Recent examination scores</h3></div></div>
+      <div class="toolbar">
+        <div class="search-box"><input placeholder="Search exam or subject" [value]="vm.filters.profileExamSearch" (input)="vm.filters.profileExamSearch = $any($event.target).value; vm.resetPage('profileExams')"></div>
+      </div>
+      <div class="score-card-grid" *ngIf="vm.filteredProfileExams.length; else noExams">
+        <article class="score-card" *ngFor="let exam of vm.paged('profileExams', vm.filteredProfileExams)" [class.pass]="exam.percentage >= 40" [class.fail]="exam.percentage < 40">
+          <div class="score-card-top">
+            <span class="subject-tag">{{ exam.subject }}</span>
+            <span class="grade-badge">{{ exam.grade || '—' }}</span>
+          </div>
+          <h4>{{ exam.title }}</h4>
+          <p class="chapter-label">{{ exam.chapter }}</p>
+          <div class="score-bar-wrap">
+            <div class="score-bar" [style.width.%]="exam.percentage"></div>
+          </div>
+          <div class="score-footer">
+            <strong>{{ exam.score }}/{{ exam.maxScore }}</strong>
+            <span>{{ exam.percentage }}%</span>
+          </div>
+          <small>{{ exam.submittedAt | date:'mediumDate' }}</small>
+        </article>
+      </div>
+      <ng-template #noExams><div class="premium-empty">No exam results yet. Attempt a published unit test.</div></ng-template>
+      <app-pagination-bar [vm]="vm" listKey="profileExams" [items]="vm.filteredProfileExams"></app-pagination-bar>
+    </section>
+
+    <section class="panel span-5">
+      <div class="section-head"><div><p class="eyebrow">📅 Attendance</p><h3>Last 30 days</h3></div></div>
+      <div class="attendance-calendar">
+        <span *ngFor="let day of p.attendance.recent" class="att-day" [attr.data-status]="day.status" [title]="day.date | date">{{ day.status === 'present' ? 'P' : day.status === 'absent' ? 'A' : day.status === 'late' ? 'L' : 'H' }}</span>
+      </div>
+      <div class="subject-bars">
+        <div *ngFor="let sub of p.academics.subjectBreakdown" class="subject-bar-row">
+          <span>{{ sub.subject }}</span>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="sub.average"></div></div>
+          <strong>{{ sub.average }}%</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="data-card span-12">
+      <div class="section-head"><div><p class="eyebrow">💰 Fees</p><h3>Payment history</h3></div></div>
+      <div class="toolbar">
+        <div class="search-box"><input placeholder="Search invoice" [value]="vm.filters.profileFeeSearch" (input)="vm.filters.profileFeeSearch = $any($event.target).value; vm.resetPage('profileFees')"></div>
+        <select class="filter-select" [value]="vm.filters.profileFeeStatus" (change)="vm.filters.profileFeeStatus = $any($event.target).value; vm.resetPage('profileFees')">
+          <option value="">All status</option>
+          <option value="paid">Paid</option>
+          <option value="partial">Partial</option>
+          <option value="unpaid">Unpaid</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Invoice</th><th>Due date</th><th>Amount</th><th>Balance</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let inv of vm.paged('profileFees', vm.filteredProfileFees)">
+              <td>{{ inv.invoiceNumber }}</td>
+              <td>{{ inv.dueDate | date }}</td>
+              <td>{{ inv.totalAmount | currency:'INR' }}</td>
+              <td>{{ inv.balanceAmount | currency:'INR' }}</td>
+              <td><span class="status-badge" [ngClass]="inv.status">{{ inv.status }}</span></td>
+            </tr>
+            <tr *ngIf="!vm.filteredProfileFees.length"><td colspan="5" class="empty-cell">No fee records</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <app-pagination-bar [vm]="vm" listKey="profileFees" [items]="vm.filteredProfileFees"></app-pagination-bar>
+    </section>
+  </ng-container>
+</section>
