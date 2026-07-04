@@ -22,19 +22,75 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Phone</th><th>Base salary</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Code</th><th>Phone</th><th>Base salary</th><th>Actions</th></tr></thead>
         <tbody>
           <tr *ngFor="let teacher of vm.paged('teachers', vm.filteredTeachers)">
             <td>{{ vm.teacherName(teacher) }}</td>
+            <td>{{ teacher.employeeCode }}</td>
             <td>{{ teacher.phone }}</td>
             <td>{{ teacher.baseSalary | currency: 'INR' }}</td>
-            <td><div class="table-actions"><button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editTeacher(teacher)">Edit</button><button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteTeacher(teacher._id)">Delete</button></div></td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="ghost small" (click)="vm.viewTeacherProfile(teacher)">View</button>
+                <button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editTeacher(teacher)">Edit</button>
+                <button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteTeacher(teacher._id)">Delete</button>
+              </div>
+            </td>
           </tr>
-          <tr *ngIf="!vm.filteredTeachers.length"><td colspan="4" class="empty-cell">No teachers found</td></tr>
+          <tr *ngIf="!vm.filteredTeachers.length"><td colspan="5" class="empty-cell">No teachers found</td></tr>
         </tbody>
       </table>
     </div>
     <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.filteredTeachers"></app-pagination-bar>
   </section>
+
+  <!-- Teacher Profile Modal -->
+  <div class="my-profile-overlay" *ngIf="vm.viewingTeacher" (click)="vm.closeTeacherProfile()">
+    <div class="my-profile-modal" (click)="$event.stopPropagation()">
+      <div class="my-profile-header">
+        <h3>Teacher Profile</h3>
+        <button type="button" class="ghost small" (click)="vm.closeTeacherProfile()">&times;</button>
+      </div>
+      <div class="my-profile-avatar">
+        <div class="avatar large" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff;">{{ vm.viewingTeacher.firstName.charAt(0) }}{{ (vm.viewingTeacher.lastName || '').charAt(0) }}</div>
+        <div>
+          <span class="my-profile-name">{{ vm.teacherName(vm.viewingTeacher) }}</span>
+          <span class="status-badge" [ngClass]="vm.viewingTeacher.status">{{ vm.viewingTeacher.status }}</span>
+        </div>
+      </div>
+      <div class="my-profile-grid">
+        <div class="my-profile-field">
+          <span class="my-profile-label">Employee Code</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.employeeCode }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Phone</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.phone }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Email</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.email || '—' }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Qualification</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.qualification || '—' }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Base Salary</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.baseSalary | currency: 'INR' }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Assigned Classes</span>
+          <span class="my-profile-value">
+            <ng-container *ngIf="vm.getTeacherClasses(vm.viewingTeacher._id).length; else noClasses">
+              <span *ngFor="let cls of vm.getTeacherClasses(vm.viewingTeacher._id)" class="class-chip">{{ cls.name }}-{{ cls.section }}</span>
+            </ng-container>
+            <ng-template #noClasses><span class="muted">No class assigned</span></ng-template>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </ng-container>
 </section>

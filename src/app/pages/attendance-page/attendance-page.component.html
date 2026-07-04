@@ -22,13 +22,17 @@
         <span class="status-badge present">{{ vm.selfAttendanceStatus | titlecase }}</span>
         <p class="muted">Your attendance for today has been recorded.</p>
       </div>
-      <button *ngIf="!vm.selfAttendanceMarked" type="button" class="self-mark-btn" (click)="vm.markSelfAttendance()" [disabled]="vm.selfAttendanceLoading">
+      <div *ngIf="isTodaySundayOrHoliday && !vm.selfAttendanceMarked" class="self-attendance-status">
+        <span class="status-badge closed">{{ todayBlockReason }}</span>
+      </div>
+      <button *ngIf="!vm.selfAttendanceMarked && !isTodaySundayOrHoliday" type="button" class="self-mark-btn" (click)="vm.markSelfAttendance()" [disabled]="vm.selfAttendanceLoading">
         <span *ngIf="!vm.selfAttendanceLoading">Mark Present</span>
         <span *ngIf="vm.selfAttendanceLoading" class="btn-spinner"><span class="spinner-ring"></span> Marking...</span>
       </button>
     </div>
   </article>
 
+  <!-- Mark attendance form (admin/teacher) -->
   <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.attendanceForm" (ngSubmit)="vm.saveAttendance()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Mark attendance</h3></div></div>
     <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
@@ -40,11 +44,47 @@
     <button type="submit" [disabled]="vm.attendanceForm.invalid">Save attendance</button>
   </form>
 
-  <section class="data-card" [class.span-8]="vm.isAdmin || vm.isTeacher" [class.span-12]="vm.isStudent || vm.isParent">
-    <div class="section-head"><div><p class="eyebrow">Records</p><h3>Attendance records</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search student, class, status" [value]="vm.filters.attendanceSearch" (input)="vm.filters.attendanceSearch = $any($event.target).value; vm.resetPage('attendance')"></div>
-      <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('attendance')">
+  <!-- Holiday management (admin only) -->
+  <article *ngIf="vm.isAdmin" class="panel span-4 holiday-card">
+    <div class="section-head"><div><p class="eyebrow">Manage</p><h3>Holiday list</h3></div></div>
+    <label>Date<input type="date" [(ngModel)]="vm.holidayForm.date"></label>
+    <label>Name<input [(ngModel)]="vm.holidayForm.name" placeholder="e.g. Republic Day"></label>
+    <label>Description (optional)<input [(ngModel)]="vm.holidayForm.description" placeholder="Optional note"></label>
+    <button type="button" (click)="vm.saveHoliday()" [disabled]="!vm.holidayForm.date || !vm.holidayForm.name">Add Holiday</button>
+    <div class="holiday-list" *ngIf="vm.holidays.length">
+      <div *ngFor="let h of vm.holidays" class="holiday-row">
+        <span class="holiday-date">{{ h.date | date: 'dd MMM yyyy' }}</span>
+        <span class="holiday-name">{{ h.name }}</span>
+        <button type="button" class="danger-btn small" (click)="vm.deleteHoliday(h._id)">Remove</button>
+      </div>
+    </div>
+    <p *ngIf="!vm.holidays.length" class="muted" style="text-align:center; padding: 12px 0;">No holidays added yet</p>
+  </article>
+
+  <!-- Calendar & Table section -->
+  <section class="data-card span-12 attendance-calendar-section">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Records</p>
+        <h3>Attendance calendar</h3>
+      </div>
+      <div class="view-toggle-bar">
+        <button type="button" class="view-toggle-btn" [class.active]="viewMode === 'calendar'" (click)="viewMode = 'calendar'">Calendar</button>
+        <button type="button" class="view-toggle-btn" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'">Table</button>
+      </div>
+    </div>
+
+    <!-- Filters for admin/teacher -->
+    <div class="toolbar" *ngIf="vm.isAdmin || vm.isTeacher">
+      <select class="filter-select" [value]="vm.filters.attendanceClass" (change)="vm.filters.attendanceClass = $any($event.target).value; vm.filters.attendanceStudent = ''; vm.resetPage('attendance'); buildCalendar()">
+        <option value="">All classes</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+      <select class="filter-select" [value]="vm.filters.attendanceStudent" (change)="vm.filters.attendanceStudent = $any($event.target).value; vm.resetPage('attendance'); buildCalendar()">
+        <option value="">All students</option>
+        <option *ngFor="let s of vm.attendanceStudentOptions" [value]="s._id">{{ s.admissionNumber }} - {{ vm.studentName(s) }}</option>
+      </select>
+      <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('attendance'); buildCalendar()">
         <option value="">All status</option>
         <option value="present">Present</option>
         <option value="absent">Absent</option>
@@ -52,21 +92,78 @@
         <option value="half_day">Half day</option>
       </select>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Status</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of vm.paged('attendance', vm.filteredAttendance)">
-            <td>{{ row.date | date }}</td>
-            <td>{{ vm.studentName(row.student) }}</td>
-            <td>{{ vm.className(row.classRoom) }}</td>
-            <td><span class="status-badge" [ngClass]="row.status">{{ row.status }}</span></td>
-          </tr>
-          <tr *ngIf="!vm.filteredAttendance.length"><td colspan="4" class="empty-cell">No attendance records</td></tr>
-        </tbody>
-      </table>
+
+    <!-- Calendar View -->
+    <div class="attendance-calendar" *ngIf="viewMode === 'calendar'">
+      <div class="calendar-toolbar">
+        <div class="calendar-nav">
+          <button type="button" class="ghost small" (click)="prevMonth()">&laquo;</button>
+          <h4 class="calendar-month-label">{{ monthLabel }}</h4>
+          <button type="button" class="ghost small" (click)="nextMonth()">&raquo;</button>
+          <button type="button" class="ghost small today-btn" (click)="goToToday()">Today</button>
+        </div>
+        <div class="calendar-stats">
+          <span class="cal-stat present">Present: {{ calendarStats.present }}</span>
+          <span class="cal-stat absent">Absent: {{ calendarStats.absent }}</span>
+          <span class="cal-stat late">Late/Half: {{ calendarStats.late }}</span>
+          <span class="cal-stat total">Total: {{ calendarStats.total }}</span>
+        </div>
+      </div>
+
+      <div class="calendar-legend">
+        <span class="legend-item"><span class="legend-dot present"></span>Present</span>
+        <span class="legend-item"><span class="legend-dot absent"></span>Absent</span>
+        <span class="legend-item"><span class="legend-dot late"></span>Late / Half day</span>
+        <span class="legend-item"><span class="legend-dot holiday"></span>Holiday</span>
+        <span class="legend-item"><span class="legend-dot sunday"></span>Sunday</span>
+      </div>
+
+      <div class="calendar-grid">
+        <div *ngFor="let day of weekDays" class="calendar-weekday">{{ day }}</div>
+        <div *ngFor="let cell of calendarDays" class="calendar-cell"
+          [class.other-month]="!cell.isCurrentMonth"
+          [class.today]="cell.isToday"
+          [class.has-record]="cell.status"
+          [class.is-holiday]="cell.holiday"
+          [class.is-sunday]="cell.isSunday"
+          [attr.data-status]="cell.status">
+          <span class="cell-day">{{ cell.day }}</span>
+          <span *ngIf="cell.status && cell.isCurrentMonth && !cell.holiday && !cell.isSunday" class="cell-indicator" [ngClass]="cell.status"></span>
+          <span *ngIf="cell.holiday && cell.isCurrentMonth" class="cell-holiday-label" [title]="cell.holidayName">H</span>
+          <span *ngIf="cell.isSunday && cell.isCurrentMonth && !cell.holiday" class="cell-sunday-label">S</span>
+          <span *ngIf="cell.records.length > 1 && cell.isCurrentMonth" class="cell-count">{{ cell.records.length }}</span>
+        </div>
+      </div>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+
+    <!-- Table View -->
+    <div *ngIf="viewMode === 'table'">
+      <div class="toolbar" *ngIf="vm.isStudent || vm.isParent">
+        <div class="search-box"><input placeholder="Search date, status" [value]="vm.filters.attendanceSearch" (input)="vm.filters.attendanceSearch = $any($event.target).value; vm.resetPage('attendance')"></div>
+        <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('attendance')">
+          <option value="">All status</option>
+          <option value="present">Present</option>
+          <option value="absent">Absent</option>
+          <option value="late">Late</option>
+          <option value="half_day">Half day</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of vm.paged('attendance', vm.filteredAttendance)">
+              <td>{{ row.date | date }}</td>
+              <td>{{ vm.studentName(row.student) }}</td>
+              <td>{{ vm.className(row.classRoom) }}</td>
+              <td><span class="status-badge" [ngClass]="row.status">{{ row.status }}</span></td>
+            </tr>
+            <tr *ngIf="!vm.filteredAttendance.length"><td colspan="4" class="empty-cell">No attendance records</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+    </div>
   </section>
   </ng-container>
 </section>

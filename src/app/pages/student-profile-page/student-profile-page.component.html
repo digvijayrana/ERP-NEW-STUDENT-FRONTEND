@@ -4,6 +4,10 @@
       <div><p class="eyebrow">Student profile</p><h3>Select a student to view full report</h3></div>
     </div>
     <div class="toolbar">
+      <select class="filter-select" [value]="vm.filters.profileClass" (change)="vm.filters.profileClass = $any($event.target).value">
+        <option value="">All classes</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
       <div class="search-box"><input placeholder="Search student" [value]="vm.filters.profileSearch" (input)="vm.filters.profileSearch = $any($event.target).value"></div>
       <select class="filter-select" [value]="vm.profileStudentId" (change)="vm.loadStudentProfile($any($event.target).value)">
         <option value="">Choose student</option>

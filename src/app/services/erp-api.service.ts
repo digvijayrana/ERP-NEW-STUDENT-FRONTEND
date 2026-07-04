@@ -135,6 +135,10 @@ export class ErpApiService {
     return this.http.delete(`${this.baseUrl}/payroll/${id}`, this.options());
   }
 
+  markPayrollPaid(id: string): Observable<PayrollRecord> {
+    return this.http.post<PayrollRecord>(`${this.baseUrl}/payroll/${id}/mark-paid`, {}, this.options());
+  }
+
   payroll(): Observable<PayrollRecord[]> {
     return this.http.get<PayrollRecord[]>(`${this.baseUrl}/payroll`, this.options());
   }
@@ -218,6 +222,18 @@ export class ErpApiService {
 
   listUsers(): Observable<unknown[]> {
     return this.http.get<unknown[]>(`${this.baseUrl}/auth/users`, this.options());
+  }
+
+  holidays(): Observable<Array<{ _id: string; date: string; name: string; description?: string }>> {
+    return this.http.get<Array<{ _id: string; date: string; name: string; description?: string }>>(`${this.baseUrl}/holidays`, this.options());
+  }
+
+  createHoliday(payload: { date: string; name: string; description?: string }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/holidays`, payload, this.options());
+  }
+
+  deleteHoliday(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/holidays/${id}`, this.options());
   }
 
   private options(): { headers: HttpHeaders } {

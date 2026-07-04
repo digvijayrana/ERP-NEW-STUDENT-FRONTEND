@@ -1,5 +1,5 @@
 export const APP_CONSTANTS = {
-  PAGE_SIZE: 8,
+  PAGE_SIZE: 5,
   LOCAL_STORAGE_TOKEN_KEY: 'erp_token',
   LOCAL_STORAGE_USER_KEY: 'erp_user',
   FINANCE_RANGES: [

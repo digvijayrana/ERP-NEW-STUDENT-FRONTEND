@@ -932,6 +932,24 @@ button:disabled {
   gap: var(--space-2);
 }
 
+.pagination-controls .page-num {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius);
+}
+
+.pagination-controls .page-num.active-page {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
 .pagination-pages {
   color: var(--text-soft);
   font-size: 13px;
@@ -1441,6 +1459,18 @@ p {
   word-break: break-word;
 }
 
+.class-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 12px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
 @media (max-width: 560px) {
   .my-profile-modal {
     padding: var(--space-4);
@@ -1523,6 +1553,311 @@ p {
 .self-mark-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ── Attendance Calendar ── */
+.attendance-calendar-section {
+  min-height: 400px;
+}
+
+.view-toggle-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+
+.view-toggle-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+
+.attendance-calendar {
+  display: grid;
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-month-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 180px;
+  text-align: center;
+}
+
+.today-btn {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+}
+
+.calendar-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cal-stat {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.cal-stat.present { background: var(--success-soft); color: var(--success); }
+.cal-stat.absent { background: var(--danger-soft); color: var(--danger); }
+.cal-stat.late { background: var(--warning-soft); color: var(--warning); }
+.cal-stat.total { background: var(--surface-soft); color: var(--text); border: 1px solid var(--border); }
+
+.calendar-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.present { background: var(--success); }
+.legend-dot.absent { background: var(--danger); }
+.legend-dot.late { background: var(--warning); }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--border);
+}
+
+.calendar-weekday {
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.calendar-cell {
+  position: relative;
+  padding: 10px 8px;
+  min-height: 60px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.calendar-cell.other-month {
+  background: var(--surface-soft);
+  opacity: 0.4;
+}
+
+.calendar-cell.today {
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.calendar-cell.has-record[data-status="present"] {
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.calendar-cell.has-record[data-status="absent"] {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.calendar-cell.has-record[data-status="late"],
+.calendar-cell.has-record[data-status="half_day"] {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.calendar-cell.has-record[data-status="mixed"] {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.cell-day {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cell-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cell-indicator.present { background: var(--success); }
+.cell-indicator.absent { background: var(--danger); }
+.cell-indicator.late,
+.cell-indicator.half_day { background: var(--warning); }
+.cell-indicator.mixed { background: var(--primary); }
+
+.cell-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  background: var(--primary);
+  color: #fff;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Holiday & Sunday calendar cells */
+.calendar-cell.is-sunday {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.calendar-cell.is-holiday {
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.cell-holiday-label {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  background: #a855f7;
+  color: #fff;
+}
+
+.cell-sunday-label {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  background: #94a3b8;
+  color: #fff;
+}
+
+.legend-dot.holiday { background: #a855f7; }
+.legend-dot.sunday { background: #94a3b8; }
+
+/* Holiday card */
+.holiday-card label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.holiday-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.holiday-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+}
+
+.holiday-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 80px;
+}
+
+.holiday-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .calendar-cell {
+    min-height: 44px;
+    padding: 6px 4px;
+  }
+
+  .cell-day {
+    font-size: 12px;
+  }
+
+  .calendar-month-label {
+    font-size: 15px;
+    min-width: auto;
+  }
+
+  .calendar-stats {
+    gap: 6px;
+  }
+
+  .calendar-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* ── Exam result modal ── */
@@ -2028,6 +2363,30 @@ p {
   overflow: hidden;
 }
 
+.dash-stat-card.clickable {
+  cursor: pointer;
+}
+
+.dash-stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.clickable-row:hover {
+  background: var(--surface-soft) !important;
+}
+
+.success-btn {
+  color: var(--success) !important;
+  border-color: var(--success) !important;
+  font-weight: 700;
+}
+
 .dash-stat-card::after {
   content: "";
   position: absolute;
@@ -2248,6 +2607,15 @@ p {
 .section-head {
   margin-bottom: var(--space-5);
   min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.view-all-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
 }
 
 .section-head > div {
@@ -2363,6 +2731,11 @@ input[type="file"] {
   font-size: 13px;
   color: var(--text-soft);
   cursor: pointer;
+  align-self: center;
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
 }
 
 input[type="file"]::file-selector-button {
@@ -2372,6 +2745,7 @@ input[type="file"]::file-selector-button {
   color: #ffffff;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 600;
   font-weight: 600;
   margin-right: 12px;
   padding: 8px 16px;
@@ -2474,6 +2848,12 @@ tbody tr:hover {
 .status-badge.cancelled {
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+.status-badge.closed {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+  font-weight: 700;
 }
 
 .status-badge.pending,

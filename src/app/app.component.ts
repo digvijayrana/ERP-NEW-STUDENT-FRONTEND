@@ -68,6 +68,7 @@ export class AppComponent implements OnInit {
   invoices: FeeInvoice[] = [];
   payrolls: PayrollRecord[] = [];
   attendance: AttendanceRecord[] = [];
+  holidays: Array<{ _id: string; date: string; name: string; description?: string }> = [];
   timetable: TimetableRow[] = [];
   exams: Exam[] = [];
   examResults: ExamSubmission[] = [];
@@ -102,6 +103,7 @@ export class AppComponent implements OnInit {
   };
   editingStudentId = '';
   editingTeacherId = '';
+  viewingTeacher: Teacher | null = null;
   editingClassId = '';
   editingPayrollId = '';
   financeRangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS;
@@ -120,6 +122,8 @@ export class AppComponent implements OnInit {
     payrollSearch: '',
     payrollStatus: '',
     attendanceSearch: '',
+    attendanceClass: '',
+    attendanceStudent: '',
     timetableSearch: '',
     examSearch: '',
     examStatus: '',
@@ -129,6 +133,7 @@ export class AppComponent implements OnInit {
     examResultSearch: '',
     examResultGrade: '',
     profileSearch: '',
+    profileClass: '',
     profileExamSearch: '',
     profileFeeSearch: '',
     profileFeeStatus: ''
@@ -457,6 +462,7 @@ export class AppComponent implements OnInit {
       invoices: this.isTeacher ? of([] as FeeInvoice[]) : this.api.invoices(),
       payrolls: this.isAdmin ? this.api.payroll() : of([] as PayrollRecord[]),
       attendance: this.api.attendance(),
+      holidays: this.api.holidays(),
       timetable: this.api.timetable(),
       exams: this.api.exams(),
       examResults: this.api.examResults(),
@@ -471,6 +477,7 @@ export class AppComponent implements OnInit {
         this.invoices = data.invoices;
         this.payrolls = data.payrolls;
         this.attendance = data.attendance;
+        this.holidays = data.holidays;
         this.timetable = data.timetable;
         this.exams = data.exams;
         this.examResults = data.examResults;
@@ -647,6 +654,22 @@ export class AppComponent implements OnInit {
       baseSalary: teacher.baseSalary
     });
     this.message = `Editing ${teacher.firstName}`;
+  }
+
+  viewTeacherProfile(teacher: Teacher): void {
+    this.viewingTeacher = teacher;
+  }
+
+  closeTeacherProfile(): void {
+    this.viewingTeacher = null;
+  }
+
+  getTeacherClasses(teacherId: string): ClassRoom[] {
+    return this.classes.filter((c) => {
+      const ct = c.classTeacher;
+      const ctId = typeof ct === 'string' ? ct : ct?._id;
+      return ctId === teacherId;
+    });
   }
 
   deleteTeacher(id: string): void {
@@ -829,6 +852,13 @@ export class AppComponent implements OnInit {
     this.submit(this.api.deletePayroll(id), 'Payroll deleted');
   }
 
+  markPayrollPaid(id: string): void {
+    this.api.markPayrollPaid(id).subscribe({
+      next: () => { this.message = 'Payroll marked as paid'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Could not mark payroll as paid'; }
+    });
+  }
+
   viewRecord(label: string): void {
     this.message = label;
   }
@@ -861,6 +891,10 @@ export class AppComponent implements OnInit {
 
   saveAttendance(): void {
     const value = this.attendanceForm.getRawValue();
+    const dateVal = value.date || '';
+    if (this.isSunday(dateVal)) { this.message = 'Cannot mark attendance on Sunday'; return; }
+    const hCheck = this.isHoliday(dateVal);
+    if (hCheck.is) { this.message = `Cannot mark attendance on holiday: ${hCheck.name}`; return; }
     this.submit(
       this.api.markAttendance({
         records: [
@@ -905,6 +939,42 @@ export class AppComponent implements OnInit {
         this.message = err.error?.message || 'Could not mark attendance';
       }
     });
+  }
+
+  holidayForm = { date: '', name: '', description: '' };
+
+  saveHoliday(): void {
+    if (!this.holidayForm.date || !this.holidayForm.name) return;
+    this.api.createHoliday(this.holidayForm).subscribe({
+      next: () => {
+        this.message = `Holiday "${this.holidayForm.name}" added`;
+        this.holidayForm = { date: '', name: '', description: '' };
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Could not add holiday'; }
+    });
+  }
+
+  deleteHoliday(id: string): void {
+    this.api.deleteHoliday(id).subscribe({
+      next: () => { this.message = 'Holiday removed'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Could not remove holiday'; }
+    });
+  }
+
+  isHoliday(dateStr: string): { is: boolean; name?: string } {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    const match = this.holidays.find((h) => {
+      const hd = new Date(h.date);
+      hd.setHours(0, 0, 0, 0);
+      return hd.getTime() === d.getTime();
+    });
+    return match ? { is: true, name: match.name } : { is: false };
+  }
+
+  isSunday(dateStr: string): boolean {
+    return new Date(dateStr).getDay() === 0;
   }
 
   viewStudentExamResult(result: ExamSubmission): void {
@@ -1174,8 +1244,20 @@ export class AppComponent implements OnInit {
     return this.attendance.filter((row) => {
       const matchesSearch = !search || `${this.studentName(row.student)} ${this.className(row.classRoom)} ${row.status}`.toLowerCase().includes(search);
       const matchesStatus = !this.filters.attendanceStatus || row.status === this.filters.attendanceStatus;
-      return matchesSearch && matchesStatus;
+      const matchesClass = !this.filters.attendanceClass || (typeof row.classRoom === 'string' ? row.classRoom : row.classRoom?._id) === this.filters.attendanceClass;
+      const matchesStudent = !this.filters.attendanceStudent || (typeof row.student === 'string' ? row.student : (row.student as any)?._id) === this.filters.attendanceStudent;
+      return matchesSearch && matchesStatus && matchesClass && matchesStudent;
     });
+  }
+
+  get attendanceStudentOptions(): Student[] {
+    if (!this.filters.attendanceClass) return this.students;
+    return this.students.filter((s) =>
+      s.enrollments?.some((e) => {
+        const classId = typeof e.classRoom === 'string' ? e.classRoom : e.classRoom?._id;
+        return classId === this.filters.attendanceClass;
+      })
+    );
   }
 
   get filteredTimetable(): TimetableRow[] {
@@ -1214,7 +1296,14 @@ export class AppComponent implements OnInit {
 
   get profileStudentOptions(): Student[] {
     const search = this.filters.profileSearch.toLowerCase().trim();
-    return this.students.filter((s) => !search || `${s.admissionNumber} ${this.studentName(s)}`.toLowerCase().includes(search));
+    return this.students.filter((s) => {
+      const matchesSearch = !search || `${s.admissionNumber} ${this.studentName(s)}`.toLowerCase().includes(search);
+      const matchesClass = !this.filters.profileClass || s.enrollments?.some((e) => {
+        const classId = typeof e.classRoom === 'string' ? e.classRoom : e.classRoom?._id;
+        return classId === this.filters.profileClass;
+      });
+      return matchesSearch && matchesClass;
+    });
   }
 
   get filteredProfileExams(): StudentProfile['academics']['examResults'] {
