@@ -1471,6 +1471,242 @@ p {
   margin-bottom: 4px;
 }
 
+.teacher-docs-section {
+  border-top: 1px solid var(--border-soft);
+  padding-top: var(--space-4);
+}
+
+.teacher-docs-section h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+  color: var(--text);
+}
+
+.doc-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.doc-upload-label.compact {
+  margin-top: 0;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.doc-upload-label input[type="file"] {
+  display: none;
+}
+
+.doc-upload-label span {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: var(--radius);
+  transition: background 150ms ease;
+}
+
+.doc-upload-label.compact span {
+  padding: 0;
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.doc-upload-label:hover span {
+  background: var(--primary);
+  color: #fff;
+}
+
+.doc-upload-label.compact:hover span {
+  background: none;
+  color: var(--primary);
+}
+
+.exp-edu-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exp-edu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+}
+
+.exp-edu-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exp-edu-main strong {
+  font-size: 13px;
+}
+
+.exp-edu-main .muted {
+  font-size: 12px;
+}
+
+.exp-edu-dates {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.exp-edu-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.exp-edu-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+.exp-edu-form-grid input,
+.exp-edu-form input {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+
+.mandatory {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.reject-reason {
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.reject-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.doc-attached {
+  font-size: 11px;
+  color: var(--success);
+}
+
+.document-card-enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 8px;
+}
+
+.doc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-card-header strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.doc-card-type {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.doc-view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  transition: all 150ms ease;
+  width: fit-content;
+}
+
+.doc-view-link:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.doc-view-link.inline {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: none;
+  background: var(--primary-soft);
+  border-radius: 4px;
+}
+
+.doc-view-link.inline:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.doc-view-icon {
+  font-size: 14px;
+}
+
+.status-badge.small {
+  font-size: 10px;
+  padding: 2px 6px;
+  margin-left: 6px;
+}
+
 @media (max-width: 560px) {
   .my-profile-modal {
     padding: var(--space-4);
@@ -1796,11 +2032,21 @@ p {
 .legend-dot.sunday { background: #94a3b8; }
 
 /* Holiday card */
+.holiday-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
 .holiday-card label {
   display: grid;
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
+}
+
+.holiday-card button {
+  justify-self: start;
+  margin-top: 4px;
 }
 
 .holiday-list {

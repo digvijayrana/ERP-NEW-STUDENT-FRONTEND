@@ -65,8 +65,8 @@
         <div class="pr-actions">
           <button *ngIf="payroll.status === 'pending'" type="button" class="ghost small success-btn" (click)="vm.markPayrollPaid(payroll._id)">Mark as Paid</button>
           <button type="button" class="ghost small" (click)="vm.openPayrollPdf(payroll._id)">Download Slip</button>
-          <button type="button" class="ghost small" (click)="vm.editPayroll(payroll)">Edit</button>
-          <button type="button" class="danger-btn small" (click)="vm.deletePayroll(payroll._id)">Delete</button>
+          <button *ngIf="payroll.status === 'pending'" type="button" class="ghost small" (click)="vm.editPayroll(payroll)">Edit</button>
+          <button *ngIf="payroll.status === 'pending'" type="button" class="danger-btn small" (click)="vm.deletePayroll(payroll._id)">Delete</button>
         </div>
       </div>
     </div>

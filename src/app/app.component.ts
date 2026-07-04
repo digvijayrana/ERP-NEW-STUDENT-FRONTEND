@@ -90,7 +90,7 @@ export class AppComponent implements OnInit {
   parentLinkedStudentIds = new Set<string>();
   selectedStudentIds = new Set<string>();
   selectedStudentId = '';
-  selectedStudentDocuments: Array<{ type: string; title: string; fileUrl: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string }> = [];
+  selectedStudentDocuments: Array<{ _id?: string; type: string; title: string; fileUrl: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string; status?: string; rejectReason?: string }> = [];
   files: Record<string, File | FileList | null> = {};
 
   private readonly documentShape = {
@@ -240,7 +240,12 @@ export class AppComponent implements OnInit {
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
     rollNumber: [''],
-    previousSchool: ['']
+    previousSchool: [''],
+    previousSchoolAddress: [''],
+    previousSchoolLastClass: [''],
+    previousSchoolYearOfPassing: [''],
+    previousSchoolReasonForLeaving: [''],
+    previousSchoolTcNumber: ['']
   });
 
   feeForm = this.fb.group({
@@ -569,12 +574,15 @@ export class AppComponent implements OnInit {
       next: (student) => {
         const documents = (student as Student & { documents?: Array<Record<string, unknown>> }).documents || [];
         this.selectedStudentDocuments = documents.map((document: Record<string, unknown>) => ({
+          _id: document['_id'] ? String(document['_id']) : undefined,
           type: String(document['type'] || ''),
           title: String(document['title'] || ''),
           fileUrl: String(document['fileUrl'] || ''),
           storageProvider: (document['storageProvider'] === 's3' ? 's3' : 'local') as 'local' | 's3',
           mimeType: document['mimeType'] ? String(document['mimeType']) : undefined,
-          uploadedAt: document['uploadedAt'] ? String(document['uploadedAt']) : undefined
+          uploadedAt: document['uploadedAt'] ? String(document['uploadedAt']) : undefined,
+          status: document['status'] ? String(document['status']) : 'pending',
+          rejectReason: document['rejectReason'] ? String(document['rejectReason']) : undefined
         }));
       },
       error: () => {
@@ -664,12 +672,195 @@ export class AppComponent implements OnInit {
     this.viewingTeacher = null;
   }
 
+  teacherExpForm = { instituteName: '', designation: '', fromDate: '', toDate: '', description: '' };
+  teacherExpFile: File | null = null;
+  teacherEduForm = { instituteName: '', degree: '', fieldOfStudy: '', fromDate: '', toDate: '', grade: '' };
+  teacherEduFile: File | null = null;
+
+  onExpFileChange(event: Event): void {
+    this.teacherExpFile = (event.target as HTMLInputElement).files?.[0] || null;
+  }
+
+  onEduFileChange(event: Event): void {
+    this.teacherEduFile = (event.target as HTMLInputElement).files?.[0] || null;
+  }
+
+  addTeacherExperience(): void {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher || !this.teacherExpForm.instituteName) return;
+
+    const saveEntry = (doc?: { url: string; originalName: string; uploadedAt: string }) => {
+      const entry: Record<string, unknown> = { ...this.teacherExpForm };
+      if (doc) entry['document'] = doc;
+      const exp = [...(teacher.experience || []), entry];
+      const request = this.isTeacher
+        ? this.api.selfUpdateTeacher({ experience: exp })
+        : this.api.updateTeacher(teacher._id, { experience: exp });
+      request.subscribe({
+        next: () => {
+          this.message = 'Experience added';
+          this.teacherExpForm = { instituteName: '', designation: '', fromDate: '', toDate: '', description: '' };
+          this.teacherExpFile = null;
+          this.refresh();
+        },
+        error: (err) => { this.message = err.error?.message || 'Could not save experience'; }
+      });
+    };
+
+    if (this.teacherExpFile) {
+      const upload$ = this.isTeacher
+        ? this.api.selfUploadTeacherDocument(this.teacherExpFile, 'certificate')
+        : this.api.uploadTeacherDocument(teacher._id, this.teacherExpFile, 'certificate');
+      upload$.subscribe({
+        next: (res: any) => {
+          const certs = res?.certificates || [];
+          const last = certs[certs.length - 1];
+          saveEntry(last ? { url: last.url, originalName: last.originalName, uploadedAt: last.uploadedAt } : undefined);
+        },
+        error: () => saveEntry()
+      });
+    } else {
+      saveEntry();
+    }
+  }
+
+  removeTeacherExperience(index: number): void {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher) return;
+    const exp = [...(teacher.experience || [])];
+    exp.splice(index, 1);
+    const request = this.isTeacher
+      ? this.api.selfUpdateTeacher({ experience: exp })
+      : this.api.updateTeacher(teacher._id, { experience: exp });
+    request.subscribe({
+      next: () => { this.message = 'Experience removed'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Could not remove experience'; }
+    });
+  }
+
+  addTeacherEducation(): void {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher || !this.teacherEduForm.instituteName) return;
+
+    const saveEntry = (doc?: { url: string; originalName: string; uploadedAt: string }) => {
+      const entry: Record<string, unknown> = { ...this.teacherEduForm };
+      if (doc) entry['document'] = doc;
+      const edu = [...(teacher.education || []), entry];
+      const request = this.isTeacher
+        ? this.api.selfUpdateTeacher({ education: edu })
+        : this.api.updateTeacher(teacher._id, { education: edu });
+      request.subscribe({
+        next: () => {
+          this.message = 'Education added';
+          this.teacherEduForm = { instituteName: '', degree: '', fieldOfStudy: '', fromDate: '', toDate: '', grade: '' };
+          this.teacherEduFile = null;
+          this.refresh();
+        },
+        error: (err) => { this.message = err.error?.message || 'Could not save education'; }
+      });
+    };
+
+    if (this.teacherEduFile) {
+      const upload$ = this.isTeacher
+        ? this.api.selfUploadTeacherDocument(this.teacherEduFile, 'certificate')
+        : this.api.uploadTeacherDocument(teacher._id, this.teacherEduFile, 'certificate');
+      upload$.subscribe({
+        next: (res: any) => {
+          const certs = res?.certificates || [];
+          const last = certs[certs.length - 1];
+          saveEntry(last ? { url: last.url, originalName: last.originalName, uploadedAt: last.uploadedAt } : undefined);
+        },
+        error: () => saveEntry()
+      });
+    } else {
+      saveEntry();
+    }
+  }
+
+  removeTeacherEducation(index: number): void {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher) return;
+    const edu = [...(teacher.education || [])];
+    edu.splice(index, 1);
+    const request = this.isTeacher
+      ? this.api.selfUpdateTeacher({ education: edu })
+      : this.api.updateTeacher(teacher._id, { education: edu });
+    request.subscribe({
+      next: () => { this.message = 'Education removed'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Could not remove education'; }
+    });
+  }
+
+  uploadTeacherDoc(event: Event, type: string): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || !this.viewingTeacher) return;
+    this.api.uploadTeacherDocument(this.viewingTeacher._id, file, type).subscribe({
+      next: () => { this.message = `Document uploaded`; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Upload failed'; }
+    });
+  }
+
+  selfUploadTeacherDoc(event: Event, type: string): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.api.selfUploadTeacherDocument(file, type).subscribe({
+      next: () => { this.message = 'Document uploaded for review'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Upload failed'; }
+    });
+  }
+
+  selfUpdateTeacher(field: string, value: unknown): void {
+    this.api.selfUpdateTeacher({ [field]: value }).subscribe({
+      next: () => { this.message = 'Profile updated'; this.refresh(); },
+      error: (err) => { this.message = err.error?.message || 'Could not update profile'; }
+    });
+  }
+
+  verifyDocReason = '';
+
+  verifyTeacherDoc(docType: string, action: 'approve' | 'reject'): void {
+    if (!this.viewingTeacher) return;
+    this.api.verifyTeacherDocument(this.viewingTeacher._id, docType, action, this.verifyDocReason).subscribe({
+      next: () => {
+        this.message = `Document ${action === 'approve' ? 'approved' : 'rejected — reupload requested'}`;
+        this.verifyDocReason = '';
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Verification failed'; }
+    });
+  }
+
+  verifyStudentDoc(documentId: string, action: 'approve' | 'reject'): void {
+    if (!this.selectedStudentId || !documentId) return;
+    this.api.verifyStudentDocument(this.selectedStudentId, documentId, action, this.verifyDocReason).subscribe({
+      next: () => {
+        this.message = `Document ${action === 'approve' ? 'approved' : 'rejected — reupload requested'}`;
+        this.verifyDocReason = '';
+        this.loadStudentDocuments(this.selectedStudentId);
+      },
+      error: (err) => { this.message = err.error?.message || 'Verification failed'; }
+    });
+  }
+
   getTeacherClasses(teacherId: string): ClassRoom[] {
     return this.classes.filter((c) => {
       const ct = c.classTeacher;
       const ctId = typeof ct === 'string' ? ct : ct?._id;
       return ctId === teacherId;
     });
+  }
+
+  getTeacherSubjects(teacherId: string): { className: string; subjectName: string }[] {
+    const results: { className: string; subjectName: string }[] = [];
+    for (const cls of this.classes) {
+      for (const subj of cls.subjects || []) {
+        const tid = typeof subj.teacher === 'string' ? subj.teacher : subj.teacher?._id;
+        if (tid === teacherId) {
+          results.push({ className: `${cls.name}-${cls.section}`, subjectName: subj.name });
+        }
+      }
+    }
+    return results;
   }
 
   deleteTeacher(id: string): void {
@@ -742,7 +933,15 @@ export class AppComponent implements OnInit {
       academicYear: value.academicYear,
       classRoom: value.classRoom,
       rollNumber: value.rollNumber,
-      previousSchool: value.previousSchool
+      previousSchool: value.previousSchool,
+      previousSchoolDetails: {
+        schoolName: value.previousSchool,
+        address: value.previousSchoolAddress,
+        lastClass: value.previousSchoolLastClass,
+        yearOfPassing: value.previousSchoolYearOfPassing ? Number(value.previousSchoolYearOfPassing) : undefined,
+        reasonForLeaving: value.previousSchoolReasonForLeaving,
+        tcNumber: value.previousSchoolTcNumber
+      }
     };
 
     const formData = new FormData();

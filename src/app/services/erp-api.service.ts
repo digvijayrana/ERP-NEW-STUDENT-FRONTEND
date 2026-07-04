@@ -79,6 +79,38 @@ export class ErpApiService {
     return this.http.delete(`${this.baseUrl}/teachers/${id}`, this.options());
   }
 
+  uploadTeacherDocument(teacherId: string, file: File, type: string): Observable<unknown> {
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('type', type);
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
+    return this.http.post(`${this.baseUrl}/teachers/${teacherId}/documents`, formData, {
+      headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders()
+    });
+  }
+
+  selfUpdateTeacher(payload: Record<string, unknown>): Observable<Teacher> {
+    return this.http.patch<Teacher>(`${this.baseUrl}/teachers/self`, payload, this.options());
+  }
+
+  selfUploadTeacherDocument(file: File, type: string): Observable<unknown> {
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('type', type);
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
+    return this.http.post(`${this.baseUrl}/teachers/self/documents`, formData, {
+      headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders()
+    });
+  }
+
+  verifyTeacherDocument(teacherId: string, docType: string, action: string, reason?: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/teachers/${teacherId}/verify-document`, { docType, action, reason }, this.options());
+  }
+
+  verifyStudentDocument(studentId: string, documentId: string, action: string, reason?: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/students/${studentId}/verify-document`, { documentId, action, reason }, this.options());
+  }
+
   students(): Observable<Student[]> {
     return this.http.get<Student[]>(`${this.baseUrl}/students`, this.options());
   }

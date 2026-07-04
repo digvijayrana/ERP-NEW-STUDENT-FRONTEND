@@ -27,10 +27,16 @@
       <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
       <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
       <label>Roll no<input formControlName="rollNumber"></label>
-      <label>Previous school<input formControlName="previousSchool"></label>
+      <label>Previous school<input formControlName="previousSchool" placeholder="School name"></label>
+      <label>Prev school address<input formControlName="previousSchoolAddress" placeholder="City, State"></label>
+      <label>Last class attended<input formControlName="previousSchoolLastClass" placeholder="e.g. Class 5"></label>
+      <label>Year of passing<input type="number" formControlName="previousSchoolYearOfPassing" placeholder="e.g. 2024"></label>
+      <label>Reason for leaving<input formControlName="previousSchoolReasonForLeaving" placeholder="Transfer, relocation..."></label>
+      <label>TC number<input formControlName="previousSchoolTcNumber" placeholder="Transfer certificate no."></label>
       <label>Photo<input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
       <label>Aadhaar file<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('aadhaar', $event)"></label>
       <label>Birth certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
+      <label>Transfer certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('otherDocuments', $event)"></label>
     </div>
     <div class="form-actions">
       <button type="submit" [disabled]="vm.admissionForm.invalid">{{ vm.editingStudentId ? 'Update student' : 'Save admission' }}</button>
@@ -80,10 +86,21 @@
       </select>
     </label>
     <div class="document-list" *ngIf="vm.selectedStudentDocuments.length; else noDocuments">
-      <article *ngFor="let document of vm.selectedStudentDocuments" class="document-card">
-        <strong>{{ document.title }}</strong>
-        <span>{{ document.type | titlecase }}</span>
-        <a [href]="document.fileUrl" target="_blank" rel="noopener noreferrer">Open file</a>
+      <article *ngFor="let document of vm.selectedStudentDocuments" class="document-card-enhanced">
+        <div class="doc-card-header">
+          <strong>{{ document.title }}</strong>
+          <span class="status-badge small" [ngClass]="document.status || 'pending'">{{ document.status || 'pending' }}</span>
+        </div>
+        <span class="doc-card-type">{{ document.type | titlecase }}</span>
+        <span class="reject-reason" *ngIf="document.rejectReason">{{ document.rejectReason }}</span>
+        <a class="doc-view-link" [href]="document.fileUrl" target="_blank" rel="noopener noreferrer">
+          <span class="doc-view-icon">📄</span> View Document
+        </a>
+        <div class="verify-actions" *ngIf="vm.isAdmin">
+          <button type="button" class="ghost small success-btn" (click)="vm.verifyStudentDoc(document._id, 'approve')">Approve</button>
+          <input [(ngModel)]="vm.verifyDocReason" placeholder="Rejection reason" class="reject-input">
+          <button type="button" class="danger-btn small" (click)="vm.verifyStudentDoc(document._id, 'reject')">Reject</button>
+        </div>
       </article>
     </div>
     <ng-template #noDocuments><div class="empty-state">Select a student to review uploaded files.</div></ng-template>

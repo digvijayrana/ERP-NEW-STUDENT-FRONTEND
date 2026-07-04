@@ -16,6 +16,13 @@ export interface Teacher {
   qualification?: string;
   baseSalary: number;
   status: 'active' | 'inactive';
+  experience?: Array<{ instituteName: string; designation: string; fromDate: string; toDate: string; description?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
+  education?: Array<{ instituteName: string; degree: string; fieldOfStudy: string; fromDate: string; toDate: string; grade?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
+  documents?: {
+    idProof?: { url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string };
+    resume?: { url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string };
+    certificates?: Array<{ url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string }>;
+  };
 }
 
 export interface ClassRoom {
@@ -25,6 +32,7 @@ export interface ClassRoom {
   monthlyFee: number;
   academicYear: AcademicYear | string;
   classTeacher?: Teacher | string;
+  subjects?: Array<{ name: string; teacher: Teacher | string }>;
 }
 
 export interface Student {

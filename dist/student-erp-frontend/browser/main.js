@@ -45771,7 +45771,7 @@ function PayrollPageComponent_ng_container_2_option_14_Template(rf, ctx) {
 function PayrollPageComponent_ng_container_2_div_74_button_35_Template(rf, ctx) {
   if (rf & 1) {
     const _r5 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 44);
+    \u0275\u0275elementStart(0, "button", 45);
     \u0275\u0275listener("click", function PayrollPageComponent_ng_container_2_div_74_button_35_Template_button_click_0_listener() {
       \u0275\u0275restoreView(_r5);
       const payroll_r6 = \u0275\u0275nextContext().$implicit;
@@ -45779,6 +45779,34 @@ function PayrollPageComponent_ng_container_2_div_74_button_35_Template(rf, ctx) 
       return \u0275\u0275resetView(ctx_r1.vm.markPayrollPaid(payroll_r6._id));
     });
     \u0275\u0275text(1, "Mark as Paid");
+    \u0275\u0275elementEnd();
+  }
+}
+function PayrollPageComponent_ng_container_2_div_74_button_38_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r7 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "button", 42);
+    \u0275\u0275listener("click", function PayrollPageComponent_ng_container_2_div_74_button_38_Template_button_click_0_listener() {
+      \u0275\u0275restoreView(_r7);
+      const payroll_r6 = \u0275\u0275nextContext().$implicit;
+      const ctx_r1 = \u0275\u0275nextContext(2);
+      return \u0275\u0275resetView(ctx_r1.vm.editPayroll(payroll_r6));
+    });
+    \u0275\u0275text(1, "Edit");
+    \u0275\u0275elementEnd();
+  }
+}
+function PayrollPageComponent_ng_container_2_div_74_button_39_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r8 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "button", 46);
+    \u0275\u0275listener("click", function PayrollPageComponent_ng_container_2_div_74_button_39_Template_button_click_0_listener() {
+      \u0275\u0275restoreView(_r8);
+      const payroll_r6 = \u0275\u0275nextContext().$implicit;
+      const ctx_r1 = \u0275\u0275nextContext(2);
+      return \u0275\u0275resetView(ctx_r1.vm.deletePayroll(payroll_r6._id));
+    });
+    \u0275\u0275text(1, "Delete");
     \u0275\u0275elementEnd();
   }
 }
@@ -45832,22 +45860,8 @@ function PayrollPageComponent_ng_container_2_div_74_Template(rf, ctx) {
     });
     \u0275\u0275text(37, "Download Slip");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(38, "button", 42);
-    \u0275\u0275listener("click", function PayrollPageComponent_ng_container_2_div_74_Template_button_click_38_listener() {
-      const payroll_r6 = \u0275\u0275restoreView(_r4).$implicit;
-      const ctx_r1 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r1.vm.editPayroll(payroll_r6));
-    });
-    \u0275\u0275text(39, "Edit");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(40, "button", 43);
-    \u0275\u0275listener("click", function PayrollPageComponent_ng_container_2_div_74_Template_button_click_40_listener() {
-      const payroll_r6 = \u0275\u0275restoreView(_r4).$implicit;
-      const ctx_r1 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r1.vm.deletePayroll(payroll_r6._id));
-    });
-    \u0275\u0275text(41, "Delete");
-    \u0275\u0275elementEnd()()();
+    \u0275\u0275template(38, PayrollPageComponent_ng_container_2_div_74_button_38_Template, 2, 0, "button", 43)(39, PayrollPageComponent_ng_container_2_div_74_button_39_Template, 2, 0, "button", 44);
+    \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
     const payroll_r6 = ctx.$implicit;
@@ -45861,20 +45875,24 @@ function PayrollPageComponent_ng_container_2_div_74_Template(rf, ctx) {
     \u0275\u0275advance();
     \u0275\u0275textInterpolate(payroll_r6.status);
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(15, 10, payroll_r6.basicSalary, "INR"));
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(15, 12, payroll_r6.basicSalary, "INR"));
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(21, 13, payroll_r6.allowances, "INR"));
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(21, 15, payroll_r6.allowances, "INR"));
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(27, 16, payroll_r6.deductions, "INR"));
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(27, 18, payroll_r6.deductions, "INR"));
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(33, 19, payroll_r6.basicSalary + payroll_r6.allowances - payroll_r6.deductions, "INR"));
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(33, 21, payroll_r6.basicSalary + payroll_r6.allowances - payroll_r6.deductions, "INR"));
     \u0275\u0275advance(3);
+    \u0275\u0275property("ngIf", payroll_r6.status === "pending");
+    \u0275\u0275advance(3);
+    \u0275\u0275property("ngIf", payroll_r6.status === "pending");
+    \u0275\u0275advance();
     \u0275\u0275property("ngIf", payroll_r6.status === "pending");
   }
 }
 function PayrollPageComponent_ng_container_2_div_75_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 45)(1, "p");
+    \u0275\u0275elementStart(0, "div", 47)(1, "p");
     \u0275\u0275text(2, "No payroll records found");
     \u0275\u0275elementEnd()();
   }
@@ -45990,7 +46008,7 @@ function PayrollPageComponent_ng_container_2_Template(rf, ctx) {
     \u0275\u0275text(72, "Paid");
     \u0275\u0275elementEnd()()();
     \u0275\u0275elementStart(73, "div", 26);
-    \u0275\u0275template(74, PayrollPageComponent_ng_container_2_div_74_Template, 42, 22, "div", 27);
+    \u0275\u0275template(74, PayrollPageComponent_ng_container_2_div_74_Template, 40, 24, "div", 27);
     \u0275\u0275elementEnd();
     \u0275\u0275template(75, PayrollPageComponent_ng_container_2_div_75_Template, 3, 0, "div", 28);
     \u0275\u0275element(76, "app-pagination-bar", 29);
@@ -46050,7 +46068,7 @@ var PayrollPageComponent = class _PayrollPageComponent {
   static \u0275fac = function PayrollPageComponent_Factory(__ngFactoryType__) {
     return new (__ngFactoryType__ || _PayrollPageComponent)();
   };
-  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _PayrollPageComponent, selectors: [["app-payroll-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [[1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading payroll records...", 3, "show"], [1, "panel", "span-12", 3, "ngSubmit", "formGroup"], [1, "section-head"], [1, "eyebrow"], [1, "form-grid", "compact"], ["formControlName", "teacher"], ["value", ""], [3, "value", 4, "ngFor", "ngForOf"], ["formControlName", "month"], [3, "value"], ["type", "number", "formControlName", "year"], ["type", "number", "formControlName", "basicSalary"], ["type", "number", "formControlName", "allowances", "placeholder", "0"], ["type", "number", "formControlName", "deductions", "placeholder", "0"], ["type", "submit", 3, "disabled"], [1, "data-card", "span-12"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search by teacher name...", 3, "input", "value"], [1, "filter-select", 3, "change", "value"], ["value", "pending"], ["value", "paid"], [1, "payroll-cards"], ["class", "payroll-card", 4, "ngFor", "ngForOf"], ["class", "empty-state", 4, "ngIf"], ["listKey", "payroll", 3, "vm", "items"], [1, "payroll-card"], [1, "pr-header"], [1, "pr-teacher"], [1, "pr-period"], [1, "status-badge", 3, "ngClass"], [1, "pr-breakdown"], [1, "pr-row"], [1, "pr-row", "success-text"], [1, "pr-row", "danger-text"], [1, "pr-row", "pr-total"], [1, "pr-actions"], ["type", "button", "class", "ghost small success-btn", 3, "click", 4, "ngIf"], ["type", "button", 1, "ghost", "small", 3, "click"], ["type", "button", 1, "danger-btn", "small", 3, "click"], ["type", "button", 1, "ghost", "small", "success-btn", 3, "click"], [1, "empty-state"]], template: function PayrollPageComponent_Template(rf, ctx) {
+  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _PayrollPageComponent, selectors: [["app-payroll-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [[1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading payroll records...", 3, "show"], [1, "panel", "span-12", 3, "ngSubmit", "formGroup"], [1, "section-head"], [1, "eyebrow"], [1, "form-grid", "compact"], ["formControlName", "teacher"], ["value", ""], [3, "value", 4, "ngFor", "ngForOf"], ["formControlName", "month"], [3, "value"], ["type", "number", "formControlName", "year"], ["type", "number", "formControlName", "basicSalary"], ["type", "number", "formControlName", "allowances", "placeholder", "0"], ["type", "number", "formControlName", "deductions", "placeholder", "0"], ["type", "submit", 3, "disabled"], [1, "data-card", "span-12"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search by teacher name...", 3, "input", "value"], [1, "filter-select", 3, "change", "value"], ["value", "pending"], ["value", "paid"], [1, "payroll-cards"], ["class", "payroll-card", 4, "ngFor", "ngForOf"], ["class", "empty-state", 4, "ngIf"], ["listKey", "payroll", 3, "vm", "items"], [1, "payroll-card"], [1, "pr-header"], [1, "pr-teacher"], [1, "pr-period"], [1, "status-badge", 3, "ngClass"], [1, "pr-breakdown"], [1, "pr-row"], [1, "pr-row", "success-text"], [1, "pr-row", "danger-text"], [1, "pr-row", "pr-total"], [1, "pr-actions"], ["type", "button", "class", "ghost small success-btn", 3, "click", 4, "ngIf"], ["type", "button", 1, "ghost", "small", 3, "click"], ["type", "button", "class", "ghost small", 3, "click", 4, "ngIf"], ["type", "button", "class", "danger-btn small", 3, "click", 4, "ngIf"], ["type", "button", 1, "ghost", "small", "success-btn", 3, "click"], ["type", "button", 1, "danger-btn", "small", 3, "click"], [1, "empty-state"]], template: function PayrollPageComponent_Template(rf, ctx) {
     if (rf & 1) {
       \u0275\u0275elementStart(0, "section", 0);
       \u0275\u0275template(1, PayrollPageComponent_div_1_Template, 2, 1, "div", 1)(2, PayrollPageComponent_ng_container_2_Template, 77, 23, "ng-container", 2);
@@ -47021,13 +47039,13 @@ function StudentsPageComponent_ng_container_2_label_9_Template(rf, ctx) {
   if (rf & 1) {
     \u0275\u0275elementStart(0, "label");
     \u0275\u0275text(1, "Admission no");
-    \u0275\u0275element(2, "input", 46);
+    \u0275\u0275element(2, "input", 51);
     \u0275\u0275elementEnd();
   }
 }
 function StudentsPageComponent_ng_container_2_option_57_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "option", 47);
+    \u0275\u0275elementStart(0, "option", 52);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
@@ -47040,7 +47058,7 @@ function StudentsPageComponent_ng_container_2_option_57_Template(rf, ctx) {
 }
 function StudentsPageComponent_ng_container_2_option_63_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "option", 47);
+    \u0275\u0275elementStart(0, "option", 52);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
@@ -47051,9 +47069,9 @@ function StudentsPageComponent_ng_container_2_option_63_Template(rf, ctx) {
     \u0275\u0275textInterpolate2("", room_r4.name, "-", room_r4.section, "");
   }
 }
-function StudentsPageComponent_ng_container_2_option_95_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_option_113_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "option", 47);
+    \u0275\u0275elementStart(0, "option", 52);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
@@ -47064,11 +47082,11 @@ function StudentsPageComponent_ng_container_2_option_95_Template(rf, ctx) {
     \u0275\u0275textInterpolate2("", room_r5.name, "-", room_r5.section, "");
   }
 }
-function StudentsPageComponent_ng_container_2_tr_111_button_16_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_tr_129_button_16_Template(rf, ctx) {
   if (rf & 1) {
     const _r8 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 50);
-    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_111_button_16_Template_button_click_0_listener() {
+    \u0275\u0275elementStart(0, "button", 55);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_129_button_16_Template_button_click_0_listener() {
       \u0275\u0275restoreView(_r8);
       const student_r7 = \u0275\u0275nextContext().$implicit;
       const ctx_r1 = \u0275\u0275nextContext(2);
@@ -47078,11 +47096,11 @@ function StudentsPageComponent_ng_container_2_tr_111_button_16_Template(rf, ctx)
     \u0275\u0275elementEnd();
   }
 }
-function StudentsPageComponent_ng_container_2_tr_111_button_17_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_tr_129_button_17_Template(rf, ctx) {
   if (rf & 1) {
     const _r9 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 53);
-    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_111_button_17_Template_button_click_0_listener() {
+    \u0275\u0275elementStart(0, "button", 58);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_129_button_17_Template_button_click_0_listener() {
       \u0275\u0275restoreView(_r9);
       const student_r7 = \u0275\u0275nextContext().$implicit;
       const ctx_r1 = \u0275\u0275nextContext(2);
@@ -47092,7 +47110,7 @@ function StudentsPageComponent_ng_container_2_tr_111_button_17_Template(rf, ctx)
     \u0275\u0275elementEnd();
   }
 }
-function StudentsPageComponent_ng_container_2_tr_111_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_tr_129_Template(rf, ctx) {
   if (rf & 1) {
     const _r6 = \u0275\u0275getCurrentView();
     \u0275\u0275elementStart(0, "tr")(1, "td");
@@ -47104,26 +47122,26 @@ function StudentsPageComponent_ng_container_2_tr_111_Template(rf, ctx) {
     \u0275\u0275elementStart(5, "td");
     \u0275\u0275text(6);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(7, "td")(8, "span", 48);
+    \u0275\u0275elementStart(7, "td")(8, "span", 53);
     \u0275\u0275text(9);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(10, "td")(11, "div", 49)(12, "button", 50);
-    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_111_Template_button_click_12_listener() {
+    \u0275\u0275elementStart(10, "td")(11, "div", 54)(12, "button", 55);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_129_Template_button_click_12_listener() {
       const student_r7 = \u0275\u0275restoreView(_r6).$implicit;
       const ctx_r1 = \u0275\u0275nextContext(2);
       return \u0275\u0275resetView(ctx_r1.vm.openStudentProfile(student_r7._id));
     });
     \u0275\u0275text(13, "Profile");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(14, "button", 50);
-    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_111_Template_button_click_14_listener() {
+    \u0275\u0275elementStart(14, "button", 55);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_tr_129_Template_button_click_14_listener() {
       const student_r7 = \u0275\u0275restoreView(_r6).$implicit;
       const ctx_r1 = \u0275\u0275nextContext(2);
       return \u0275\u0275resetView(ctx_r1.vm.loadStudentDocuments(student_r7._id));
     });
     \u0275\u0275text(15, "Docs");
     \u0275\u0275elementEnd();
-    \u0275\u0275template(16, StudentsPageComponent_ng_container_2_tr_111_button_16_Template, 2, 0, "button", 51)(17, StudentsPageComponent_ng_container_2_tr_111_button_17_Template, 2, 0, "button", 52);
+    \u0275\u0275template(16, StudentsPageComponent_ng_container_2_tr_129_button_16_Template, 2, 0, "button", 56)(17, StudentsPageComponent_ng_container_2_tr_129_button_17_Template, 2, 0, "button", 57);
     \u0275\u0275elementEnd()()();
   }
   if (rf & 2) {
@@ -47145,16 +47163,16 @@ function StudentsPageComponent_ng_container_2_tr_111_Template(rf, ctx) {
     \u0275\u0275property("ngIf", ctx_r1.vm.isAdmin);
   }
 }
-function StudentsPageComponent_ng_container_2_tr_112_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_tr_130_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "tr")(1, "td", 54);
+    \u0275\u0275elementStart(0, "tr")(1, "td", 59);
     \u0275\u0275text(2, "No students found");
     \u0275\u0275elementEnd()();
   }
 }
-function StudentsPageComponent_ng_container_2_option_126_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_option_144_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "option", 47);
+    \u0275\u0275elementStart(0, "option", 52);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
@@ -47166,33 +47184,98 @@ function StudentsPageComponent_ng_container_2_option_126_Template(rf, ctx) {
     \u0275\u0275textInterpolate2("", ctx_r1.vm.studentName(student_r10), " \xB7 ", student_r10.admissionNumber, "");
   }
 }
-function StudentsPageComponent_ng_container_2_div_127_article_1_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_div_145_article_1_span_9_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "article", 57)(1, "strong");
-    \u0275\u0275text(2);
+    \u0275\u0275elementStart(0, "span", 70);
+    \u0275\u0275text(1);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(3, "span");
-    \u0275\u0275text(4);
-    \u0275\u0275pipe(5, "titlecase");
+  }
+  if (rf & 2) {
+    const document_r11 = \u0275\u0275nextContext().$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(document_r11.rejectReason);
+  }
+}
+function StudentsPageComponent_ng_container_2_div_145_article_1_div_14_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r12 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 71)(1, "button", 72);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_div_145_article_1_div_14_Template_button_click_1_listener() {
+      \u0275\u0275restoreView(_r12);
+      const document_r11 = \u0275\u0275nextContext().$implicit;
+      const ctx_r1 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r1.vm.verifyStudentDoc(document_r11._id, "approve"));
+    });
+    \u0275\u0275text(2, "Approve");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(6, "a", 58);
-    \u0275\u0275text(7, "Open file");
+    \u0275\u0275elementStart(3, "input", 73);
+    \u0275\u0275twoWayListener("ngModelChange", function StudentsPageComponent_ng_container_2_div_145_article_1_div_14_Template_input_ngModelChange_3_listener($event) {
+      \u0275\u0275restoreView(_r12);
+      const ctx_r1 = \u0275\u0275nextContext(4);
+      \u0275\u0275twoWayBindingSet(ctx_r1.vm.verifyDocReason, $event) || (ctx_r1.vm.verifyDocReason = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "button", 58);
+    \u0275\u0275listener("click", function StudentsPageComponent_ng_container_2_div_145_article_1_div_14_Template_button_click_4_listener() {
+      \u0275\u0275restoreView(_r12);
+      const document_r11 = \u0275\u0275nextContext().$implicit;
+      const ctx_r1 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r1.vm.verifyStudentDoc(document_r11._id, "reject"));
+    });
+    \u0275\u0275text(5, "Reject");
     \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
-    const document_r11 = ctx.$implicit;
-    \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(document_r11.title);
-    \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind1(5, 3, document_r11.type));
-    \u0275\u0275advance(2);
-    \u0275\u0275property("href", document_r11.fileUrl, \u0275\u0275sanitizeUrl);
+    const ctx_r1 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance(3);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r1.vm.verifyDocReason);
   }
 }
-function StudentsPageComponent_ng_container_2_div_127_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_div_145_article_1_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 55);
-    \u0275\u0275template(1, StudentsPageComponent_ng_container_2_div_127_article_1_Template, 8, 5, "article", 56);
+    \u0275\u0275elementStart(0, "article", 62)(1, "div", 63)(2, "strong");
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "span", 64);
+    \u0275\u0275text(5);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(6, "span", 65);
+    \u0275\u0275text(7);
+    \u0275\u0275pipe(8, "titlecase");
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(9, StudentsPageComponent_ng_container_2_div_145_article_1_span_9_Template, 2, 1, "span", 66);
+    \u0275\u0275elementStart(10, "a", 67)(11, "span", 68);
+    \u0275\u0275text(12, "\u{1F4C4}");
+    \u0275\u0275elementEnd();
+    \u0275\u0275text(13, " View Document ");
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(14, StudentsPageComponent_ng_container_2_div_145_article_1_div_14_Template, 6, 1, "div", 69);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const document_r11 = ctx.$implicit;
+    const ctx_r1 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(document_r11.title);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", document_r11.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(document_r11.status || "pending");
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind1(8, 7, document_r11.type));
+    \u0275\u0275advance(2);
+    \u0275\u0275property("ngIf", document_r11.rejectReason);
+    \u0275\u0275advance();
+    \u0275\u0275property("href", document_r11.fileUrl, \u0275\u0275sanitizeUrl);
+    \u0275\u0275advance(4);
+    \u0275\u0275property("ngIf", ctx_r1.vm.isAdmin);
+  }
+}
+function StudentsPageComponent_ng_container_2_div_145_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 60);
+    \u0275\u0275template(1, StudentsPageComponent_ng_container_2_div_145_article_1_Template, 15, 9, "article", 61);
     \u0275\u0275elementEnd();
   }
   if (rf & 2) {
@@ -47201,9 +47284,9 @@ function StudentsPageComponent_ng_container_2_div_127_Template(rf, ctx) {
     \u0275\u0275property("ngForOf", ctx_r1.vm.selectedStudentDocuments);
   }
 }
-function StudentsPageComponent_ng_container_2_ng_template_128_Template(rf, ctx) {
+function StudentsPageComponent_ng_container_2_ng_template_146_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 59);
+    \u0275\u0275elementStart(0, "div", 74);
     \u0275\u0275text(1, "Select a student to review uploaded files.");
     \u0275\u0275elementEnd();
   }
@@ -47304,106 +47387,135 @@ function StudentsPageComponent_ng_container_2_Template(rf, ctx) {
     \u0275\u0275element(69, "input", 30);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(70, "label");
-    \u0275\u0275text(71, "Photo");
-    \u0275\u0275elementStart(72, "input", 31);
-    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_72_listener($event) {
+    \u0275\u0275text(71, "Prev school address");
+    \u0275\u0275element(72, "input", 31);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(73, "label");
+    \u0275\u0275text(74, "Last class attended");
+    \u0275\u0275element(75, "input", 32);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(76, "label");
+    \u0275\u0275text(77, "Year of passing");
+    \u0275\u0275element(78, "input", 33);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(79, "label");
+    \u0275\u0275text(80, "Reason for leaving");
+    \u0275\u0275element(81, "input", 34);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(82, "label");
+    \u0275\u0275text(83, "TC number");
+    \u0275\u0275element(84, "input", 35);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(85, "label");
+    \u0275\u0275text(86, "Photo");
+    \u0275\u0275elementStart(87, "input", 36);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_87_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r1.vm.onFile("photo", $event));
     });
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(73, "label");
-    \u0275\u0275text(74, "Aadhaar file");
-    \u0275\u0275elementStart(75, "input", 32);
-    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_75_listener($event) {
+    \u0275\u0275elementStart(88, "label");
+    \u0275\u0275text(89, "Aadhaar file");
+    \u0275\u0275elementStart(90, "input", 37);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_90_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r1.vm.onFile("aadhaar", $event));
     });
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(76, "label");
-    \u0275\u0275text(77, "Birth certificate");
-    \u0275\u0275elementStart(78, "input", 32);
-    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_78_listener($event) {
+    \u0275\u0275elementStart(91, "label");
+    \u0275\u0275text(92, "Birth certificate");
+    \u0275\u0275elementStart(93, "input", 37);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_93_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r1.vm.onFile("birthCertificate", $event));
     });
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(94, "label");
+    \u0275\u0275text(95, "Transfer certificate");
+    \u0275\u0275elementStart(96, "input", 37);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_input_change_96_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r1 = \u0275\u0275nextContext();
+      return \u0275\u0275resetView(ctx_r1.vm.onFile("otherDocuments", $event));
+    });
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(79, "div", 33)(80, "button", 34);
-    \u0275\u0275text(81);
+    \u0275\u0275elementStart(97, "div", 38)(98, "button", 39);
+    \u0275\u0275text(99);
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(82, "section", 35)(83, "div", 7)(84, "div")(85, "p", 8);
-    \u0275\u0275text(86, "Directory");
+    \u0275\u0275elementStart(100, "section", 40)(101, "div", 7)(102, "div")(103, "p", 8);
+    \u0275\u0275text(104, "Directory");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(87, "h3");
-    \u0275\u0275text(88, "Students");
+    \u0275\u0275elementStart(105, "h3");
+    \u0275\u0275text(106, "Students");
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(89, "div", 36)(90, "div", 37)(91, "input", 38);
-    \u0275\u0275listener("input", function StudentsPageComponent_ng_container_2_Template_input_input_91_listener($event) {
+    \u0275\u0275elementStart(107, "div", 41)(108, "div", 42)(109, "input", 43);
+    \u0275\u0275listener("input", function StudentsPageComponent_ng_container_2_Template_input_input_109_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       ctx_r1.vm.filters.studentSearch = $event.target.value;
       return \u0275\u0275resetView(ctx_r1.vm.resetPage("students"));
     });
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(92, "select", 39);
-    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_select_change_92_listener($event) {
+    \u0275\u0275elementStart(110, "select", 44);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_select_change_110_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       ctx_r1.vm.filters.studentClass = $event.target.value;
       return \u0275\u0275resetView(ctx_r1.vm.resetPage("students"));
     });
-    \u0275\u0275elementStart(93, "option", 26);
-    \u0275\u0275text(94, "All classes");
+    \u0275\u0275elementStart(111, "option", 26);
+    \u0275\u0275text(112, "All classes");
     \u0275\u0275elementEnd();
-    \u0275\u0275template(95, StudentsPageComponent_ng_container_2_option_95_Template, 2, 3, "option", 27);
+    \u0275\u0275template(113, StudentsPageComponent_ng_container_2_option_113_Template, 2, 3, "option", 27);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(96, "div", 40)(97, "table")(98, "thead")(99, "tr")(100, "th");
-    \u0275\u0275text(101, "Adm no");
+    \u0275\u0275elementStart(114, "div", 45)(115, "table")(116, "thead")(117, "tr")(118, "th");
+    \u0275\u0275text(119, "Adm no");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(102, "th");
-    \u0275\u0275text(103, "Name");
+    \u0275\u0275elementStart(120, "th");
+    \u0275\u0275text(121, "Name");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(104, "th");
-    \u0275\u0275text(105, "Class");
+    \u0275\u0275elementStart(122, "th");
+    \u0275\u0275text(123, "Class");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(106, "th");
-    \u0275\u0275text(107, "Status");
+    \u0275\u0275elementStart(124, "th");
+    \u0275\u0275text(125, "Status");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(108, "th");
-    \u0275\u0275text(109, "Actions");
+    \u0275\u0275elementStart(126, "th");
+    \u0275\u0275text(127, "Actions");
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(110, "tbody");
-    \u0275\u0275template(111, StudentsPageComponent_ng_container_2_tr_111_Template, 18, 7, "tr", 41)(112, StudentsPageComponent_ng_container_2_tr_112_Template, 3, 0, "tr", 3);
+    \u0275\u0275elementStart(128, "tbody");
+    \u0275\u0275template(129, StudentsPageComponent_ng_container_2_tr_129_Template, 18, 7, "tr", 46)(130, StudentsPageComponent_ng_container_2_tr_130_Template, 3, 0, "tr", 3);
     \u0275\u0275elementEnd()()();
-    \u0275\u0275element(113, "app-pagination-bar", 42);
+    \u0275\u0275element(131, "app-pagination-bar", 47);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(114, "section", 43)(115, "div", 7)(116, "div")(117, "p", 8);
-    \u0275\u0275text(118, "Documents");
+    \u0275\u0275elementStart(132, "section", 48)(133, "div", 7)(134, "div")(135, "p", 8);
+    \u0275\u0275text(136, "Documents");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(119, "h3");
-    \u0275\u0275text(120, "Document vault");
+    \u0275\u0275elementStart(137, "h3");
+    \u0275\u0275text(138, "Document vault");
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(121, "label");
-    \u0275\u0275text(122, "Select student ");
-    \u0275\u0275elementStart(123, "select", 44);
-    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_select_change_123_listener($event) {
+    \u0275\u0275elementStart(139, "label");
+    \u0275\u0275text(140, "Select student ");
+    \u0275\u0275elementStart(141, "select", 49);
+    \u0275\u0275listener("change", function StudentsPageComponent_ng_container_2_Template_select_change_141_listener($event) {
       \u0275\u0275restoreView(_r1);
       const ctx_r1 = \u0275\u0275nextContext();
       return \u0275\u0275resetView(ctx_r1.vm.loadStudentDocuments($event.target.value));
     });
-    \u0275\u0275elementStart(124, "option", 26);
-    \u0275\u0275text(125, "Choose a student");
+    \u0275\u0275elementStart(142, "option", 26);
+    \u0275\u0275text(143, "Choose a student");
     \u0275\u0275elementEnd();
-    \u0275\u0275template(126, StudentsPageComponent_ng_container_2_option_126_Template, 2, 3, "option", 27);
+    \u0275\u0275template(144, StudentsPageComponent_ng_container_2_option_144_Template, 2, 3, "option", 27);
     \u0275\u0275elementEnd()();
-    \u0275\u0275template(127, StudentsPageComponent_ng_container_2_div_127_Template, 2, 1, "div", 45)(128, StudentsPageComponent_ng_container_2_ng_template_128_Template, 2, 0, "ng-template", null, 0, \u0275\u0275templateRefExtractor);
+    \u0275\u0275template(145, StudentsPageComponent_ng_container_2_div_145_Template, 2, 1, "div", 50)(146, StudentsPageComponent_ng_container_2_ng_template_146_Template, 2, 0, "ng-template", null, 0, \u0275\u0275templateRefExtractor);
     \u0275\u0275elementEnd();
     \u0275\u0275elementContainerEnd();
   }
   if (rf & 2) {
-    const noDocuments_r12 = \u0275\u0275reference(129);
+    const noDocuments_r13 = \u0275\u0275reference(147);
     const ctx_r1 = \u0275\u0275nextContext();
     \u0275\u0275advance();
     \u0275\u0275property("formGroup", ctx_r1.vm.admissionForm);
@@ -47415,7 +47527,7 @@ function StudentsPageComponent_ng_container_2_Template(rf, ctx) {
     \u0275\u0275property("ngForOf", ctx_r1.vm.years);
     \u0275\u0275advance(6);
     \u0275\u0275property("ngForOf", ctx_r1.vm.classes);
-    \u0275\u0275advance(17);
+    \u0275\u0275advance(35);
     \u0275\u0275property("disabled", ctx_r1.vm.admissionForm.invalid);
     \u0275\u0275advance();
     \u0275\u0275textInterpolate(ctx_r1.vm.editingStudentId ? "Update student" : "Save admission");
@@ -47436,7 +47548,7 @@ function StudentsPageComponent_ng_container_2_Template(rf, ctx) {
     \u0275\u0275advance(3);
     \u0275\u0275property("ngForOf", ctx_r1.vm.students);
     \u0275\u0275advance();
-    \u0275\u0275property("ngIf", ctx_r1.vm.selectedStudentDocuments.length)("ngIfElse", noDocuments_r12);
+    \u0275\u0275property("ngIf", ctx_r1.vm.selectedStudentDocuments.length)("ngIfElse", noDocuments_r13);
   }
 }
 var StudentsPageComponent = class _StudentsPageComponent {
@@ -47444,10 +47556,10 @@ var StudentsPageComponent = class _StudentsPageComponent {
   static \u0275fac = function StudentsPageComponent_Factory(__ngFactoryType__) {
     return new (__ngFactoryType__ || _StudentsPageComponent)();
   };
-  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _StudentsPageComponent, selectors: [["app-students-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [["noDocuments", ""], [1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading students...", 3, "show"], [1, "panel", "span-12", 3, "ngSubmit", "formGroup"], [1, "section-head"], [1, "eyebrow"], [1, "form-grid"], ["formControlName", "firstName"], ["formControlName", "lastName"], ["formControlName", "gender"], ["value", "male"], ["value", "female"], ["value", "other"], ["type", "date", "formControlName", "dateOfBirth"], ["formControlName", "aadhaarNumber", "maxlength", "12", "pattern", "\\d{12}", "inputmode", "numeric"], ["formControlName", "line1"], ["formControlName", "city"], ["formControlName", "state"], ["formControlName", "pincode"], ["formControlName", "guardianName"], ["formControlName", "guardianRelation"], ["formControlName", "guardianPhone", "maxlength", "10", "pattern", "\\d{10}", "inputmode", "numeric"], ["formControlName", "academicYear"], ["value", ""], [3, "value", 4, "ngFor", "ngForOf"], ["formControlName", "classRoom"], ["formControlName", "rollNumber"], ["formControlName", "previousSchool"], ["type", "file", "accept", "image/png,image/jpeg", 3, "change"], ["type", "file", "accept", "image/png,image/jpeg,application/pdf", 3, "change"], [1, "form-actions"], ["type", "submit", 3, "disabled"], [1, "data-card", "span-8"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search admission no or name", 3, "input", "value"], [1, "filter-select", 3, "change", "value"], [1, "table-wrap"], [4, "ngFor", "ngForOf"], ["listKey", "students", 3, "vm", "items"], [1, "panel", "span-4"], [3, "change", "value"], ["class", "document-list", 4, "ngIf", "ngIfElse"], ["formControlName", "admissionNumber"], [3, "value"], [1, "status-badge", 3, "ngClass"], [1, "table-actions"], ["type", "button", 1, "ghost", "small", 3, "click"], ["type", "button", "class", "ghost small", 3, "click", 4, "ngIf"], ["type", "button", "class", "danger-btn small", 3, "click", 4, "ngIf"], ["type", "button", 1, "danger-btn", "small", 3, "click"], ["colspan", "5", 1, "empty-cell"], [1, "document-list"], ["class", "document-card", 4, "ngFor", "ngForOf"], [1, "document-card"], ["target", "_blank", "rel", "noopener noreferrer", 3, "href"], [1, "empty-state"]], template: function StudentsPageComponent_Template(rf, ctx) {
+  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _StudentsPageComponent, selectors: [["app-students-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [["noDocuments", ""], [1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading students...", 3, "show"], [1, "panel", "span-12", 3, "ngSubmit", "formGroup"], [1, "section-head"], [1, "eyebrow"], [1, "form-grid"], ["formControlName", "firstName"], ["formControlName", "lastName"], ["formControlName", "gender"], ["value", "male"], ["value", "female"], ["value", "other"], ["type", "date", "formControlName", "dateOfBirth"], ["formControlName", "aadhaarNumber", "maxlength", "12", "pattern", "\\d{12}", "inputmode", "numeric"], ["formControlName", "line1"], ["formControlName", "city"], ["formControlName", "state"], ["formControlName", "pincode"], ["formControlName", "guardianName"], ["formControlName", "guardianRelation"], ["formControlName", "guardianPhone", "maxlength", "10", "pattern", "\\d{10}", "inputmode", "numeric"], ["formControlName", "academicYear"], ["value", ""], [3, "value", 4, "ngFor", "ngForOf"], ["formControlName", "classRoom"], ["formControlName", "rollNumber"], ["formControlName", "previousSchool", "placeholder", "School name"], ["formControlName", "previousSchoolAddress", "placeholder", "City, State"], ["formControlName", "previousSchoolLastClass", "placeholder", "e.g. Class 5"], ["type", "number", "formControlName", "previousSchoolYearOfPassing", "placeholder", "e.g. 2024"], ["formControlName", "previousSchoolReasonForLeaving", "placeholder", "Transfer, relocation..."], ["formControlName", "previousSchoolTcNumber", "placeholder", "Transfer certificate no."], ["type", "file", "accept", "image/png,image/jpeg", 3, "change"], ["type", "file", "accept", "image/png,image/jpeg,application/pdf", 3, "change"], [1, "form-actions"], ["type", "submit", 3, "disabled"], [1, "data-card", "span-8"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search admission no or name", 3, "input", "value"], [1, "filter-select", 3, "change", "value"], [1, "table-wrap"], [4, "ngFor", "ngForOf"], ["listKey", "students", 3, "vm", "items"], [1, "panel", "span-4"], [3, "change", "value"], ["class", "document-list", 4, "ngIf", "ngIfElse"], ["formControlName", "admissionNumber"], [3, "value"], [1, "status-badge", 3, "ngClass"], [1, "table-actions"], ["type", "button", 1, "ghost", "small", 3, "click"], ["type", "button", "class", "ghost small", 3, "click", 4, "ngIf"], ["type", "button", "class", "danger-btn small", 3, "click", 4, "ngIf"], ["type", "button", 1, "danger-btn", "small", 3, "click"], ["colspan", "5", 1, "empty-cell"], [1, "document-list"], ["class", "document-card-enhanced", 4, "ngFor", "ngForOf"], [1, "document-card-enhanced"], [1, "doc-card-header"], [1, "status-badge", "small", 3, "ngClass"], [1, "doc-card-type"], ["class", "reject-reason", 4, "ngIf"], ["target", "_blank", "rel", "noopener noreferrer", 1, "doc-view-link", 3, "href"], [1, "doc-view-icon"], ["class", "verify-actions", 4, "ngIf"], [1, "reject-reason"], [1, "verify-actions"], ["type", "button", 1, "ghost", "small", "success-btn", 3, "click"], ["placeholder", "Rejection reason", 1, "reject-input", 3, "ngModelChange", "ngModel"], [1, "empty-state"]], template: function StudentsPageComponent_Template(rf, ctx) {
     if (rf & 1) {
       \u0275\u0275elementStart(0, "section", 1);
-      \u0275\u0275template(1, StudentsPageComponent_div_1_Template, 2, 1, "div", 2)(2, StudentsPageComponent_ng_container_2_Template, 130, 18, "ng-container", 3);
+      \u0275\u0275template(1, StudentsPageComponent_div_1_Template, 2, 1, "div", 2)(2, StudentsPageComponent_ng_container_2_Template, 148, 18, "ng-container", 3);
       \u0275\u0275elementEnd();
     }
     if (rf & 2) {
@@ -47456,7 +47568,7 @@ var StudentsPageComponent = class _StudentsPageComponent {
       \u0275\u0275advance();
       \u0275\u0275property("ngIf", !ctx.vm.loading || ctx.vm.students.length);
     }
-  }, dependencies: [CommonModule, NgClass, NgForOf, NgIf, TitleCasePipe, ReactiveFormsModule, \u0275NgNoValidate, NgSelectOption, \u0275NgSelectMultipleOption, DefaultValueAccessor, SelectControlValueAccessor, NgControlStatus, NgControlStatusGroup, MaxLengthValidator, PatternValidator, FormGroupDirective, FormControlName, PaginationBarComponent, SpinnerComponent], encapsulation: 2 });
+  }, dependencies: [CommonModule, NgClass, NgForOf, NgIf, TitleCasePipe, ReactiveFormsModule, \u0275NgNoValidate, NgSelectOption, \u0275NgSelectMultipleOption, DefaultValueAccessor, NumberValueAccessor, SelectControlValueAccessor, NgControlStatus, NgControlStatusGroup, MaxLengthValidator, PatternValidator, FormGroupDirective, FormControlName, FormsModule, NgModel, PaginationBarComponent, SpinnerComponent], encapsulation: 2 });
 };
 (() => {
   (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(StudentsPageComponent, { className: "StudentsPageComponent", filePath: "src\\app\\pages\\students-page\\students-page.component.ts", lineNumber: 14 });
@@ -47465,8 +47577,8 @@ var StudentsPageComponent = class _StudentsPageComponent {
 // src/app/pages/teachers-page/teachers-page.component.ts
 function TeachersPageComponent_div_1_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "div", 4);
-    \u0275\u0275element(1, "app-spinner", 5);
+    \u0275\u0275elementStart(0, "div", 6);
+    \u0275\u0275element(1, "app-spinner", 7);
     \u0275\u0275elementEnd();
   }
   if (rf & 2) {
@@ -47474,16 +47586,606 @@ function TeachersPageComponent_div_1_Template(rf, ctx) {
     \u0275\u0275property("show", true);
   }
 }
-function TeachersPageComponent_ng_container_2_form_1_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_46_span_1_Template(rf, ctx) {
   if (rf & 1) {
-    const _r2 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "form", 17);
-    \u0275\u0275listener("ngSubmit", function TeachersPageComponent_ng_container_2_form_1_Template_form_ngSubmit_0_listener() {
-      \u0275\u0275restoreView(_r2);
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.saveTeacher());
+    \u0275\u0275elementStart(0, "span", 43);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const cls_r2 = ctx.$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate2("", cls_r2.name, "-", cls_r2.section, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_46_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementContainerStart(0);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_46_span_1_Template, 2, 2, "span", 42);
+    \u0275\u0275elementContainerEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", ctx_r3.vm.getTeacherClasses(tp_r3._id));
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_template_47_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 44);
+    \u0275\u0275text(1, "Not assigned as class teacher");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_53_span_1_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 43);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const subj_r5 = ctx.$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate2("", subj_r5.className, " \u2014 ", subj_r5.subjectName, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_53_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementContainerStart(0);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_53_span_1_Template, 2, 2, "span", 42);
+    \u0275\u0275elementContainerEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", ctx_r3.vm.getTeacherSubjects(tp_r3._id));
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_template_54_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 44);
+    \u0275\u0275text(1, "No subjects assigned");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_65_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 22);
+    \u0275\u0275text(1);
+    \u0275\u0275elementStart(2, "span", 45);
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "a", 46);
+    \u0275\u0275text(5, "View");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1(" ", tp_r3.documents.idProof.originalName, " ");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", tp_r3.documents.idProof.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(tp_r3.documents.idProof.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275property("href", tp_r3.documents.idProof.url, \u0275\u0275sanitizeUrl);
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_66_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 47);
+    \u0275\u0275text(1, "Not uploaded");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_67_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 48);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Reason: ", tp_r3.documents.idProof.rejectReason, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_77_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 22);
+    \u0275\u0275text(1);
+    \u0275\u0275elementStart(2, "span", 45);
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "a", 46);
+    \u0275\u0275text(5, "View");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1(" ", tp_r3.documents.resume.originalName, " ");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", tp_r3.documents.resume.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(tp_r3.documents.resume.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275property("href", tp_r3.documents.resume.url, \u0275\u0275sanitizeUrl);
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_78_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 47);
+    \u0275\u0275text(1, "Not uploaded");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_79_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 48);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Reason: ", tp_r3.documents.resume.rejectReason, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_div_1_span_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 56);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const exp_r7 = \u0275\u0275nextContext().$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Doc: ", exp_r7.document.originalName, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_div_1_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r6 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 51)(1, "div", 52)(2, "strong");
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "span", 44);
+    \u0275\u0275text(5);
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(6, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_div_1_span_6_Template, 2, 1, "span", 53);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(7, "div", 54);
+    \u0275\u0275text(8);
+    \u0275\u0275pipe(9, "date");
+    \u0275\u0275pipe(10, "date");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_div_1_Template_button_click_11_listener() {
+      const i_r8 = \u0275\u0275restoreView(_r6).index;
+      const ctx_r3 = \u0275\u0275nextContext(5);
+      return \u0275\u0275resetView(ctx_r3.vm.removeTeacherExperience(i_r8));
     });
-    \u0275\u0275elementStart(1, "div", 8)(2, "div")(3, "p", 9);
+    \u0275\u0275text(12, "Remove");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const exp_r7 = ctx.$implicit;
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(exp_r7.instituteName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate(exp_r7.designation);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", exp_r7.document == null ? null : exp_r7.document.originalName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", \u0275\u0275pipeBind2(9, 5, exp_r7.fromDate, "MMM yyyy"), " \u2014 ", exp_r7.toDate ? \u0275\u0275pipeBind2(10, 8, exp_r7.toDate, "MMM yyyy") : "Present", "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 49);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_div_1_Template, 13, 11, "div", 50);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", tp_r3.experience);
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_p_90_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "p", 57);
+    \u0275\u0275text(1, "No experience added");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_div_1_span_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 56);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const edu_r10 = \u0275\u0275nextContext().$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Doc: ", edu_r10.document.originalName, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_div_1_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r9 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 51)(1, "div", 52)(2, "strong");
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "span", 44);
+    \u0275\u0275text(5);
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(6, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_div_1_span_6_Template, 2, 1, "span", 53);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(7, "div", 54);
+    \u0275\u0275text(8);
+    \u0275\u0275pipe(9, "date");
+    \u0275\u0275pipe(10, "date");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_div_1_Template_button_click_11_listener() {
+      const i_r11 = \u0275\u0275restoreView(_r9).index;
+      const ctx_r3 = \u0275\u0275nextContext(5);
+      return \u0275\u0275resetView(ctx_r3.vm.removeTeacherEducation(i_r11));
+    });
+    \u0275\u0275text(12, "Remove");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const edu_r10 = ctx.$implicit;
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(edu_r10.instituteName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", edu_r10.degree, " \u2014 ", edu_r10.fieldOfStudy, "");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", edu_r10.document == null ? null : edu_r10.document.originalName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", \u0275\u0275pipeBind2(9, 6, edu_r10.fromDate, "yyyy"), " \u2014 ", edu_r10.toDate ? \u0275\u0275pipeBind2(10, 9, edu_r10.toDate, "yyyy") : "Present", "");
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 49);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_div_1_Template, 13, 12, "div", 50);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const tp_r3 = \u0275\u0275nextContext().ngIf;
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", tp_r3.education);
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_p_108_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "p", 57);
+    \u0275\u0275text(1, "No education added");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r1 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 12)(1, "div", 13)(2, "div")(3, "p", 14);
+    \u0275\u0275text(4, "My Profile");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(5, "h3");
+    \u0275\u0275text(6);
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(7, "div", 15)(8, "div", 16);
+    \u0275\u0275text(9);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(10, "div")(11, "span", 17);
+    \u0275\u0275text(12);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(13, "span", 18);
+    \u0275\u0275text(14);
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(15, "div", 19)(16, "div", 20)(17, "span", 21);
+    \u0275\u0275text(18, "Employee Code");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(19, "span", 22);
+    \u0275\u0275text(20);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(21, "div", 20)(22, "span", 21);
+    \u0275\u0275text(23, "Phone");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(24, "span", 22);
+    \u0275\u0275text(25);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(26, "div", 20)(27, "span", 21);
+    \u0275\u0275text(28, "Email");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(29, "span", 22);
+    \u0275\u0275text(30);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(31, "div", 20)(32, "span", 21);
+    \u0275\u0275text(33, "Qualification");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(34, "span", 22);
+    \u0275\u0275text(35);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(36, "div", 20)(37, "span", 21);
+    \u0275\u0275text(38, "Base Salary");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(39, "span", 22);
+    \u0275\u0275text(40);
+    \u0275\u0275pipe(41, "currency");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(42, "div", 20)(43, "span", 21);
+    \u0275\u0275text(44, "Class Teacher Of");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(45, "span", 22);
+    \u0275\u0275template(46, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_46_Template, 2, 1, "ng-container", 23)(47, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_template_47_Template, 2, 0, "ng-template", null, 0, \u0275\u0275templateRefExtractor);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(49, "div", 20)(50, "span", 21);
+    \u0275\u0275text(51, "Teaching Subjects");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(52, "span", 22);
+    \u0275\u0275template(53, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_container_53_Template, 2, 1, "ng-container", 23)(54, TeachersPageComponent_ng_container_2_ng_container_1_div_1_ng_template_54_Template, 2, 0, "ng-template", null, 1, \u0275\u0275templateRefExtractor);
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(56, "div", 24)(57, "h4");
+    \u0275\u0275text(58, "Documents & Verification");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(59, "div", 19)(60, "div", 20)(61, "span", 21);
+    \u0275\u0275text(62, "ID Proof ");
+    \u0275\u0275elementStart(63, "span", 25);
+    \u0275\u0275text(64, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(65, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_65_Template, 6, 4, "span", 26)(66, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_66_Template, 2, 0, "span", 27)(67, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_67_Template, 2, 1, "span", 28);
+    \u0275\u0275elementStart(68, "label", 29)(69, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_change_69_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.selfUploadTeacherDoc($event, "idProof"));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(70, "span");
+    \u0275\u0275text(71, "Upload ID Proof");
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(72, "div", 20)(73, "span", 21);
+    \u0275\u0275text(74, "Resume / CV ");
+    \u0275\u0275elementStart(75, "span", 25);
+    \u0275\u0275text(76, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(77, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_77_Template, 6, 4, "span", 26)(78, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_78_Template, 2, 0, "span", 27)(79, TeachersPageComponent_ng_container_2_ng_container_1_div_1_span_79_Template, 2, 1, "span", 28);
+    \u0275\u0275elementStart(80, "label", 29)(81, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_change_81_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.selfUploadTeacherDoc($event, "resume"));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(82, "span");
+    \u0275\u0275text(83, "Upload Resume");
+    \u0275\u0275elementEnd()()()()();
+    \u0275\u0275elementStart(84, "div", 24)(85, "h4");
+    \u0275\u0275text(86, "Work Experience ");
+    \u0275\u0275elementStart(87, "span", 25);
+    \u0275\u0275text(88, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(89, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_89_Template, 2, 1, "div", 31)(90, TeachersPageComponent_ng_container_2_ng_container_1_div_1_p_90_Template, 2, 0, "p", 32);
+    \u0275\u0275elementStart(91, "div", 33)(92, "input", 34);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_92_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.instituteName, $event) || (ctx_r3.vm.teacherExpForm.instituteName = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(93, "input", 35);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_93_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.designation, $event) || (ctx_r3.vm.teacherExpForm.designation = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(94, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_94_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.fromDate, $event) || (ctx_r3.vm.teacherExpForm.fromDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(95, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_95_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.toDate, $event) || (ctx_r3.vm.teacherExpForm.toDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(96, "label", 37)(97, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_change_97_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.onExpFileChange($event));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(98, "span");
+    \u0275\u0275text(99);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(100, "button", 38);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_button_click_100_listener() {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.addTeacherExperience());
+    });
+    \u0275\u0275text(101, "+ Add");
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(102, "div", 24)(103, "h4");
+    \u0275\u0275text(104, "Education ");
+    \u0275\u0275elementStart(105, "span", 25);
+    \u0275\u0275text(106, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(107, TeachersPageComponent_ng_container_2_ng_container_1_div_1_div_107_Template, 2, 1, "div", 31)(108, TeachersPageComponent_ng_container_2_ng_container_1_div_1_p_108_Template, 2, 0, "p", 32);
+    \u0275\u0275elementStart(109, "div", 33)(110, "input", 39);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_110_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.instituteName, $event) || (ctx_r3.vm.teacherEduForm.instituteName = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(111, "input", 40);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_111_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.degree, $event) || (ctx_r3.vm.teacherEduForm.degree = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(112, "input", 41);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_112_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.fieldOfStudy, $event) || (ctx_r3.vm.teacherEduForm.fieldOfStudy = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(113, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_113_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.fromDate, $event) || (ctx_r3.vm.teacherEduForm.fromDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(114, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_ngModelChange_114_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.toDate, $event) || (ctx_r3.vm.teacherEduForm.toDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(115, "label", 37)(116, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_input_change_116_listener($event) {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.onEduFileChange($event));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(117, "span");
+    \u0275\u0275text(118);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(119, "button", 38);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template_button_click_119_listener() {
+      \u0275\u0275restoreView(_r1);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.addTeacherEducation());
+    });
+    \u0275\u0275text(120, "+ Add");
+    \u0275\u0275elementEnd()()()();
+  }
+  if (rf & 2) {
+    const tp_r3 = ctx.ngIf;
+    const noCtClass_r12 = \u0275\u0275reference(48);
+    const noSubjects_r13 = \u0275\u0275reference(55);
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance(6);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherName(tp_r3));
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate2("", tp_r3.firstName.charAt(0), "", (tp_r3.lastName || "").charAt(0), "");
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherName(tp_r3));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", tp_r3.status);
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(tp_r3.status);
+    \u0275\u0275advance(6);
+    \u0275\u0275textInterpolate(tp_r3.employeeCode);
+    \u0275\u0275advance(5);
+    \u0275\u0275textInterpolate(tp_r3.phone);
+    \u0275\u0275advance(5);
+    \u0275\u0275textInterpolate(tp_r3.email || "\u2014");
+    \u0275\u0275advance(5);
+    \u0275\u0275textInterpolate(tp_r3.qualification || "\u2014");
+    \u0275\u0275advance(5);
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(41, 38, tp_r3.baseSalary, "INR"));
+    \u0275\u0275advance(6);
+    \u0275\u0275property("ngIf", ctx_r3.vm.getTeacherClasses(tp_r3._id).length)("ngIfElse", noCtClass_r12);
+    \u0275\u0275advance(7);
+    \u0275\u0275property("ngIf", ctx_r3.vm.getTeacherSubjects(tp_r3._id).length)("ngIfElse", noSubjects_r13);
+    \u0275\u0275advance(12);
+    \u0275\u0275property("ngIf", tp_r3.documents == null ? null : tp_r3.documents.idProof == null ? null : tp_r3.documents.idProof.originalName);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(tp_r3.documents == null ? null : tp_r3.documents.idProof == null ? null : tp_r3.documents.idProof.originalName));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", tp_r3.documents == null ? null : tp_r3.documents.idProof == null ? null : tp_r3.documents.idProof.rejectReason);
+    \u0275\u0275advance(10);
+    \u0275\u0275property("ngIf", tp_r3.documents == null ? null : tp_r3.documents.resume == null ? null : tp_r3.documents.resume.originalName);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(tp_r3.documents == null ? null : tp_r3.documents.resume == null ? null : tp_r3.documents.resume.originalName));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", tp_r3.documents == null ? null : tp_r3.documents.resume == null ? null : tp_r3.documents.resume.rejectReason);
+    \u0275\u0275advance(10);
+    \u0275\u0275property("ngIf", tp_r3.experience == null ? null : tp_r3.experience.length);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(tp_r3.experience == null ? null : tp_r3.experience.length));
+    \u0275\u0275advance(2);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.instituteName);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.designation);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.fromDate);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.toDate);
+    \u0275\u0275advance(4);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherExpFile ? ctx_r3.vm.teacherExpFile.name : "Attach Document");
+    \u0275\u0275advance();
+    \u0275\u0275property("disabled", !ctx_r3.vm.teacherExpForm.instituteName);
+    \u0275\u0275advance(7);
+    \u0275\u0275property("ngIf", tp_r3.education == null ? null : tp_r3.education.length);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(tp_r3.education == null ? null : tp_r3.education.length));
+    \u0275\u0275advance(2);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.instituteName);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.degree);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.fieldOfStudy);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.fromDate);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.toDate);
+    \u0275\u0275advance(4);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherEduFile ? ctx_r3.vm.teacherEduFile.name : "Attach Document");
+    \u0275\u0275advance();
+    \u0275\u0275property("disabled", !ctx_r3.vm.teacherEduForm.instituteName);
+  }
+}
+function TeachersPageComponent_ng_container_2_ng_container_1_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementContainerStart(0);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_div_1_Template, 121, 41, "div", 11);
+    \u0275\u0275elementContainerEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(2);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.myTeacherProfile);
+  }
+}
+function TeachersPageComponent_ng_container_2_form_2_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r14 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "form", 58);
+    \u0275\u0275listener("ngSubmit", function TeachersPageComponent_ng_container_2_form_2_Template_form_ngSubmit_0_listener() {
+      \u0275\u0275restoreView(_r14);
+      const ctx_r3 = \u0275\u0275nextContext(2);
+      return \u0275\u0275resetView(ctx_r3.vm.saveTeacher());
+    });
+    \u0275\u0275elementStart(1, "div", 13)(2, "div")(3, "p", 14);
     \u0275\u0275text(4, "Teacher");
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(5, "h3");
@@ -47491,78 +48193,50 @@ function TeachersPageComponent_ng_container_2_form_1_Template(rf, ctx) {
     \u0275\u0275elementEnd()()();
     \u0275\u0275elementStart(7, "label");
     \u0275\u0275text(8, "Employee code");
-    \u0275\u0275element(9, "input", 18);
+    \u0275\u0275element(9, "input", 59);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(10, "label");
     \u0275\u0275text(11, "First name");
-    \u0275\u0275element(12, "input", 19);
+    \u0275\u0275element(12, "input", 60);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(13, "label");
     \u0275\u0275text(14, "Last name");
-    \u0275\u0275element(15, "input", 20);
+    \u0275\u0275element(15, "input", 61);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(16, "label");
     \u0275\u0275text(17, "Phone");
-    \u0275\u0275element(18, "input", 21);
+    \u0275\u0275element(18, "input", 62);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(19, "label");
     \u0275\u0275text(20, "Email");
-    \u0275\u0275element(21, "input", 22);
+    \u0275\u0275element(21, "input", 63);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(22, "label");
     \u0275\u0275text(23, "Qualification");
-    \u0275\u0275element(24, "input", 23);
+    \u0275\u0275element(24, "input", 64);
     \u0275\u0275elementEnd();
     \u0275\u0275elementStart(25, "label");
     \u0275\u0275text(26, "Base salary");
-    \u0275\u0275element(27, "input", 24);
+    \u0275\u0275element(27, "input", 65);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(28, "button", 25);
+    \u0275\u0275elementStart(28, "button", 66);
     \u0275\u0275text(29);
     \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
-    const ctx_r2 = \u0275\u0275nextContext(2);
-    \u0275\u0275property("formGroup", ctx_r2.vm.teacherForm);
+    const ctx_r3 = \u0275\u0275nextContext(2);
+    \u0275\u0275property("formGroup", ctx_r3.vm.teacherForm);
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(ctx_r2.vm.editingTeacherId ? "Update teacher" : "Teacher profile");
+    \u0275\u0275textInterpolate(ctx_r3.vm.editingTeacherId ? "Update teacher" : "Teacher profile");
     \u0275\u0275advance(22);
-    \u0275\u0275property("disabled", ctx_r2.vm.teacherForm.invalid);
+    \u0275\u0275property("disabled", ctx_r3.vm.teacherForm.invalid);
     \u0275\u0275advance();
-    \u0275\u0275textInterpolate(ctx_r2.vm.editingTeacherId ? "Update teacher" : "Save teacher");
+    \u0275\u0275textInterpolate(ctx_r3.vm.editingTeacherId ? "Update teacher" : "Save teacher");
   }
 }
-function TeachersPageComponent_ng_container_2_tr_27_button_14_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_section_3_tr_25_Template(rf, ctx) {
   if (rf & 1) {
-    const _r6 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 27);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_tr_27_button_14_Template_button_click_0_listener() {
-      \u0275\u0275restoreView(_r6);
-      const teacher_r5 = \u0275\u0275nextContext().$implicit;
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.editTeacher(teacher_r5));
-    });
-    \u0275\u0275text(1, "Edit");
-    \u0275\u0275elementEnd();
-  }
-}
-function TeachersPageComponent_ng_container_2_tr_27_button_15_Template(rf, ctx) {
-  if (rf & 1) {
-    const _r7 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "button", 30);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_tr_27_button_15_Template_button_click_0_listener() {
-      \u0275\u0275restoreView(_r7);
-      const teacher_r5 = \u0275\u0275nextContext().$implicit;
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.deleteTeacher(teacher_r5._id));
-    });
-    \u0275\u0275text(1, "Delete");
-    \u0275\u0275elementEnd();
-  }
-}
-function TeachersPageComponent_ng_container_2_tr_27_Template(rf, ctx) {
-  if (rf & 1) {
-    const _r4 = \u0275\u0275getCurrentView();
+    const _r16 = \u0275\u0275getCurrentView();
     \u0275\u0275elementStart(0, "tr")(1, "td");
     \u0275\u0275text(2);
     \u0275\u0275elementEnd();
@@ -47576,225 +48250,819 @@ function TeachersPageComponent_ng_container_2_tr_27_Template(rf, ctx) {
     \u0275\u0275text(8);
     \u0275\u0275pipe(9, "currency");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(10, "td")(11, "div", 26)(12, "button", 27);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_tr_27_Template_button_click_12_listener() {
-      const teacher_r5 = \u0275\u0275restoreView(_r4).$implicit;
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.viewTeacherProfile(teacher_r5));
+    \u0275\u0275elementStart(10, "td")(11, "div", 74)(12, "button", 75);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_section_3_tr_25_Template_button_click_12_listener() {
+      const teacher_r17 = \u0275\u0275restoreView(_r16).$implicit;
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.viewTeacherProfile(teacher_r17));
     });
     \u0275\u0275text(13, "View");
     \u0275\u0275elementEnd();
-    \u0275\u0275template(14, TeachersPageComponent_ng_container_2_tr_27_button_14_Template, 2, 0, "button", 28)(15, TeachersPageComponent_ng_container_2_tr_27_button_15_Template, 2, 0, "button", 29);
-    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(14, "button", 75);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_section_3_tr_25_Template_button_click_14_listener() {
+      const teacher_r17 = \u0275\u0275restoreView(_r16).$implicit;
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.editTeacher(teacher_r17));
+    });
+    \u0275\u0275text(15, "Edit");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(16, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_section_3_tr_25_Template_button_click_16_listener() {
+      const teacher_r17 = \u0275\u0275restoreView(_r16).$implicit;
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.deleteTeacher(teacher_r17._id));
+    });
+    \u0275\u0275text(17, "Delete");
+    \u0275\u0275elementEnd()()()();
   }
   if (rf & 2) {
-    const teacher_r5 = ctx.$implicit;
-    const ctx_r2 = \u0275\u0275nextContext(2);
+    const teacher_r17 = ctx.$implicit;
+    const ctx_r3 = \u0275\u0275nextContext(3);
     \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(ctx_r2.vm.teacherName(teacher_r5));
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherName(teacher_r17));
     \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(teacher_r5.employeeCode);
+    \u0275\u0275textInterpolate(teacher_r17.employeeCode);
     \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(teacher_r5.phone);
+    \u0275\u0275textInterpolate(teacher_r17.phone);
     \u0275\u0275advance(2);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(9, 6, teacher_r5.baseSalary, "INR"));
-    \u0275\u0275advance(6);
-    \u0275\u0275property("ngIf", ctx_r2.vm.isAdmin);
-    \u0275\u0275advance();
-    \u0275\u0275property("ngIf", ctx_r2.vm.isAdmin);
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(9, 4, teacher_r17.baseSalary, "INR"));
   }
 }
-function TeachersPageComponent_ng_container_2_tr_28_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_section_3_tr_26_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "tr")(1, "td", 31);
+    \u0275\u0275elementStart(0, "tr")(1, "td", 76);
     \u0275\u0275text(2, "No teachers found");
     \u0275\u0275elementEnd()();
   }
 }
-function TeachersPageComponent_ng_container_2_div_30_ng_container_46_span_1_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_section_3_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "span", 45);
+    const _r15 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "section", 67)(1, "div", 13)(2, "div")(3, "p", 14);
+    \u0275\u0275text(4, "Roster");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(5, "h3");
+    \u0275\u0275text(6, "Teacher roster");
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(7, "div", 68)(8, "div", 69)(9, "input", 70);
+    \u0275\u0275listener("input", function TeachersPageComponent_ng_container_2_section_3_Template_input_input_9_listener($event) {
+      \u0275\u0275restoreView(_r15);
+      const ctx_r3 = \u0275\u0275nextContext(2);
+      ctx_r3.vm.filters.teacherSearch = $event.target.value;
+      return \u0275\u0275resetView(ctx_r3.vm.resetPage("teachers"));
+    });
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(10, "div", 71)(11, "table")(12, "thead")(13, "tr")(14, "th");
+    \u0275\u0275text(15, "Name");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(16, "th");
+    \u0275\u0275text(17, "Code");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(18, "th");
+    \u0275\u0275text(19, "Phone");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(20, "th");
+    \u0275\u0275text(21, "Base salary");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(22, "th");
+    \u0275\u0275text(23, "Actions");
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275elementStart(24, "tbody");
+    \u0275\u0275template(25, TeachersPageComponent_ng_container_2_section_3_tr_25_Template, 18, 7, "tr", 72)(26, TeachersPageComponent_ng_container_2_section_3_tr_26_Template, 3, 0, "tr", 5);
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275element(27, "app-pagination-bar", 73);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(2);
+    \u0275\u0275advance(9);
+    \u0275\u0275property("value", ctx_r3.vm.filters.teacherSearch);
+    \u0275\u0275advance(16);
+    \u0275\u0275property("ngForOf", ctx_r3.vm.paged("teachers", ctx_r3.vm.filteredTeachers));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !ctx_r3.vm.filteredTeachers.length);
+    \u0275\u0275advance();
+    \u0275\u0275property("vm", ctx_r3.vm)("items", ctx_r3.vm.filteredTeachers);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_ng_container_46_span_1_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 43);
     \u0275\u0275text(1);
     \u0275\u0275elementEnd();
   }
   if (rf & 2) {
-    const cls_r9 = ctx.$implicit;
+    const cls_r19 = ctx.$implicit;
     \u0275\u0275advance();
-    \u0275\u0275textInterpolate2("", cls_r9.name, "-", cls_r9.section, "");
+    \u0275\u0275textInterpolate2("", cls_r19.name, "-", cls_r19.section, "");
   }
 }
-function TeachersPageComponent_ng_container_2_div_30_ng_container_46_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_div_4_ng_container_46_Template(rf, ctx) {
   if (rf & 1) {
     \u0275\u0275elementContainerStart(0);
-    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_div_30_ng_container_46_span_1_Template, 2, 2, "span", 44);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_div_4_ng_container_46_span_1_Template, 2, 2, "span", 42);
     \u0275\u0275elementContainerEnd();
   }
   if (rf & 2) {
-    const ctx_r2 = \u0275\u0275nextContext(3);
+    const ctx_r3 = \u0275\u0275nextContext(3);
     \u0275\u0275advance();
-    \u0275\u0275property("ngForOf", ctx_r2.vm.getTeacherClasses(ctx_r2.vm.viewingTeacher._id));
+    \u0275\u0275property("ngForOf", ctx_r3.vm.getTeacherClasses(ctx_r3.vm.viewingTeacher._id));
   }
 }
-function TeachersPageComponent_ng_container_2_div_30_ng_template_47_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_div_4_ng_template_47_Template(rf, ctx) {
   if (rf & 1) {
-    \u0275\u0275elementStart(0, "span", 46);
+    \u0275\u0275elementStart(0, "span", 44);
     \u0275\u0275text(1, "No class assigned");
     \u0275\u0275elementEnd();
   }
 }
-function TeachersPageComponent_ng_container_2_div_30_Template(rf, ctx) {
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_9_Template(rf, ctx) {
   if (rf & 1) {
-    const _r8 = \u0275\u0275getCurrentView();
-    \u0275\u0275elementStart(0, "div", 32);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_30_Template_div_click_0_listener() {
-      \u0275\u0275restoreView(_r8);
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.closeTeacherProfile());
+    \u0275\u0275elementStart(0, "span", 22);
+    \u0275\u0275text(1);
+    \u0275\u0275elementStart(2, "span", 45);
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "a", 46);
+    \u0275\u0275text(5, "View");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1(" ", ctx_r3.vm.viewingTeacher.documents.idProof.originalName, " ");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", ctx_r3.vm.viewingTeacher.documents.idProof.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.documents.idProof.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275property("href", ctx_r3.vm.viewingTeacher.documents.idProof.url, \u0275\u0275sanitizeUrl);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_10_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 47);
+    \u0275\u0275text(1, "Not uploaded");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_11_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 48);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Reason: ", ctx_r3.vm.viewingTeacher.documents.idProof.rejectReason, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_label_12_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r20 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "label", 29)(1, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_49_label_12_Template_input_change_1_listener($event) {
+      \u0275\u0275restoreView(_r20);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.uploadTeacherDoc($event, "idProof"));
     });
-    \u0275\u0275elementStart(1, "div", 33);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_30_Template_div_click_1_listener($event) {
-      \u0275\u0275restoreView(_r8);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(2, "span");
+    \u0275\u0275text(3, "Upload ID Proof");
+    \u0275\u0275elementEnd()();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_label_13_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r21 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "label", 29)(1, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_49_label_13_Template_input_change_1_listener($event) {
+      \u0275\u0275restoreView(_r21);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.selfUploadTeacherDoc($event, "idProof"));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(2, "span");
+    \u0275\u0275text(3, "Upload ID Proof");
+    \u0275\u0275elementEnd()();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_div_14_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r22 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 83)(1, "button", 84);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_49_div_14_Template_button_click_1_listener() {
+      \u0275\u0275restoreView(_r22);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.verifyTeacherDoc("idProof", "approve"));
+    });
+    \u0275\u0275text(2, "Approve");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(3, "input", 85);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_49_div_14_Template_input_ngModelChange_3_listener($event) {
+      \u0275\u0275restoreView(_r22);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.verifyDocReason, $event) || (ctx_r3.vm.verifyDocReason = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_49_div_14_Template_button_click_4_listener() {
+      \u0275\u0275restoreView(_r22);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.verifyTeacherDoc("idProof", "reject"));
+    });
+    \u0275\u0275text(5, "Reject & Request Reupload");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance(3);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.verifyDocReason);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_20_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 22);
+    \u0275\u0275text(1);
+    \u0275\u0275elementStart(2, "span", 45);
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "a", 46);
+    \u0275\u0275text(5, "View");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1(" ", ctx_r3.vm.viewingTeacher.documents.resume.originalName, " ");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngClass", ctx_r3.vm.viewingTeacher.documents.resume.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.documents.resume.status || "pending");
+    \u0275\u0275advance();
+    \u0275\u0275property("href", ctx_r3.vm.viewingTeacher.documents.resume.url, \u0275\u0275sanitizeUrl);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_21_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 47);
+    \u0275\u0275text(1, "Not uploaded");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_span_22_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 48);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Reason: ", ctx_r3.vm.viewingTeacher.documents.resume.rejectReason, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_label_23_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r23 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "label", 29)(1, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_49_label_23_Template_input_change_1_listener($event) {
+      \u0275\u0275restoreView(_r23);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.uploadTeacherDoc($event, "resume"));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(2, "span");
+    \u0275\u0275text(3, "Upload Resume");
+    \u0275\u0275elementEnd()();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_label_24_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r24 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "label", 29)(1, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_49_label_24_Template_input_change_1_listener($event) {
+      \u0275\u0275restoreView(_r24);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.selfUploadTeacherDoc($event, "resume"));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(2, "span");
+    \u0275\u0275text(3, "Upload Resume");
+    \u0275\u0275elementEnd()();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_div_25_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r25 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 83)(1, "button", 84);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_49_div_25_Template_button_click_1_listener() {
+      \u0275\u0275restoreView(_r25);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.verifyTeacherDoc("resume", "approve"));
+    });
+    \u0275\u0275text(2, "Approve");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(3, "input", 85);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_49_div_25_Template_input_ngModelChange_3_listener($event) {
+      \u0275\u0275restoreView(_r25);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.verifyDocReason, $event) || (ctx_r3.vm.verifyDocReason = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_49_div_25_Template_button_click_4_listener() {
+      \u0275\u0275restoreView(_r25);
+      const ctx_r3 = \u0275\u0275nextContext(4);
+      return \u0275\u0275resetView(ctx_r3.vm.verifyTeacherDoc("resume", "reject"));
+    });
+    \u0275\u0275text(5, "Reject & Request Reupload");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance(3);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.verifyDocReason);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_49_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 24)(1, "h4");
+    \u0275\u0275text(2, "Documents & Verification");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(3, "div", 19)(4, "div", 20)(5, "span", 21);
+    \u0275\u0275text(6, "ID Proof ");
+    \u0275\u0275elementStart(7, "span", 25);
+    \u0275\u0275text(8, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(9, TeachersPageComponent_ng_container_2_div_4_div_49_span_9_Template, 6, 4, "span", 26)(10, TeachersPageComponent_ng_container_2_div_4_div_49_span_10_Template, 2, 0, "span", 27)(11, TeachersPageComponent_ng_container_2_div_4_div_49_span_11_Template, 2, 1, "span", 28)(12, TeachersPageComponent_ng_container_2_div_4_div_49_label_12_Template, 4, 0, "label", 81)(13, TeachersPageComponent_ng_container_2_div_4_div_49_label_13_Template, 4, 0, "label", 81)(14, TeachersPageComponent_ng_container_2_div_4_div_49_div_14_Template, 6, 1, "div", 82);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(15, "div", 20)(16, "span", 21);
+    \u0275\u0275text(17, "Resume / CV ");
+    \u0275\u0275elementStart(18, "span", 25);
+    \u0275\u0275text(19, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(20, TeachersPageComponent_ng_container_2_div_4_div_49_span_20_Template, 6, 4, "span", 26)(21, TeachersPageComponent_ng_container_2_div_4_div_49_span_21_Template, 2, 0, "span", 27)(22, TeachersPageComponent_ng_container_2_div_4_div_49_span_22_Template, 2, 1, "span", 28)(23, TeachersPageComponent_ng_container_2_div_4_div_49_label_23_Template, 4, 0, "label", 81)(24, TeachersPageComponent_ng_container_2_div_4_div_49_label_24_Template, 4, 0, "label", 81)(25, TeachersPageComponent_ng_container_2_div_4_div_49_div_25_Template, 6, 1, "div", 82);
+    \u0275\u0275elementEnd()()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance(9);
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof.originalName);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof.originalName));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof.rejectReason);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isTeacher);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin && (ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof == null ? null : ctx_r3.vm.viewingTeacher.documents.idProof.url));
+    \u0275\u0275advance(6);
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.resume == null ? null : ctx_r3.vm.viewingTeacher.documents.resume.originalName);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.resume == null ? null : ctx_r3.vm.viewingTeacher.documents.resume.originalName));
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.resume == null ? null : ctx_r3.vm.viewingTeacher.documents.resume.rejectReason);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isTeacher);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin && (ctx_r3.vm.viewingTeacher.documents == null ? null : ctx_r3.vm.viewingTeacher.documents.resume == null ? null : ctx_r3.vm.viewingTeacher.documents.resume.url));
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_50_div_5_div_1_span_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 56);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const exp_r28 = \u0275\u0275nextContext().$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Doc: ", exp_r28.document.originalName, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_50_div_5_div_1_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r27 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 51)(1, "div", 52)(2, "strong");
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "span", 44);
+    \u0275\u0275text(5);
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(6, TeachersPageComponent_ng_container_2_div_4_div_50_div_5_div_1_span_6_Template, 2, 1, "span", 53);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(7, "div", 54);
+    \u0275\u0275text(8);
+    \u0275\u0275pipe(9, "date");
+    \u0275\u0275pipe(10, "date");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_50_div_5_div_1_Template_button_click_11_listener() {
+      const i_r29 = \u0275\u0275restoreView(_r27).index;
+      const ctx_r3 = \u0275\u0275nextContext(5);
+      return \u0275\u0275resetView(ctx_r3.vm.removeTeacherExperience(i_r29));
+    });
+    \u0275\u0275text(12, "Remove");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const exp_r28 = ctx.$implicit;
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(exp_r28.instituteName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate(exp_r28.designation);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", exp_r28.document == null ? null : exp_r28.document.originalName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", \u0275\u0275pipeBind2(9, 5, exp_r28.fromDate, "MMM yyyy"), " \u2014 ", exp_r28.toDate ? \u0275\u0275pipeBind2(10, 8, exp_r28.toDate, "MMM yyyy") : "Present", "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_50_div_5_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 49);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_div_4_div_50_div_5_div_1_Template, 13, 11, "div", 50);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", ctx_r3.vm.viewingTeacher.experience);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_50_p_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "p", 57);
+    \u0275\u0275text(1, "No experience added");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_50_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r26 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 24)(1, "h4");
+    \u0275\u0275text(2, "Work Experience ");
+    \u0275\u0275elementStart(3, "span", 25);
+    \u0275\u0275text(4, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(5, TeachersPageComponent_ng_container_2_div_4_div_50_div_5_Template, 2, 1, "div", 31)(6, TeachersPageComponent_ng_container_2_div_4_div_50_p_6_Template, 2, 0, "p", 32);
+    \u0275\u0275elementStart(7, "div", 33)(8, "input", 34);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_input_ngModelChange_8_listener($event) {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.instituteName, $event) || (ctx_r3.vm.teacherExpForm.instituteName = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(9, "input", 35);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_input_ngModelChange_9_listener($event) {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.designation, $event) || (ctx_r3.vm.teacherExpForm.designation = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(10, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_input_ngModelChange_10_listener($event) {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.fromDate, $event) || (ctx_r3.vm.teacherExpForm.fromDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_input_ngModelChange_11_listener($event) {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherExpForm.toDate, $event) || (ctx_r3.vm.teacherExpForm.toDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(12, "label", 37)(13, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_input_change_13_listener($event) {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.onExpFileChange($event));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(14, "span");
+    \u0275\u0275text(15);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(16, "button", 38);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_50_Template_button_click_16_listener() {
+      \u0275\u0275restoreView(_r26);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.addTeacherExperience());
+    });
+    \u0275\u0275text(17, "+ Add");
+    \u0275\u0275elementEnd()()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance(5);
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.experience == null ? null : ctx_r3.vm.viewingTeacher.experience.length);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(ctx_r3.vm.viewingTeacher.experience == null ? null : ctx_r3.vm.viewingTeacher.experience.length));
+    \u0275\u0275advance(2);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.instituteName);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.designation);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.fromDate);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherExpForm.toDate);
+    \u0275\u0275advance(4);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherExpFile ? ctx_r3.vm.teacherExpFile.name : "Attach Document");
+    \u0275\u0275advance();
+    \u0275\u0275property("disabled", !ctx_r3.vm.teacherExpForm.instituteName);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_51_div_5_div_1_span_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "span", 56);
+    \u0275\u0275text(1);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const edu_r32 = \u0275\u0275nextContext().$implicit;
+    \u0275\u0275advance();
+    \u0275\u0275textInterpolate1("Doc: ", edu_r32.document.originalName, "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_51_div_5_div_1_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r31 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 51)(1, "div", 52)(2, "strong");
+    \u0275\u0275text(3);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(4, "span", 44);
+    \u0275\u0275text(5);
+    \u0275\u0275elementEnd();
+    \u0275\u0275template(6, TeachersPageComponent_ng_container_2_div_4_div_51_div_5_div_1_span_6_Template, 2, 1, "span", 53);
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(7, "div", 54);
+    \u0275\u0275text(8);
+    \u0275\u0275pipe(9, "date");
+    \u0275\u0275pipe(10, "date");
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "button", 55);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_51_div_5_div_1_Template_button_click_11_listener() {
+      const i_r33 = \u0275\u0275restoreView(_r31).index;
+      const ctx_r3 = \u0275\u0275nextContext(5);
+      return \u0275\u0275resetView(ctx_r3.vm.removeTeacherEducation(i_r33));
+    });
+    \u0275\u0275text(12, "Remove");
+    \u0275\u0275elementEnd()();
+  }
+  if (rf & 2) {
+    const edu_r32 = ctx.$implicit;
+    \u0275\u0275advance(3);
+    \u0275\u0275textInterpolate(edu_r32.instituteName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", edu_r32.degree, " \u2014 ", edu_r32.fieldOfStudy, "");
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", edu_r32.document == null ? null : edu_r32.document.originalName);
+    \u0275\u0275advance(2);
+    \u0275\u0275textInterpolate2("", \u0275\u0275pipeBind2(9, 6, edu_r32.fromDate, "yyyy"), " \u2014 ", edu_r32.toDate ? \u0275\u0275pipeBind2(10, 9, edu_r32.toDate, "yyyy") : "Present", "");
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_51_div_5_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "div", 49);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_div_4_div_51_div_5_div_1_Template, 13, 12, "div", 50);
+    \u0275\u0275elementEnd();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(4);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngForOf", ctx_r3.vm.viewingTeacher.education);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_51_p_6_Template(rf, ctx) {
+  if (rf & 1) {
+    \u0275\u0275elementStart(0, "p", 57);
+    \u0275\u0275text(1, "No education added");
+    \u0275\u0275elementEnd();
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_div_51_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r30 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 24)(1, "h4");
+    \u0275\u0275text(2, "Education ");
+    \u0275\u0275elementStart(3, "span", 25);
+    \u0275\u0275text(4, "*");
+    \u0275\u0275elementEnd()();
+    \u0275\u0275template(5, TeachersPageComponent_ng_container_2_div_4_div_51_div_5_Template, 2, 1, "div", 31)(6, TeachersPageComponent_ng_container_2_div_4_div_51_p_6_Template, 2, 0, "p", 32);
+    \u0275\u0275elementStart(7, "div", 33)(8, "input", 39);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_ngModelChange_8_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.instituteName, $event) || (ctx_r3.vm.teacherEduForm.instituteName = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(9, "input", 40);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_ngModelChange_9_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.degree, $event) || (ctx_r3.vm.teacherEduForm.degree = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(10, "input", 41);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_ngModelChange_10_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.fieldOfStudy, $event) || (ctx_r3.vm.teacherEduForm.fieldOfStudy = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(11, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_ngModelChange_11_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.fromDate, $event) || (ctx_r3.vm.teacherEduForm.fromDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(12, "input", 36);
+    \u0275\u0275twoWayListener("ngModelChange", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_ngModelChange_12_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      \u0275\u0275twoWayBindingSet(ctx_r3.vm.teacherEduForm.toDate, $event) || (ctx_r3.vm.teacherEduForm.toDate = $event);
+      return \u0275\u0275resetView($event);
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(13, "label", 37)(14, "input", 30);
+    \u0275\u0275listener("change", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_input_change_14_listener($event) {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.onEduFileChange($event));
+    });
+    \u0275\u0275elementEnd();
+    \u0275\u0275elementStart(15, "span");
+    \u0275\u0275text(16);
+    \u0275\u0275elementEnd()();
+    \u0275\u0275elementStart(17, "button", 38);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_div_51_Template_button_click_17_listener() {
+      \u0275\u0275restoreView(_r30);
+      const ctx_r3 = \u0275\u0275nextContext(3);
+      return \u0275\u0275resetView(ctx_r3.vm.addTeacherEducation());
+    });
+    \u0275\u0275text(18, "+ Add");
+    \u0275\u0275elementEnd()()();
+  }
+  if (rf & 2) {
+    const ctx_r3 = \u0275\u0275nextContext(3);
+    \u0275\u0275advance(5);
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher.education == null ? null : ctx_r3.vm.viewingTeacher.education.length);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", !(ctx_r3.vm.viewingTeacher.education == null ? null : ctx_r3.vm.viewingTeacher.education.length));
+    \u0275\u0275advance(2);
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.instituteName);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.degree);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.fieldOfStudy);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.fromDate);
+    \u0275\u0275advance();
+    \u0275\u0275twoWayProperty("ngModel", ctx_r3.vm.teacherEduForm.toDate);
+    \u0275\u0275advance(4);
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherEduFile ? ctx_r3.vm.teacherEduFile.name : "Attach Document");
+    \u0275\u0275advance();
+    \u0275\u0275property("disabled", !ctx_r3.vm.teacherEduForm.instituteName);
+  }
+}
+function TeachersPageComponent_ng_container_2_div_4_Template(rf, ctx) {
+  if (rf & 1) {
+    const _r18 = \u0275\u0275getCurrentView();
+    \u0275\u0275elementStart(0, "div", 77);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_Template_div_click_0_listener() {
+      \u0275\u0275restoreView(_r18);
+      const ctx_r3 = \u0275\u0275nextContext(2);
+      return \u0275\u0275resetView(ctx_r3.vm.closeTeacherProfile());
+    });
+    \u0275\u0275elementStart(1, "div", 78);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_Template_div_click_1_listener($event) {
+      \u0275\u0275restoreView(_r18);
       return \u0275\u0275resetView($event.stopPropagation());
     });
-    \u0275\u0275elementStart(2, "div", 34)(3, "h3");
+    \u0275\u0275elementStart(2, "div", 79)(3, "h3");
     \u0275\u0275text(4, "Teacher Profile");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(5, "button", 27);
-    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_30_Template_button_click_5_listener() {
-      \u0275\u0275restoreView(_r8);
-      const ctx_r2 = \u0275\u0275nextContext(2);
-      return \u0275\u0275resetView(ctx_r2.vm.closeTeacherProfile());
+    \u0275\u0275elementStart(5, "button", 75);
+    \u0275\u0275listener("click", function TeachersPageComponent_ng_container_2_div_4_Template_button_click_5_listener() {
+      \u0275\u0275restoreView(_r18);
+      const ctx_r3 = \u0275\u0275nextContext(2);
+      return \u0275\u0275resetView(ctx_r3.vm.closeTeacherProfile());
     });
     \u0275\u0275text(6, "\xD7");
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(7, "div", 35)(8, "div", 36);
+    \u0275\u0275elementStart(7, "div", 15)(8, "div", 16);
     \u0275\u0275text(9);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(10, "div")(11, "span", 37);
+    \u0275\u0275elementStart(10, "div")(11, "span", 17);
     \u0275\u0275text(12);
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(13, "span", 38);
+    \u0275\u0275elementStart(13, "span", 18);
     \u0275\u0275text(14);
     \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(15, "div", 39)(16, "div", 40)(17, "span", 41);
+    \u0275\u0275elementStart(15, "div", 19)(16, "div", 20)(17, "span", 21);
     \u0275\u0275text(18, "Employee Code");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(19, "span", 42);
+    \u0275\u0275elementStart(19, "span", 22);
     \u0275\u0275text(20);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(21, "div", 40)(22, "span", 41);
+    \u0275\u0275elementStart(21, "div", 20)(22, "span", 21);
     \u0275\u0275text(23, "Phone");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(24, "span", 42);
+    \u0275\u0275elementStart(24, "span", 22);
     \u0275\u0275text(25);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(26, "div", 40)(27, "span", 41);
+    \u0275\u0275elementStart(26, "div", 20)(27, "span", 21);
     \u0275\u0275text(28, "Email");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(29, "span", 42);
+    \u0275\u0275elementStart(29, "span", 22);
     \u0275\u0275text(30);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(31, "div", 40)(32, "span", 41);
+    \u0275\u0275elementStart(31, "div", 20)(32, "span", 21);
     \u0275\u0275text(33, "Qualification");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(34, "span", 42);
+    \u0275\u0275elementStart(34, "span", 22);
     \u0275\u0275text(35);
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(36, "div", 40)(37, "span", 41);
+    \u0275\u0275elementStart(36, "div", 20)(37, "span", 21);
     \u0275\u0275text(38, "Base Salary");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(39, "span", 42);
+    \u0275\u0275elementStart(39, "span", 22);
     \u0275\u0275text(40);
     \u0275\u0275pipe(41, "currency");
     \u0275\u0275elementEnd()();
-    \u0275\u0275elementStart(42, "div", 40)(43, "span", 41);
+    \u0275\u0275elementStart(42, "div", 20)(43, "span", 21);
     \u0275\u0275text(44, "Assigned Classes");
     \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(45, "span", 42);
-    \u0275\u0275template(46, TeachersPageComponent_ng_container_2_div_30_ng_container_46_Template, 2, 1, "ng-container", 43)(47, TeachersPageComponent_ng_container_2_div_30_ng_template_47_Template, 2, 0, "ng-template", null, 0, \u0275\u0275templateRefExtractor);
-    \u0275\u0275elementEnd()()()()();
+    \u0275\u0275elementStart(45, "span", 22);
+    \u0275\u0275template(46, TeachersPageComponent_ng_container_2_div_4_ng_container_46_Template, 2, 1, "ng-container", 23)(47, TeachersPageComponent_ng_container_2_div_4_ng_template_47_Template, 2, 0, "ng-template", null, 2, \u0275\u0275templateRefExtractor);
+    \u0275\u0275elementEnd()()();
+    \u0275\u0275template(49, TeachersPageComponent_ng_container_2_div_4_div_49_Template, 26, 12, "div", 80)(50, TeachersPageComponent_ng_container_2_div_4_div_50_Template, 18, 8, "div", 80)(51, TeachersPageComponent_ng_container_2_div_4_div_51_Template, 19, 9, "div", 80);
+    \u0275\u0275elementEnd()();
   }
   if (rf & 2) {
-    const noClasses_r10 = \u0275\u0275reference(48);
-    const ctx_r2 = \u0275\u0275nextContext(2);
+    const noClasses_r34 = \u0275\u0275reference(48);
+    const ctx_r3 = \u0275\u0275nextContext(2);
     \u0275\u0275advance(9);
-    \u0275\u0275textInterpolate2("", ctx_r2.vm.viewingTeacher.firstName.charAt(0), "", (ctx_r2.vm.viewingTeacher.lastName || "").charAt(0), "");
+    \u0275\u0275textInterpolate2("", ctx_r3.vm.viewingTeacher.firstName.charAt(0), "", (ctx_r3.vm.viewingTeacher.lastName || "").charAt(0), "");
     \u0275\u0275advance(3);
-    \u0275\u0275textInterpolate(ctx_r2.vm.teacherName(ctx_r2.vm.viewingTeacher));
+    \u0275\u0275textInterpolate(ctx_r3.vm.teacherName(ctx_r3.vm.viewingTeacher));
     \u0275\u0275advance();
-    \u0275\u0275property("ngClass", ctx_r2.vm.viewingTeacher.status);
+    \u0275\u0275property("ngClass", ctx_r3.vm.viewingTeacher.status);
     \u0275\u0275advance();
-    \u0275\u0275textInterpolate(ctx_r2.vm.viewingTeacher.status);
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.status);
     \u0275\u0275advance(6);
-    \u0275\u0275textInterpolate(ctx_r2.vm.viewingTeacher.employeeCode);
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.employeeCode);
     \u0275\u0275advance(5);
-    \u0275\u0275textInterpolate(ctx_r2.vm.viewingTeacher.phone);
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.phone);
     \u0275\u0275advance(5);
-    \u0275\u0275textInterpolate(ctx_r2.vm.viewingTeacher.email || "\u2014");
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.email || "\u2014");
     \u0275\u0275advance(5);
-    \u0275\u0275textInterpolate(ctx_r2.vm.viewingTeacher.qualification || "\u2014");
+    \u0275\u0275textInterpolate(ctx_r3.vm.viewingTeacher.qualification || "\u2014");
     \u0275\u0275advance(5);
-    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(41, 12, ctx_r2.vm.viewingTeacher.baseSalary, "INR"));
+    \u0275\u0275textInterpolate(\u0275\u0275pipeBind2(41, 15, ctx_r3.vm.viewingTeacher.baseSalary, "INR"));
     \u0275\u0275advance(6);
-    \u0275\u0275property("ngIf", ctx_r2.vm.getTeacherClasses(ctx_r2.vm.viewingTeacher._id).length)("ngIfElse", noClasses_r10);
+    \u0275\u0275property("ngIf", ctx_r3.vm.getTeacherClasses(ctx_r3.vm.viewingTeacher._id).length)("ngIfElse", noClasses_r34);
+    \u0275\u0275advance(3);
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin || ctx_r3.vm.isTeacher);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin || ctx_r3.vm.isTeacher);
+    \u0275\u0275advance();
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin || ctx_r3.vm.isTeacher);
   }
 }
 function TeachersPageComponent_ng_container_2_Template(rf, ctx) {
   if (rf & 1) {
-    const _r1 = \u0275\u0275getCurrentView();
     \u0275\u0275elementContainerStart(0);
-    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_form_1_Template, 30, 4, "form", 6);
-    \u0275\u0275elementStart(2, "section", 7)(3, "div", 8)(4, "div")(5, "p", 9);
-    \u0275\u0275text(6, "Roster");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(7, "h3");
-    \u0275\u0275text(8, "Teacher roster");
-    \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(9, "div", 10)(10, "div", 11)(11, "input", 12);
-    \u0275\u0275listener("input", function TeachersPageComponent_ng_container_2_Template_input_input_11_listener($event) {
-      \u0275\u0275restoreView(_r1);
-      const ctx_r2 = \u0275\u0275nextContext();
-      ctx_r2.vm.filters.teacherSearch = $event.target.value;
-      return \u0275\u0275resetView(ctx_r2.vm.resetPage("teachers"));
-    });
-    \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(12, "div", 13)(13, "table")(14, "thead")(15, "tr")(16, "th");
-    \u0275\u0275text(17, "Name");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(18, "th");
-    \u0275\u0275text(19, "Code");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(20, "th");
-    \u0275\u0275text(21, "Phone");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(22, "th");
-    \u0275\u0275text(23, "Base salary");
-    \u0275\u0275elementEnd();
-    \u0275\u0275elementStart(24, "th");
-    \u0275\u0275text(25, "Actions");
-    \u0275\u0275elementEnd()()();
-    \u0275\u0275elementStart(26, "tbody");
-    \u0275\u0275template(27, TeachersPageComponent_ng_container_2_tr_27_Template, 16, 9, "tr", 14)(28, TeachersPageComponent_ng_container_2_tr_28_Template, 3, 0, "tr", 3);
-    \u0275\u0275elementEnd()()();
-    \u0275\u0275element(29, "app-pagination-bar", 15);
-    \u0275\u0275elementEnd();
-    \u0275\u0275template(30, TeachersPageComponent_ng_container_2_div_30_Template, 49, 15, "div", 16);
+    \u0275\u0275template(1, TeachersPageComponent_ng_container_2_ng_container_1_Template, 2, 1, "ng-container", 5)(2, TeachersPageComponent_ng_container_2_form_2_Template, 30, 4, "form", 8)(3, TeachersPageComponent_ng_container_2_section_3_Template, 28, 5, "section", 9)(4, TeachersPageComponent_ng_container_2_div_4_Template, 52, 18, "div", 10);
     \u0275\u0275elementContainerEnd();
   }
   if (rf & 2) {
-    const ctx_r2 = \u0275\u0275nextContext();
+    const ctx_r3 = \u0275\u0275nextContext();
     \u0275\u0275advance();
-    \u0275\u0275property("ngIf", ctx_r2.vm.isAdmin);
-    \u0275\u0275advance(10);
-    \u0275\u0275property("value", ctx_r2.vm.filters.teacherSearch);
-    \u0275\u0275advance(16);
-    \u0275\u0275property("ngForOf", ctx_r2.vm.paged("teachers", ctx_r2.vm.filteredTeachers));
+    \u0275\u0275property("ngIf", ctx_r3.vm.isTeacher);
     \u0275\u0275advance();
-    \u0275\u0275property("ngIf", !ctx_r2.vm.filteredTeachers.length);
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin);
     \u0275\u0275advance();
-    \u0275\u0275property("vm", ctx_r2.vm)("items", ctx_r2.vm.filteredTeachers);
+    \u0275\u0275property("ngIf", ctx_r3.vm.isAdmin);
     \u0275\u0275advance();
-    \u0275\u0275property("ngIf", ctx_r2.vm.viewingTeacher);
+    \u0275\u0275property("ngIf", ctx_r3.vm.viewingTeacher);
   }
 }
 var TeachersPageComponent = class _TeachersPageComponent {
@@ -47802,10 +49070,10 @@ var TeachersPageComponent = class _TeachersPageComponent {
   static \u0275fac = function TeachersPageComponent_Factory(__ngFactoryType__) {
     return new (__ngFactoryType__ || _TeachersPageComponent)();
   };
-  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _TeachersPageComponent, selectors: [["app-teachers-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [["noClasses", ""], [1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading teachers...", 3, "show"], ["class", "panel span-4", 3, "formGroup", "ngSubmit", 4, "ngIf"], [1, "data-card", "span-8"], [1, "section-head"], [1, "eyebrow"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search teacher, employee code, phone", 3, "input", "value"], [1, "table-wrap"], [4, "ngFor", "ngForOf"], ["listKey", "teachers", 3, "vm", "items"], ["class", "my-profile-overlay", 3, "click", 4, "ngIf"], [1, "panel", "span-4", 3, "ngSubmit", "formGroup"], ["formControlName", "employeeCode"], ["formControlName", "firstName"], ["formControlName", "lastName"], ["formControlName", "phone"], ["formControlName", "email"], ["formControlName", "qualification"], ["type", "number", "formControlName", "baseSalary"], ["type", "submit", 3, "disabled"], [1, "table-actions"], ["type", "button", 1, "ghost", "small", 3, "click"], ["type", "button", "class", "ghost small", 3, "click", 4, "ngIf"], ["type", "button", "class", "danger-btn small", 3, "click", 4, "ngIf"], ["type", "button", 1, "danger-btn", "small", 3, "click"], ["colspan", "5", 1, "empty-cell"], [1, "my-profile-overlay", 3, "click"], [1, "my-profile-modal", 3, "click"], [1, "my-profile-header"], [1, "my-profile-avatar"], [1, "avatar", "large", 2, "background", "linear-gradient(135deg, #a855f7, #7c3aed)", "color", "#fff"], [1, "my-profile-name"], [1, "status-badge", 3, "ngClass"], [1, "my-profile-grid"], [1, "my-profile-field"], [1, "my-profile-label"], [1, "my-profile-value"], [4, "ngIf", "ngIfElse"], ["class", "class-chip", 4, "ngFor", "ngForOf"], [1, "class-chip"], [1, "muted"]], template: function TeachersPageComponent_Template(rf, ctx) {
+  static \u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _TeachersPageComponent, selectors: [["app-teachers-page"]], inputs: { vm: "vm" }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 3, vars: 2, consts: [["noCtClass", ""], ["noSubjects", ""], ["noClasses", ""], [1, "workspace"], ["class", "page-spinner-wrap", 4, "ngIf"], [4, "ngIf"], [1, "page-spinner-wrap"], ["label", "Loading teachers...", 3, "show"], ["class", "panel span-4", 3, "formGroup", "ngSubmit", 4, "ngIf"], ["class", "data-card span-8", 4, "ngIf"], ["class", "my-profile-overlay", 3, "click", 4, "ngIf"], ["class", "panel span-12", 4, "ngIf"], [1, "panel", "span-12"], [1, "section-head"], [1, "eyebrow"], [1, "my-profile-avatar"], [1, "avatar", "large", 2, "background", "linear-gradient(135deg, #a855f7, #7c3aed)", "color", "#fff"], [1, "my-profile-name"], [1, "status-badge", 3, "ngClass"], [1, "my-profile-grid"], [1, "my-profile-field"], [1, "my-profile-label"], [1, "my-profile-value"], [4, "ngIf", "ngIfElse"], [1, "teacher-docs-section"], [1, "mandatory"], ["class", "my-profile-value", 4, "ngIf"], ["class", "my-profile-value muted", 4, "ngIf"], ["class", "reject-reason", 4, "ngIf"], [1, "doc-upload-label"], ["type", "file", "accept", "image/*,application/pdf", 3, "change"], ["class", "exp-edu-list", 4, "ngIf"], ["class", "muted", "style", "margin-bottom: 8px;", 4, "ngIf"], [1, "exp-edu-form-grid"], ["placeholder", "Institute / School name", 3, "ngModelChange", "ngModel"], ["placeholder", "Designation / Role", 3, "ngModelChange", "ngModel"], ["type", "date", 3, "ngModelChange", "ngModel"], [1, "doc-upload-label", "compact"], ["type", "button", 1, "ghost", "small", 3, "click", "disabled"], ["placeholder", "Institute / University", 3, "ngModelChange", "ngModel"], ["placeholder", "Degree (B.Ed, M.Sc...)", 3, "ngModelChange", "ngModel"], ["placeholder", "Field of study", 3, "ngModelChange", "ngModel"], ["class", "class-chip", 4, "ngFor", "ngForOf"], [1, "class-chip"], [1, "muted"], [1, "status-badge", "small", 3, "ngClass"], ["target", "_blank", "rel", "noopener noreferrer", 1, "doc-view-link", "inline", 3, "href"], [1, "my-profile-value", "muted"], [1, "reject-reason"], [1, "exp-edu-list"], ["class", "exp-edu-item", 4, "ngFor", "ngForOf"], [1, "exp-edu-item"], [1, "exp-edu-main"], ["class", "muted doc-attached", 4, "ngIf"], [1, "exp-edu-dates"], ["type", "button", 1, "danger-btn", "small", 3, "click"], [1, "muted", "doc-attached"], [1, "muted", 2, "margin-bottom", "8px"], [1, "panel", "span-4", 3, "ngSubmit", "formGroup"], ["formControlName", "employeeCode"], ["formControlName", "firstName"], ["formControlName", "lastName"], ["formControlName", "phone"], ["formControlName", "email"], ["formControlName", "qualification"], ["type", "number", "formControlName", "baseSalary"], ["type", "submit", 3, "disabled"], [1, "data-card", "span-8"], [1, "toolbar"], [1, "search-box"], ["placeholder", "Search teacher, employee code, phone", 3, "input", "value"], [1, "table-wrap"], [4, "ngFor", "ngForOf"], ["listKey", "teachers", 3, "vm", "items"], [1, "table-actions"], ["type", "button", 1, "ghost", "small", 3, "click"], ["colspan", "5", 1, "empty-cell"], [1, "my-profile-overlay", 3, "click"], [1, "my-profile-modal", 3, "click"], [1, "my-profile-header"], ["class", "teacher-docs-section", 4, "ngIf"], ["class", "doc-upload-label", 4, "ngIf"], ["class", "verify-actions", 4, "ngIf"], [1, "verify-actions"], ["type", "button", 1, "ghost", "small", "success-btn", 3, "click"], ["placeholder", "Reason for rejection", 1, "reject-input", 3, "ngModelChange", "ngModel"]], template: function TeachersPageComponent_Template(rf, ctx) {
     if (rf & 1) {
-      \u0275\u0275elementStart(0, "section", 1);
-      \u0275\u0275template(1, TeachersPageComponent_div_1_Template, 2, 1, "div", 2)(2, TeachersPageComponent_ng_container_2_Template, 31, 7, "ng-container", 3);
+      \u0275\u0275elementStart(0, "section", 3);
+      \u0275\u0275template(1, TeachersPageComponent_div_1_Template, 2, 1, "div", 4)(2, TeachersPageComponent_ng_container_2_Template, 5, 4, "ng-container", 5);
       \u0275\u0275elementEnd();
     }
     if (rf & 2) {
@@ -47814,7 +49082,7 @@ var TeachersPageComponent = class _TeachersPageComponent {
       \u0275\u0275advance();
       \u0275\u0275property("ngIf", !ctx.vm.loading || ctx.vm.teachers.length);
     }
-  }, dependencies: [CommonModule, NgClass, NgForOf, NgIf, CurrencyPipe, ReactiveFormsModule, \u0275NgNoValidate, DefaultValueAccessor, NumberValueAccessor, NgControlStatus, NgControlStatusGroup, FormGroupDirective, FormControlName, PaginationBarComponent, SpinnerComponent], encapsulation: 2 });
+  }, dependencies: [CommonModule, NgClass, NgForOf, NgIf, CurrencyPipe, DatePipe, FormsModule, \u0275NgNoValidate, DefaultValueAccessor, NumberValueAccessor, NgControlStatus, NgControlStatusGroup, NgModel, ReactiveFormsModule, FormGroupDirective, FormControlName, PaginationBarComponent, SpinnerComponent], encapsulation: 2 });
 };
 (() => {
   (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(TeachersPageComponent, { className: "TeachersPageComponent", filePath: "src\\app\\pages\\teachers-page\\teachers-page.component.ts", lineNumber: 14 });
@@ -48485,6 +49753,33 @@ var ErpApiService = class _ErpApiService {
   }
   deleteTeacher(id) {
     return this.http.delete(`${this.baseUrl}/teachers/${id}`, this.options());
+  }
+  uploadTeacherDocument(teacherId, file, type) {
+    const formData = new FormData();
+    formData.append("document", file);
+    formData.append("type", type);
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || "";
+    return this.http.post(`${this.baseUrl}/teachers/${teacherId}/documents`, formData, {
+      headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders()
+    });
+  }
+  selfUpdateTeacher(payload) {
+    return this.http.patch(`${this.baseUrl}/teachers/self`, payload, this.options());
+  }
+  selfUploadTeacherDocument(file, type) {
+    const formData = new FormData();
+    formData.append("document", file);
+    formData.append("type", type);
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || "";
+    return this.http.post(`${this.baseUrl}/teachers/self/documents`, formData, {
+      headers: token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders()
+    });
+  }
+  verifyTeacherDocument(teacherId, docType, action, reason) {
+    return this.http.post(`${this.baseUrl}/teachers/${teacherId}/verify-document`, { docType, action, reason }, this.options());
+  }
+  verifyStudentDocument(studentId, documentId, action, reason) {
+    return this.http.post(`${this.baseUrl}/students/${studentId}/verify-document`, { documentId, action, reason }, this.options());
   }
   students() {
     return this.http.get(`${this.baseUrl}/students`, this.options());
@@ -49604,7 +50899,12 @@ var AppComponent = class _AppComponent {
     academicYear: ["", Validators.required],
     classRoom: ["", Validators.required],
     rollNumber: [""],
-    previousSchool: [""]
+    previousSchool: [""],
+    previousSchoolAddress: [""],
+    previousSchoolLastClass: [""],
+    previousSchoolYearOfPassing: [""],
+    previousSchoolReasonForLeaving: [""],
+    previousSchoolTcNumber: [""]
   });
   feeForm = this.fb.group({
     student: ["", Validators.required],
@@ -49896,12 +51196,15 @@ var AppComponent = class _AppComponent {
       next: (student) => {
         const documents = student.documents || [];
         this.selectedStudentDocuments = documents.map((document2) => ({
+          _id: document2["_id"] ? String(document2["_id"]) : void 0,
           type: String(document2["type"] || ""),
           title: String(document2["title"] || ""),
           fileUrl: String(document2["fileUrl"] || ""),
           storageProvider: document2["storageProvider"] === "s3" ? "s3" : "local",
           mimeType: document2["mimeType"] ? String(document2["mimeType"]) : void 0,
-          uploadedAt: document2["uploadedAt"] ? String(document2["uploadedAt"]) : void 0
+          uploadedAt: document2["uploadedAt"] ? String(document2["uploadedAt"]) : void 0,
+          status: document2["status"] ? String(document2["status"]) : "pending",
+          rejectReason: document2["rejectReason"] ? String(document2["rejectReason"]) : void 0
         }));
       },
       error: () => {
@@ -49975,12 +51278,208 @@ var AppComponent = class _AppComponent {
   closeTeacherProfile() {
     this.viewingTeacher = null;
   }
+  teacherExpForm = { instituteName: "", designation: "", fromDate: "", toDate: "", description: "" };
+  teacherExpFile = null;
+  teacherEduForm = { instituteName: "", degree: "", fieldOfStudy: "", fromDate: "", toDate: "", grade: "" };
+  teacherEduFile = null;
+  onExpFileChange(event) {
+    this.teacherExpFile = event.target.files?.[0] || null;
+  }
+  onEduFileChange(event) {
+    this.teacherEduFile = event.target.files?.[0] || null;
+  }
+  addTeacherExperience() {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher || !this.teacherExpForm.instituteName)
+      return;
+    const saveEntry = (doc) => {
+      const entry = __spreadValues({}, this.teacherExpForm);
+      if (doc)
+        entry["document"] = doc;
+      const exp = [...teacher.experience || [], entry];
+      const request = this.isTeacher ? this.api.selfUpdateTeacher({ experience: exp }) : this.api.updateTeacher(teacher._id, { experience: exp });
+      request.subscribe({
+        next: () => {
+          this.message = "Experience added";
+          this.teacherExpForm = { instituteName: "", designation: "", fromDate: "", toDate: "", description: "" };
+          this.teacherExpFile = null;
+          this.refresh();
+        },
+        error: (err) => {
+          this.message = err.error?.message || "Could not save experience";
+        }
+      });
+    };
+    if (this.teacherExpFile) {
+      const upload$ = this.isTeacher ? this.api.selfUploadTeacherDocument(this.teacherExpFile, "certificate") : this.api.uploadTeacherDocument(teacher._id, this.teacherExpFile, "certificate");
+      upload$.subscribe({
+        next: (res) => {
+          const certs = res?.certificates || [];
+          const last4 = certs[certs.length - 1];
+          saveEntry(last4 ? { url: last4.url, originalName: last4.originalName, uploadedAt: last4.uploadedAt } : void 0);
+        },
+        error: () => saveEntry()
+      });
+    } else {
+      saveEntry();
+    }
+  }
+  removeTeacherExperience(index) {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher)
+      return;
+    const exp = [...teacher.experience || []];
+    exp.splice(index, 1);
+    const request = this.isTeacher ? this.api.selfUpdateTeacher({ experience: exp }) : this.api.updateTeacher(teacher._id, { experience: exp });
+    request.subscribe({
+      next: () => {
+        this.message = "Experience removed";
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Could not remove experience";
+      }
+    });
+  }
+  addTeacherEducation() {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher || !this.teacherEduForm.instituteName)
+      return;
+    const saveEntry = (doc) => {
+      const entry = __spreadValues({}, this.teacherEduForm);
+      if (doc)
+        entry["document"] = doc;
+      const edu = [...teacher.education || [], entry];
+      const request = this.isTeacher ? this.api.selfUpdateTeacher({ education: edu }) : this.api.updateTeacher(teacher._id, { education: edu });
+      request.subscribe({
+        next: () => {
+          this.message = "Education added";
+          this.teacherEduForm = { instituteName: "", degree: "", fieldOfStudy: "", fromDate: "", toDate: "", grade: "" };
+          this.teacherEduFile = null;
+          this.refresh();
+        },
+        error: (err) => {
+          this.message = err.error?.message || "Could not save education";
+        }
+      });
+    };
+    if (this.teacherEduFile) {
+      const upload$ = this.isTeacher ? this.api.selfUploadTeacherDocument(this.teacherEduFile, "certificate") : this.api.uploadTeacherDocument(teacher._id, this.teacherEduFile, "certificate");
+      upload$.subscribe({
+        next: (res) => {
+          const certs = res?.certificates || [];
+          const last4 = certs[certs.length - 1];
+          saveEntry(last4 ? { url: last4.url, originalName: last4.originalName, uploadedAt: last4.uploadedAt } : void 0);
+        },
+        error: () => saveEntry()
+      });
+    } else {
+      saveEntry();
+    }
+  }
+  removeTeacherEducation(index) {
+    const teacher = this.viewingTeacher || this.myTeacherProfile;
+    if (!teacher)
+      return;
+    const edu = [...teacher.education || []];
+    edu.splice(index, 1);
+    const request = this.isTeacher ? this.api.selfUpdateTeacher({ education: edu }) : this.api.updateTeacher(teacher._id, { education: edu });
+    request.subscribe({
+      next: () => {
+        this.message = "Education removed";
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Could not remove education";
+      }
+    });
+  }
+  uploadTeacherDoc(event, type) {
+    const file = event.target.files?.[0];
+    if (!file || !this.viewingTeacher)
+      return;
+    this.api.uploadTeacherDocument(this.viewingTeacher._id, file, type).subscribe({
+      next: () => {
+        this.message = `Document uploaded`;
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Upload failed";
+      }
+    });
+  }
+  selfUploadTeacherDoc(event, type) {
+    const file = event.target.files?.[0];
+    if (!file)
+      return;
+    this.api.selfUploadTeacherDocument(file, type).subscribe({
+      next: () => {
+        this.message = "Document uploaded for review";
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Upload failed";
+      }
+    });
+  }
+  selfUpdateTeacher(field, value) {
+    this.api.selfUpdateTeacher({ [field]: value }).subscribe({
+      next: () => {
+        this.message = "Profile updated";
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Could not update profile";
+      }
+    });
+  }
+  verifyDocReason = "";
+  verifyTeacherDoc(docType, action) {
+    if (!this.viewingTeacher)
+      return;
+    this.api.verifyTeacherDocument(this.viewingTeacher._id, docType, action, this.verifyDocReason).subscribe({
+      next: () => {
+        this.message = `Document ${action === "approve" ? "approved" : "rejected \u2014 reupload requested"}`;
+        this.verifyDocReason = "";
+        this.refresh();
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Verification failed";
+      }
+    });
+  }
+  verifyStudentDoc(documentId, action) {
+    if (!this.selectedStudentId || !documentId)
+      return;
+    this.api.verifyStudentDocument(this.selectedStudentId, documentId, action, this.verifyDocReason).subscribe({
+      next: () => {
+        this.message = `Document ${action === "approve" ? "approved" : "rejected \u2014 reupload requested"}`;
+        this.verifyDocReason = "";
+        this.loadStudentDocuments(this.selectedStudentId);
+      },
+      error: (err) => {
+        this.message = err.error?.message || "Verification failed";
+      }
+    });
+  }
   getTeacherClasses(teacherId) {
     return this.classes.filter((c) => {
       const ct = c.classTeacher;
       const ctId = typeof ct === "string" ? ct : ct?._id;
       return ctId === teacherId;
     });
+  }
+  getTeacherSubjects(teacherId) {
+    const results = [];
+    for (const cls of this.classes) {
+      for (const subj of cls.subjects || []) {
+        const tid = typeof subj.teacher === "string" ? subj.teacher : subj.teacher?._id;
+        if (tid === teacherId) {
+          results.push({ className: `${cls.name}-${cls.section}`, subjectName: subj.name });
+        }
+      }
+    }
+    return results;
   }
   deleteTeacher(id) {
     this.submit(this.api.deleteTeacher(id), "Teacher deleted");
@@ -50048,7 +51547,15 @@ var AppComponent = class _AppComponent {
       academicYear: value.academicYear,
       classRoom: value.classRoom,
       rollNumber: value.rollNumber,
-      previousSchool: value.previousSchool
+      previousSchool: value.previousSchool,
+      previousSchoolDetails: {
+        schoolName: value.previousSchool,
+        address: value.previousSchoolAddress,
+        lastClass: value.previousSchoolLastClass,
+        yearOfPassing: value.previousSchoolYearOfPassing ? Number(value.previousSchoolYearOfPassing) : void 0,
+        reasonForLeaving: value.previousSchoolReasonForLeaving,
+        tcNumber: value.previousSchoolTcNumber
+      }
     };
     const formData = new FormData();
     formData.append("data", JSON.stringify(payload));
@@ -52187,6 +53694,209 @@ p {
   margin-right: 6px;
   margin-bottom: 4px;
 }
+.teacher-docs-section {
+  border-top: 1px solid var(--border-soft);
+  padding-top: var(--space-4);
+}
+.teacher-docs-section h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+  color: var(--text);
+}
+.doc-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+.doc-upload-label.compact {
+  margin-top: 0;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.doc-upload-label input[type=file] {
+  display: none;
+}
+.doc-upload-label span {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: var(--radius);
+  transition: background 150ms ease;
+}
+.doc-upload-label.compact span {
+  padding: 0;
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+}
+.doc-upload-label:hover span {
+  background: var(--primary);
+  color: #fff;
+}
+.doc-upload-label.compact:hover span {
+  background: none;
+  color: var(--primary);
+}
+.exp-edu-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.exp-edu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+}
+.exp-edu-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.exp-edu-main strong {
+  font-size: 13px;
+}
+.exp-edu-main .muted {
+  font-size: 12px;
+}
+.exp-edu-dates {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.exp-edu-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.exp-edu-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+.exp-edu-form-grid input,
+.exp-edu-form input {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+.mandatory {
+  color: var(--danger);
+  font-weight: 700;
+}
+.reject-reason {
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 4px;
+}
+.verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+.reject-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+.doc-attached {
+  font-size: 11px;
+  color: var(--success);
+}
+.document-card-enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 8px;
+}
+.doc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.doc-card-header strong {
+  font-size: 13px;
+  color: var(--text);
+}
+.doc-card-type {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.doc-view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  transition: all 150ms ease;
+  width: fit-content;
+}
+.doc-view-link:hover {
+  background: var(--primary);
+  color: #fff;
+}
+.doc-view-link.inline {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  border: none;
+  background: var(--primary-soft);
+  border-radius: 4px;
+}
+.doc-view-link.inline:hover {
+  background: var(--primary);
+  color: #fff;
+}
+.doc-view-icon {
+  font-size: 14px;
+}
+.status-badge.small {
+  font-size: 10px;
+  padding: 2px 6px;
+  margin-left: 6px;
+}
 @media (max-width: 560px) {
   .my-profile-modal {
     padding: var(--space-4);
@@ -52501,11 +54211,19 @@ p {
 .legend-dot.sunday {
   background: #94a3b8;
 }
+.holiday-card {
+  display: grid;
+  gap: var(--space-4);
+}
 .holiday-card label {
   display: grid;
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
+}
+.holiday-card button {
+  justify-self: start;
+  margin-top: 4px;
 }
 .holiday-list {
   max-height: 200px;
