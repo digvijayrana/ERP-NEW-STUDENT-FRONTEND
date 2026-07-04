@@ -81,6 +81,7 @@ export interface AuthUser {
   teacher?: string;
   student?: string;
   linkedStudent?: string;
+  linkedStudents?: string[];
 }
 
 export interface AuthResponse {

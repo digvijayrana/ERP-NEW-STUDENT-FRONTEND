@@ -80,6 +80,13 @@ export class AppComponent implements OnInit {
   studentProfile: StudentProfile | null = null;
   profileStudentId = '';
   profileLoading = false;
+  showMyProfile = false;
+  selfAttendanceMarked = false;
+  selfAttendanceStatus: string | null = null;
+  selfAttendanceLoading = false;
+  viewingExamResult: ExamSubmission | null = null;
+  parentSelectedChild = '';
+  parentLinkedStudentIds = new Set<string>();
   selectedStudentIds = new Set<string>();
   selectedStudentId = '';
   selectedStudentDocuments: Array<{ type: string; title: string; fileUrl: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string }> = [];
@@ -181,7 +188,8 @@ export class AppComponent implements OnInit {
     role: ['teacher', Validators.required],
     teacher: [''],
     student: [''],
-    linkedStudent: ['']
+    linkedStudent: [''],
+    linkedStudents: [[]]
   });
 
   academicYearForm = this.fb.group({
@@ -302,6 +310,9 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     if (this.currentUser) {
       this.activeTab = 'dashboard';
+      if (this.currentUser.role === 'parent') {
+        this.parentSelectedChild = this.currentUser.linkedStudents?.[0] || this.currentUser.linkedStudent || '';
+      }
       this.refresh();
     }
   }
@@ -364,6 +375,27 @@ export class AppComponent implements OnInit {
 
   get roleLabel(): string {
     return this.currentUser?.role ? this.currentUser.role.replace(/\b\w/g, (char) => char.toUpperCase()) : 'User';
+  }
+
+  get parentChildIds(): string[] {
+    if (!this.isParent || !this.currentUser) return [];
+    return this.currentUser.linkedStudents?.length
+      ? this.currentUser.linkedStudents
+      : this.currentUser.linkedStudent ? [this.currentUser.linkedStudent] : [];
+  }
+
+  get parentChildren(): Student[] {
+    return this.students.filter((s) => this.parentChildIds.includes(s._id));
+  }
+
+  get effectiveChildId(): string {
+    if (this.parentSelectedChild && this.parentChildIds.includes(this.parentSelectedChild)) return this.parentSelectedChild;
+    return this.parentChildIds[0] || '';
+  }
+
+  selectParentChild(childId: string): void {
+    this.parentSelectedChild = childId;
+    this.message = '';
   }
 
   get activeTabLabel(): string {
@@ -444,10 +476,11 @@ export class AppComponent implements OnInit {
         this.examResults = data.examResults;
         this.users = data.users as Array<AuthUser & { _id?: string; isActive?: boolean }>;
         this.loading = false;
+        this.loadSelfAttendanceStatus();
         if (this.isStudent && this.currentUser?.student && this.activeTab === 'profile') {
           this.loadStudentProfile(this.currentUser.student);
-        } else if (this.isParent && this.currentUser?.linkedStudent && this.activeTab === 'profile') {
-          this.loadStudentProfile(this.currentUser.linkedStudent);
+        } else if (this.isParent && this.effectiveChildId && this.activeTab === 'profile') {
+          this.loadStudentProfile(this.effectiveChildId);
         }
       },
       error: () => {
@@ -461,7 +494,7 @@ export class AppComponent implements OnInit {
     this.activeTab = tab;
     if (tab === 'profile') {
       if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
-      else if (this.isParent && this.currentUser?.linkedStudent) this.loadStudentProfile(this.currentUser.linkedStudent);
+      else if (this.isParent && this.effectiveChildId) this.loadStudentProfile(this.effectiveChildId);
     }
   }
 
@@ -491,9 +524,26 @@ export class AppComponent implements OnInit {
   }
 
   openMyProfile(): void {
-    if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
-    else if (this.isParent && this.currentUser?.linkedStudent) this.loadStudentProfile(this.currentUser.linkedStudent);
-    else this.setTab('profile');
+    this.showMyProfile = true;
+  }
+
+  closeMyProfile(): void {
+    this.showMyProfile = false;
+  }
+
+  get myTeacherProfile(): Teacher | undefined {
+    if (!this.currentUser?.teacher) return undefined;
+    return this.teachers.find((t) => t._id === this.currentUser!.teacher);
+  }
+
+  get myStudentProfile(): Student | undefined {
+    if (!this.currentUser?.student) return undefined;
+    return this.students.find((s) => s._id === this.currentUser!.student);
+  }
+
+  get myLinkedStudentProfile(): Student | undefined {
+    if (!this.currentUser?.linkedStudent) return undefined;
+    return this.students.find((s) => s._id === this.currentUser!.linkedStudent);
   }
 
   setFinanceRange(days: number): void {
@@ -791,8 +841,22 @@ export class AppComponent implements OnInit {
     this.openProtectedPdf(this.api.payrollPdfUrl(payrollId));
   }
 
+  toggleParentChild(studentId: string): void {
+    if (this.parentLinkedStudentIds.has(studentId)) {
+      this.parentLinkedStudentIds.delete(studentId);
+    } else {
+      this.parentLinkedStudentIds.add(studentId);
+    }
+  }
+
   saveUser(): void {
-    this.submit(this.api.createUser(this.userForm.getRawValue()), 'User account created', this.userForm);
+    const payload = { ...this.userForm.getRawValue() } as Record<string, unknown>;
+    if (payload['role'] === 'parent' && this.parentLinkedStudentIds.size) {
+      payload['linkedStudents'] = [...this.parentLinkedStudentIds];
+      if (!payload['linkedStudent']) payload['linkedStudent'] = [...this.parentLinkedStudentIds][0];
+    }
+    this.submit(this.api.createUser(payload), 'User account created', this.userForm);
+    this.parentLinkedStudentIds.clear();
   }
 
   saveAttendance(): void {
@@ -813,6 +877,52 @@ export class AppComponent implements OnInit {
       'Attendance saved',
       this.attendanceForm
     );
+  }
+
+  loadSelfAttendanceStatus(): void {
+    if (!this.isStudent && !this.isTeacher) return;
+    this.api.selfAttendanceStatus().subscribe({
+      next: (res) => {
+        this.selfAttendanceMarked = res.marked;
+        this.selfAttendanceStatus = res.status;
+      },
+      error: () => {}
+    });
+  }
+
+  markSelfAttendance(): void {
+    this.selfAttendanceLoading = true;
+    this.api.selfMarkAttendance('present').subscribe({
+      next: () => {
+        this.selfAttendanceMarked = true;
+        this.selfAttendanceStatus = 'present';
+        this.selfAttendanceLoading = false;
+        this.message = 'Your attendance has been marked for today!';
+        this.refresh();
+      },
+      error: (err) => {
+        this.selfAttendanceLoading = false;
+        this.message = err.error?.message || 'Could not mark attendance';
+      }
+    });
+  }
+
+  viewStudentExamResult(result: ExamSubmission): void {
+    this.viewingExamResult = result;
+  }
+
+  closeExamResultView(): void {
+    this.viewingExamResult = null;
+  }
+
+  getExamResultForChild(examId: string): ExamSubmission | undefined {
+    const childId = this.isStudent ? this.currentUser?.student : this.effectiveChildId;
+    if (!childId) return undefined;
+    return this.examResults.find((r) => {
+      const eid = typeof r.exam === 'string' ? r.exam : r.exam._id;
+      const sid = typeof r.student === 'string' ? r.student : r.student._id;
+      return eid === examId && sid === childId;
+    });
   }
 
   saveTimetable(): void {
@@ -1157,6 +1267,9 @@ export class AppComponent implements OnInit {
     localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     this.token = token;
     this.currentUser = user;
+    if (user.role === 'parent') {
+      this.parentSelectedChild = user.linkedStudents?.[0] || user.linkedStudent || '';
+    }
   }
 
   private clearSession(): void {

@@ -151,6 +151,14 @@ export class ErpApiService {
     return this.http.post(`${this.baseUrl}/attendance/mark`, payload, this.options());
   }
 
+  selfAttendanceStatus(): Observable<{ marked: boolean; status: string | null }> {
+    return this.http.get<{ marked: boolean; status: string | null }>(`${this.baseUrl}/attendance/self-status`, this.options());
+  }
+
+  selfMarkAttendance(status = 'present'): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/attendance/self-mark`, { status }, this.options());
+  }
+
   timetable(): Observable<TimetableRow[]> {
     return this.http.get<TimetableRow[]>(`${this.baseUrl}/timetable`, this.options());
   }

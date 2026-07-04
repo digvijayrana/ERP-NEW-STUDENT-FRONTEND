@@ -72,8 +72,13 @@
             <button type="button" class="ghost small" (click)="vm.viewExamReport(exam._id)">Report</button>
             <button type="button" class="danger-btn small" *ngIf="exam.status === 'draft'" (click)="vm.deleteExamPaper(exam._id)">Delete</button>
           </ng-container>
-          <ng-container *ngIf="vm.isStudent">
-            <button type="button" class="ghost small" *ngIf="exam.status === 'published'" (click)="vm.startExam(exam._id)">Start Exam</button>
+          <ng-container *ngIf="vm.isStudent || vm.isParent">
+            <button type="button" class="ghost small" *ngIf="vm.isStudent && exam.status === 'published' && !vm.getExamResultForChild(exam._id)" (click)="vm.startExam(exam._id)">Start Exam</button>
+            <ng-container *ngIf="vm.getExamResultForChild(exam._id) as result">
+              <button type="button" class="ghost small result-view-btn" (click)="vm.viewStudentExamResult(result)">
+                View Result &mdash; {{ result.percentage }}%
+              </button>
+            </ng-container>
           </ng-container>
         </div>
       </article>
@@ -117,7 +122,7 @@
     </div>
 
     <div class="score-card-grid" *ngIf="vm.filteredExamResults.length; else noResults">
-      <article class="score-card result-card" *ngFor="let result of vm.paged('examResults', vm.filteredExamResults)" [class.pass]="result.percentage >= 40" [class.fail]="result.percentage < 40">
+      <article class="score-card result-card clickable" *ngFor="let result of vm.paged('examResults', vm.filteredExamResults)" [class.pass]="result.percentage >= 40" [class.fail]="result.percentage < 40" (click)="vm.viewStudentExamResult(result)">
         <div class="score-card-top">
           <span class="student-tag">{{ vm.studentName(result.student) }}</span>
           <span class="grade-badge" [class.high]="result.percentage >= 75">{{ result.grade || '—' }}</span>
@@ -155,3 +160,55 @@
   </section>
   </ng-container>
 </section>
+
+<!-- Exam Result Detail Modal -->
+<div class="my-profile-overlay" *ngIf="vm.viewingExamResult" (click)="vm.closeExamResultView()">
+  <div class="exam-result-modal" (click)="$event.stopPropagation()">
+    <div class="my-profile-header">
+      <div>
+        <p class="eyebrow">Exam Result</p>
+        <h3>{{ vm.examTitle(vm.viewingExamResult.exam) }}</h3>
+      </div>
+      <button type="button" class="ghost small" (click)="vm.closeExamResultView()">Close</button>
+    </div>
+
+    <div class="exam-result-summary">
+      <div class="exam-result-score-ring" [class.pass]="vm.viewingExamResult.percentage >= 40" [class.fail]="vm.viewingExamResult.percentage < 40">
+        <span class="ring-percent">{{ vm.viewingExamResult.percentage }}%</span>
+        <span class="ring-label">Score</span>
+      </div>
+      <div class="exam-result-stats">
+        <div class="my-profile-field">
+          <span class="my-profile-label">Marks</span>
+          <span class="my-profile-value">{{ vm.viewingExamResult.score }} / {{ vm.viewingExamResult.maxScore }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Grade</span>
+          <span class="my-profile-value grade-big" [class.high]="vm.viewingExamResult.percentage >= 75">{{ vm.viewingExamResult.grade || '—' }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Status</span>
+          <span class="my-profile-value"><span class="status-badge" [ngClass]="vm.viewingExamResult.status">{{ vm.viewingExamResult.status }}</span></span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Submitted</span>
+          <span class="my-profile-value">{{ vm.viewingExamResult.submittedAt | date: 'medium' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exam-result-answers" *ngIf="vm.viewingExamResult.answers?.length">
+      <p class="my-profile-section-title">Question-wise Breakdown</p>
+      <div class="answer-list">
+        <article *ngFor="let ans of vm.viewingExamResult.answers; let i = index" class="answer-card" [class.correct]="ans.isCorrect" [class.wrong]="ans.isCorrect === false">
+          <div class="answer-header">
+            <strong>Q{{ i + 1 }}</strong>
+            <span class="answer-marks">{{ ans.marksAwarded || 0 }} marks</span>
+            <span class="answer-verdict">{{ ans.isCorrect ? 'Correct' : 'Incorrect' }}</span>
+          </div>
+          <p class="answer-text"><span class="muted">Your answer:</span> {{ ans.answer || '(blank)' }}</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</div>

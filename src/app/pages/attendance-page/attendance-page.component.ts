@@ -13,4 +13,5 @@ import { SpinnerComponent } from '../../shared/spinner.component';
 })
 export class AttendancePageComponent {
   @Input({ required: true }) vm!: any;
+  today = new Date();
 }

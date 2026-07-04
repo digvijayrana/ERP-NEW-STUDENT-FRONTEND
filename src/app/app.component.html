@@ -70,11 +70,6 @@
       </button>
     </nav>
 
-    <div class="sidebar-profile">
-      <p class="eyebrow">Signed in</p>
-      <strong>{{ currentUser.name }}</strong>
-      <span class="role-pill small" [attr.data-role]="currentUser.role">{{ roleLabel }}</span>
-    </div>
   </aside>
 
   <section class="main-panel">
@@ -111,6 +106,16 @@
 
     <div class="toast success" *ngIf="message && currentUser">{{ message }}</div>
 
+    <!-- Parent child selector -->
+    <div class="child-selector-bar" *ngIf="isParent && parentChildren.length > 0">
+      <span class="child-selector-label">Viewing for:</span>
+      <button *ngFor="let child of parentChildren" type="button" class="child-chip" [class.active]="child._id === effectiveChildId" (click)="selectParentChild(child._id)">
+        <span class="child-chip-avatar">{{ child.firstName.charAt(0) }}</span>
+        <span class="child-chip-name">{{ studentName(child) }}</span>
+        <span class="child-chip-class">{{ enrollmentClassName(child) }}</span>
+      </button>
+    </div>
+
     <app-dashboard-page *ngIf="activeTab === 'dashboard'" [vm]="pageVm"></app-dashboard-page>
     <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
     <app-classes-page *ngIf="activeTab === 'classes'" [vm]="pageVm"></app-classes-page>
@@ -124,4 +129,144 @@
     <app-student-profile-page *ngIf="activeTab === 'profile'" [vm]="pageVm"></app-student-profile-page>
     <app-users-page *ngIf="activeTab === 'users'" [vm]="pageVm"></app-users-page>
   </section>
+
+  <!-- My Profile Modal -->
+  <div class="my-profile-overlay" *ngIf="showMyProfile" (click)="closeMyProfile()">
+    <div class="my-profile-modal" (click)="$event.stopPropagation()">
+      <div class="my-profile-header">
+        <div>
+          <p class="eyebrow">My Profile</p>
+          <h3>Account Information</h3>
+        </div>
+        <button type="button" class="ghost small" (click)="closeMyProfile()">Close</button>
+      </div>
+
+      <div class="my-profile-avatar">
+        <span class="avatar large" [attr.data-role]="currentUser!.role">{{ currentUser!.name.charAt(0) }}</span>
+        <div>
+          <strong class="my-profile-name">{{ currentUser!.name }}</strong>
+          <span class="role-pill" [attr.data-role]="currentUser!.role">{{ roleLabel }}</span>
+        </div>
+      </div>
+
+      <div class="my-profile-grid">
+        <div class="my-profile-field">
+          <span class="my-profile-label">Full Name</span>
+          <span class="my-profile-value">{{ currentUser!.name }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Email</span>
+          <span class="my-profile-value">{{ currentUser!.email }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Role</span>
+          <span class="my-profile-value">{{ roleLabel }}</span>
+        </div>
+      </div>
+
+      <!-- Admin-specific info -->
+      <ng-container *ngIf="isAdmin && summary">
+        <div class="my-profile-section-title">School Overview</div>
+        <div class="my-profile-grid">
+          <div class="my-profile-field">
+            <span class="my-profile-label">Total Students</span>
+            <span class="my-profile-value">{{ summary.students }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Total Teachers</span>
+            <span class="my-profile-value">{{ summary.teachers }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Active Year</span>
+            <span class="my-profile-value">{{ summary.activeYear?.name || 'Not set' }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Revenue Collected</span>
+            <span class="my-profile-value">{{ summary.feeCollected | currency: 'INR' }}</span>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Teacher-specific info -->
+      <ng-container *ngIf="isTeacher && myTeacherProfile as teacher">
+        <div class="my-profile-section-title">Teacher Details</div>
+        <div class="my-profile-grid">
+          <div class="my-profile-field">
+            <span class="my-profile-label">Employee Code</span>
+            <span class="my-profile-value">{{ teacher.employeeCode }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Phone</span>
+            <span class="my-profile-value">{{ teacher.phone }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Qualification</span>
+            <span class="my-profile-value">{{ teacher.qualification || 'Not specified' }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Base Salary</span>
+            <span class="my-profile-value">{{ teacher.baseSalary | currency: 'INR' }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Status</span>
+            <span class="my-profile-value"><span class="status-badge" [ngClass]="teacher.status">{{ teacher.status }}</span></span>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Student-specific info -->
+      <ng-container *ngIf="isStudent && myStudentProfile as student">
+        <div class="my-profile-section-title">Student Details</div>
+        <div class="my-profile-grid">
+          <div class="my-profile-field">
+            <span class="my-profile-label">Admission No</span>
+            <span class="my-profile-value">{{ student.admissionNumber }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Class</span>
+            <span class="my-profile-value">{{ enrollmentClassName(student) }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Gender</span>
+            <span class="my-profile-value">{{ student.gender | titlecase }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Date of Birth</span>
+            <span class="my-profile-value">{{ student.dateOfBirth | date: 'dd MMM yyyy' }}</span>
+          </div>
+          <div class="my-profile-field">
+            <span class="my-profile-label">Status</span>
+            <span class="my-profile-value"><span class="status-badge" [ngClass]="student.status">{{ student.status }}</span></span>
+          </div>
+        </div>
+        <button type="button" class="ghost" style="margin-top: 12px" (click)="closeMyProfile(); loadStudentProfile(student._id)">View Full AI Profile</button>
+      </ng-container>
+
+      <!-- Parent-specific info -->
+      <ng-container *ngIf="isParent && parentChildren.length">
+        <div class="my-profile-section-title">Linked Children ({{ parentChildren.length }})</div>
+        <div *ngFor="let child of parentChildren" class="parent-child-card">
+          <div class="my-profile-grid">
+            <div class="my-profile-field">
+              <span class="my-profile-label">Child Name</span>
+              <span class="my-profile-value">{{ studentName(child) }}</span>
+            </div>
+            <div class="my-profile-field">
+              <span class="my-profile-label">Admission No</span>
+              <span class="my-profile-value">{{ child.admissionNumber }}</span>
+            </div>
+            <div class="my-profile-field">
+              <span class="my-profile-label">Class</span>
+              <span class="my-profile-value">{{ enrollmentClassName(child) }}</span>
+            </div>
+            <div class="my-profile-field">
+              <span class="my-profile-label">Status</span>
+              <span class="my-profile-value"><span class="status-badge" [ngClass]="child.status">{{ child.status }}</span></span>
+            </div>
+          </div>
+          <button type="button" class="ghost" style="margin-top: 8px" (click)="closeMyProfile(); loadStudentProfile(child._id)">View Full Profile</button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
 </main>

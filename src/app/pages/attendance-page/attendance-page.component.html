@@ -3,6 +3,32 @@
     <app-spinner [show]="true" label="Loading attendance records..."></app-spinner>
   </div>
   <ng-container *ngIf="!vm.loading || vm.attendance.length || vm.students.length">
+
+  <!-- Self-attendance card for students and teachers -->
+  <article *ngIf="vm.isStudent || vm.isTeacher" class="panel span-4 self-attendance-card" [class.marked]="vm.selfAttendanceMarked">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Today's Attendance</p>
+        <h3>{{ vm.selfAttendanceMarked ? 'You are marked!' : 'Mark your attendance' }}</h3>
+      </div>
+    </div>
+    <div class="self-attendance-body">
+      <div class="self-attendance-icon" [class.done]="vm.selfAttendanceMarked">
+        <span *ngIf="!vm.selfAttendanceMarked">&#128227;</span>
+        <span *ngIf="vm.selfAttendanceMarked">&#9989;</span>
+      </div>
+      <p class="self-attendance-date">{{ today | date: 'EEEE, MMMM d, y' }}</p>
+      <div *ngIf="vm.selfAttendanceMarked" class="self-attendance-status">
+        <span class="status-badge present">{{ vm.selfAttendanceStatus | titlecase }}</span>
+        <p class="muted">Your attendance for today has been recorded.</p>
+      </div>
+      <button *ngIf="!vm.selfAttendanceMarked" type="button" class="self-mark-btn" (click)="vm.markSelfAttendance()" [disabled]="vm.selfAttendanceLoading">
+        <span *ngIf="!vm.selfAttendanceLoading">Mark Present</span>
+        <span *ngIf="vm.selfAttendanceLoading" class="btn-spinner"><span class="spinner-ring"></span> Marking...</span>
+      </button>
+    </div>
+  </article>
+
   <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.attendanceForm" (ngSubmit)="vm.saveAttendance()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Mark attendance</h3></div></div>
     <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
