@@ -17,10 +17,10 @@
     <div class="form-grid compact">
       <label>Class<input formControlName="name" placeholder="1, 2, 10"></label>
       <label>Section<input formControlName="section"></label>
-      <label>Capacity<input type="number" formControlName="capacity"></label>
+      <label>Capacity<input type="number" formControlName="capacity" min="1"></label>
       <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
       <label>Class teacher<select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
-      <label>Monthly fee<input type="number" formControlName="monthlyFee"></label>
+      <label>Monthly fee<input type="number" formControlName="monthlyFee" min="0"></label>
     </div>
     <button type="submit" [disabled]="vm.classForm.invalid">{{ vm.editingClassId ? 'Update class' : 'Save class' }}</button>
   </form>

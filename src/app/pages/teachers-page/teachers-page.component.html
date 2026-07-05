@@ -156,10 +156,10 @@
     <label>Employee code<input formControlName="employeeCode"></label>
     <label>First name<input formControlName="firstName"></label>
     <label>Last name<input formControlName="lastName"></label>
-    <label>Phone<input formControlName="phone"></label>
+    <label>Phone<input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
     <label>Email<input formControlName="email"></label>
     <label>Qualification<input formControlName="qualification"></label>
-    <label>Base salary<input type="number" formControlName="baseSalary"></label>
+    <label>Base salary<input type="number" formControlName="baseSalary" min="0"></label>
     <button type="submit" [disabled]="vm.teacherForm.invalid">{{ vm.editingTeacherId ? 'Update teacher' : 'Save teacher' }}</button>
   </form>
 

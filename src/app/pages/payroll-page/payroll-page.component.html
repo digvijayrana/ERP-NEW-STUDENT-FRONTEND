@@ -20,10 +20,10 @@
           <option [value]="10">October</option><option [value]="11">November</option><option [value]="12">December</option>
         </select>
       </label>
-      <label>Year<input type="number" formControlName="year"></label>
-      <label>Basic salary (&#8377;)<input type="number" formControlName="basicSalary"></label>
-      <label>Allowances (&#8377;)<input type="number" formControlName="allowances" placeholder="0"></label>
-      <label>Deductions (&#8377;)<input type="number" formControlName="deductions" placeholder="0"></label>
+      <label>Year<input type="number" formControlName="year" min="2020" max="2099"></label>
+      <label>Basic salary (&#8377;)<input type="number" formControlName="basicSalary" min="0"></label>
+      <label>Allowances (&#8377;)<input type="number" formControlName="allowances" placeholder="0" min="0"></label>
+      <label>Deductions (&#8377;)<input type="number" formControlName="deductions" placeholder="0" min="0"></label>
     </div>
     <button type="submit" [disabled]="vm.payrollForm.invalid">{{ vm.editingPayrollId ? 'Update' : 'Create' }} Salary Record</button>
   </form>

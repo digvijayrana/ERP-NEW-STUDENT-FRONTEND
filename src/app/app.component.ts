@@ -210,7 +210,7 @@ export class AppComponent implements OnInit {
     capacity: [APP_CONSTANTS.DEFAULT_CAPACITY, Validators.required],
     academicYear: ['', Validators.required],
     classTeacher: [''],
-    monthlyFee: [0, Validators.required]
+    monthlyFee: [0, [Validators.required, Validators.min(0)]]
   });
 
   teacherForm = this.fb.group({
@@ -220,7 +220,7 @@ export class AppComponent implements OnInit {
     phone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     email: [''],
     qualification: [''],
-    baseSalary: [0, Validators.required]
+    baseSalary: [0, [Validators.required, Validators.min(0)]]
   });
 
   admissionForm = this.fb.group({
@@ -255,14 +255,14 @@ export class AppComponent implements OnInit {
     invoiceNumber: [''],
     dueDate: ['', Validators.required],
     label: [APP_CONSTANTS.DEFAULT_FEE_LABEL, Validators.required],
-    amount: [0, Validators.required],
-    discount: [0],
-    fine: [0]
+    amount: [0, [Validators.required, Validators.min(0)]],
+    discount: [0, Validators.min(0)],
+    fine: [0, Validators.min(0)]
   });
 
   paymentForm = this.fb.group({
     invoiceId: ['', Validators.required],
-    amount: [0, Validators.required],
+    amount: [0, [Validators.required, Validators.min(1)]],
     mode: [PAYMENT_MODES.CASH, Validators.required],
     referenceNumber: ['']
   });
@@ -271,9 +271,9 @@ export class AppComponent implements OnInit {
     teacher: ['', Validators.required],
     month: [new Date().getMonth() + 1, Validators.required],
     year: [new Date().getFullYear(), Validators.required],
-    basicSalary: [0, Validators.required],
-    allowances: [0],
-    deductions: [0]
+    basicSalary: [0, [Validators.required, Validators.min(0)]],
+    allowances: [0, Validators.min(0)],
+    deductions: [0, Validators.min(0)]
   });
 
   promotionForm = this.fb.group({

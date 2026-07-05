@@ -11,9 +11,9 @@
       <label>Class<select formControlName="classRoom" (change)="vm.onFeeClassChange()"><option value="">Select class</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }} (&#8377;{{ room.monthlyFee }}/month)</option></select></label>
       <label>Due date<input type="date" formControlName="dueDate"></label>
       <label>Fee label<input formControlName="label"></label>
-      <label>Amount<input type="number" formControlName="amount" readonly class="readonly-field"></label>
-      <label>Discount<input type="number" formControlName="discount" placeholder="0"></label>
-      <label>Fine<input type="number" formControlName="fine" placeholder="0"></label>
+      <label>Amount<input type="number" formControlName="amount" readonly class="readonly-field" min="0"></label>
+      <label>Discount<input type="number" formControlName="discount" placeholder="0" min="0"></label>
+      <label>Fine<input type="number" formControlName="fine" placeholder="0" min="0"></label>
     </div>
     <button type="submit" [disabled]="vm.feeForm.invalid">Create Invoice</button>
   </form>
@@ -29,7 +29,7 @@
       </select>
     </label>
     <div class="form-grid compact">
-      <label>Amount<input type="number" formControlName="amount"></label>
+      <label>Amount<input type="number" formControlName="amount" min="1"></label>
       <label>Payment mode
         <select formControlName="mode">
           <option value="cash">Cash</option>
