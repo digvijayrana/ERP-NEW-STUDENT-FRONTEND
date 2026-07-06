@@ -1,9 +1,10 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { APP_CONSTANTS } from '../core/constants';
+import { ApiSuccessResponse, ListQueryParams } from '../core/api-response';
 import {
   AcademicYear,
   AttendanceRecord,
@@ -12,6 +13,7 @@ import {
   DashboardSummary,
   Exam,
   ExamClassReport,
+  ErpRole,
   ExamSubmission,
   FeeInvoice,
   PayrollRecord,
@@ -35,20 +37,36 @@ export class ErpApiService {
     return this.http.post(`${this.baseUrl}/auth/users`, payload, this.options());
   }
 
-  dashboard(rangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS): Observable<DashboardSummary> {
-    return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard?rangeDays=${rangeDays}`, this.options());
+  dashboard(): Observable<DashboardSummary> {
+    return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard`, this.options());
   }
 
-  academicYears(): Observable<AcademicYear[]> {
-    return this.http.get<AcademicYear[]>(`${this.baseUrl}/academic-years`, this.options());
+  academicYears(params?: ListQueryParams): Observable<ApiSuccessResponse<AcademicYear[]>> {
+    return this.http.get<ApiSuccessResponse<AcademicYear[]>>(`${this.baseUrl}/academic-years`, this.listOptions(params));
   }
 
   createAcademicYear(payload: Partial<AcademicYear>): Observable<AcademicYear> {
     return this.http.post<AcademicYear>(`${this.baseUrl}/academic-years`, payload, this.options());
   }
 
-  classes(): Observable<ClassRoom[]> {
-    return this.http.get<ClassRoom[]>(`${this.baseUrl}/classes`, this.options());
+  updateAcademicYear(id: string, payload: Partial<AcademicYear>): Observable<AcademicYear> {
+    return this.http.patch<AcademicYear>(`${this.baseUrl}/academic-years/${id}`, payload, this.options());
+  }
+
+  activateAcademicYear(id: string): Observable<AcademicYear> {
+    return this.http.post<AcademicYear>(`${this.baseUrl}/academic-years/${id}/activate`, {}, this.options());
+  }
+
+  closeAcademicYear(id: string): Observable<AcademicYear> {
+    return this.http.post<AcademicYear>(`${this.baseUrl}/academic-years/${id}/close`, {}, this.options());
+  }
+
+  deleteAcademicYear(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/academic-years/${id}`, this.options());
+  }
+
+  classes(params?: ListQueryParams): Observable<ApiSuccessResponse<ClassRoom[]>> {
+    return this.http.get<ApiSuccessResponse<ClassRoom[]>>(`${this.baseUrl}/classes`, this.listOptions(params));
   }
 
   createClass(payload: Record<string, unknown>): Observable<ClassRoom> {
@@ -63,8 +81,12 @@ export class ErpApiService {
     return this.http.delete(`${this.baseUrl}/classes/${id}`, this.options());
   }
 
-  teachers(): Observable<Teacher[]> {
-    return this.http.get<Teacher[]>(`${this.baseUrl}/teachers`, this.options());
+  toggleClassStatus(id: string): Observable<ClassRoom> {
+    return this.http.post<ClassRoom>(`${this.baseUrl}/classes/${id}/toggle-status`, {}, this.options());
+  }
+
+  teachers(params?: ListQueryParams): Observable<ApiSuccessResponse<Teacher[]>> {
+    return this.http.get<ApiSuccessResponse<Teacher[]>>(`${this.baseUrl}/teachers`, this.listOptions(params));
   }
 
   createTeacher(payload: Record<string, unknown>): Observable<Teacher> {
@@ -111,8 +133,26 @@ export class ErpApiService {
     return this.http.post(`${this.baseUrl}/students/${studentId}/verify-document`, { documentId, action, reason }, this.options());
   }
 
-  students(): Observable<Student[]> {
-    return this.http.get<Student[]>(`${this.baseUrl}/students`, this.options());
+  getStudentDocumentUrl(studentId: string, documentId: string): Observable<{ url: string; fileName?: string; mimeType?: string }> {
+    return this.http.get<{ url: string; fileName?: string; mimeType?: string }>(`${this.baseUrl}/students/${studentId}/documents/${documentId}/url`, this.options());
+  }
+
+  studentDocumentFileUrl(studentId: string, documentId: string, download = false): string {
+    const suffix = download ? '?download=1' : '';
+    return `${this.baseUrl}/students/${studentId}/documents/${documentId}/file${suffix}`;
+  }
+
+  teacherDocumentFileUrl(teacherId: string, docType: string, download = false): string {
+    const suffix = download ? '?download=1' : '';
+    return `${this.baseUrl}/teachers/${teacherId}/documents/${docType}/file${suffix}`;
+  }
+
+  getTeacherDocumentUrl(teacherId: string, docType: string): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.baseUrl}/teachers/${teacherId}/documents/${docType}/url`, this.options());
+  }
+
+  students(params?: ListQueryParams): Observable<ApiSuccessResponse<Student[]>> {
+    return this.http.get<ApiSuccessResponse<Student[]>>(`${this.baseUrl}/students`, this.listOptions(params));
   }
 
   studentDetails(id: string): Observable<Student> {
@@ -129,6 +169,18 @@ export class ErpApiService {
 
   updateStudent(id: string, payload: Record<string, unknown>): Observable<Student> {
     return this.http.patch<Student>(`${this.baseUrl}/students/${id}`, payload, this.options());
+  }
+
+  updateStudentStatus(id: string, status: string, reason?: string): Observable<Student> {
+    return this.http.patch<Student>(`${this.baseUrl}/students/${id}/status`, { status, reason }, this.options());
+  }
+
+  replaceStudentDocument(studentId: string, documentId: string, formData: FormData): Observable<unknown> {
+    return this.http.put(`${this.baseUrl}/students/${studentId}/documents/${documentId}`, formData, this.options());
+  }
+
+  deleteStudentDocument(studentId: string, documentId: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/students/${studentId}/documents/${documentId}`, this.options());
   }
 
   deleteStudent(id: string): Observable<unknown> {
@@ -252,8 +304,40 @@ export class ErpApiService {
     return this.http.get<ExamClassReport>(`${this.baseUrl}/exams/${id}/report`, this.options());
   }
 
-  listUsers(): Observable<unknown[]> {
-    return this.http.get<unknown[]>(`${this.baseUrl}/auth/users`, this.options());
+  listUsers(params?: ListQueryParams): Observable<ApiSuccessResponse<unknown[]>> {
+    return this.http.get<ApiSuccessResponse<unknown[]>>(`${this.baseUrl}/auth/users`, this.listOptions(params));
+  }
+
+  deactivateUser(id: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/auth/users/${id}/deactivate`, {}, this.options());
+  }
+
+  deleteUser(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/auth/users/${id}`, this.options());
+  }
+
+  roles(): Observable<ErpRole[]> {
+    return this.http.get<ErpRole[]>(`${this.baseUrl}/roles`, this.options());
+  }
+
+  rolePermissionSchema(): Observable<{ modules: string[]; actions: string[] }> {
+    return this.http.get<{ modules: string[]; actions: string[] }>(`${this.baseUrl}/roles/schema`, this.options());
+  }
+
+  createRole(payload: Record<string, unknown>): Observable<ErpRole> {
+    return this.http.post<ErpRole>(`${this.baseUrl}/roles`, payload, this.options());
+  }
+
+  updateRolePermissions(slug: string, permissions: Record<string, unknown>): Observable<ErpRole> {
+    return this.http.patch<ErpRole>(`${this.baseUrl}/roles/${slug}/permissions`, { permissions }, this.options());
+  }
+
+  deleteRole(slug: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/roles/${slug}`, this.options());
+  }
+
+  me(): Observable<import('../core/models').AuthUser> {
+    return this.http.get<import('../core/models').AuthUser>(`${this.baseUrl}/auth/me`, this.options());
   }
 
   holidays(): Observable<Array<{ _id: string; date: string; name: string; description?: string }>> {
@@ -266,6 +350,18 @@ export class ErpApiService {
 
   deleteHoliday(id: string): Observable<unknown> {
     return this.http.delete(`${this.baseUrl}/holidays/${id}`, this.options());
+  }
+
+  private listOptions(params?: ListQueryParams): { headers: HttpHeaders; params?: HttpParams } {
+    const base = this.options();
+    if (!params) return base;
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        httpParams = httpParams.set(key, String(value));
+      }
+    });
+    return { ...base, params: httpParams };
   }
 
   private options(): { headers: HttpHeaders } {

@@ -11,99 +11,224 @@
       </div>
     </div>
     <div class="form-grid">
-      <label *ngIf="vm.editingStudentId">Admission no<input formControlName="admissionNumber"></label>
-      <label>First name<input formControlName="firstName"></label>
+      <label *ngIf="vm.editingStudentId">Admission no<input formControlName="admissionNumber" readonly></label>
+      <label *ngIf="!vm.editingStudentId">Admission no<input value="Auto-generated on save" readonly disabled></label>
+      <label>Admission date<input type="date" formControlName="admissionDate"></label>
+      <label class="required">First name<input formControlName="firstName"></label>
+      <app-field-error [control]="vm.admissionForm.get('firstName')" label="First name"></app-field-error>
       <label>Last name<input formControlName="lastName"></label>
-      <label>Gender<select formControlName="gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
-      <label>Date of birth<input type="date" formControlName="dateOfBirth"></label>
+      <label class="required">Gender<select formControlName="gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
+      <label class="required">Date of birth<input type="date" formControlName="dateOfBirth"></label>
+      <app-field-error [control]="vm.admissionForm.get('dateOfBirth')" label="Date of birth"></app-field-error>
+      <label>Blood group<input formControlName="bloodGroup" placeholder="e.g. B+"></label>
+      <label>Category<input formControlName="category" placeholder="General / OBC / SC / ST"></label>
+      <label>Nationality<input formControlName="nationality"></label>
+      <label>Mother name<input formControlName="motherName"></label>
       <label>Aadhaar no<input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
-      <label>Address<input formControlName="line1"></label>
+      <label>UDISE+/PEN ID
+        <div class="inline-field-actions">
+          <input formControlName="udisePenId" placeholder="UDISE or PEN ID">
+          <button type="button" class="ghost small" (click)="vm.generateUdisePenId()">Generate</button>
+          <button type="button" class="ghost small" (click)="vm.searchByUdise()">Search</button>
+        </div>
+      </label>
+      <label class="required">Address<input formControlName="line1"></label>
+      <app-field-error [control]="vm.admissionForm.get('line1')" label="Address"></app-field-error>
       <label>City<input formControlName="city"></label>
       <label>State<input formControlName="state"></label>
       <label>Pincode<input formControlName="pincode"></label>
       <label>Guardian<input formControlName="guardianName"></label>
       <label>Relation<input formControlName="guardianRelation"></label>
       <label>Guardian phone<input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
-      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-      <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
+      <label>Class
+        <select formControlName="classRoom">
+          <option value="">Select active class with available seats</option>
+          <option *ngFor="let room of vm.admissionClassOptions" [value]="room._id">
+            {{ room.name }}-{{ room.section }} · {{ vm.getClassAvailableCapacity(room) }} seats · {{ room.monthlyFee | currency:'INR' }}/mo
+          </option>
+        </select>
+      </label>
       <label>Roll no<input formControlName="rollNumber"></label>
-      <label>Previous school<input formControlName="previousSchool" placeholder="School name"></label>
-      <label>Prev school address<input formControlName="previousSchoolAddress" placeholder="City, State"></label>
-      <label>Last class attended<input formControlName="previousSchoolLastClass" placeholder="e.g. Class 5"></label>
-      <label>Year of passing<input type="number" formControlName="previousSchoolYearOfPassing" placeholder="e.g. 2024"></label>
-      <label>Reason for leaving<input formControlName="previousSchoolReasonForLeaving" placeholder="Transfer, relocation..."></label>
-      <label>TC number<input formControlName="previousSchoolTcNumber" placeholder="Transfer certificate no."></label>
-      <label>Photo<input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
+      <label>Student status<input formControlName="studentStatus"></label>
+      <label>Transfer from another school?
+        <select formControlName="hasPreviousSchool">
+          <option value="no">No — new admission</option>
+          <option value="yes">Yes — transfer from previous school</option>
+        </select>
+      </label>
+      <ng-container *ngIf="vm.showPreviousSchoolDetails">
+        <label>Previous school name<input formControlName="previousSchool" placeholder="School name"></label>
+        <label>Board<input formControlName="previousSchoolBoard" placeholder="CBSE, ICSE, State board"></label>
+        <label>Percentage<input type="number" formControlName="previousSchoolPercentage" min="0" max="100" placeholder="e.g. 85"></label>
+        <label>Prev roll no<input formControlName="previousSchoolRollNumber" placeholder="Roll number"></label>
+        <label>Prev school address<input formControlName="previousSchoolAddress" placeholder="City, State"></label>
+        <label>Last class attended<input formControlName="previousSchoolLastClass" placeholder="e.g. Class 5"></label>
+        <label>Year of passing<input type="number" formControlName="previousSchoolYearOfPassing" placeholder="e.g. 2024" min="1990" max="2099"></label>
+        <label>Reason for leaving<input formControlName="previousSchoolReasonForLeaving" placeholder="Transfer, relocation..."></label>
+        <label>TC number<input formControlName="previousSchoolTcNumber" placeholder="Transfer certificate no."></label>
+        <label>TC date<input type="date" formControlName="previousSchoolTcDate"></label>
+        <label>Transfer certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('otherDocuments', $event)"></label>
+      </ng-container>
+      <label>Photo (mandatory)<input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
       <label>Aadhaar file<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('aadhaar', $event)"></label>
-      <label>Birth certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
-      <label>Transfer certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('otherDocuments', $event)"></label>
+      <label>Birth certificate (mandatory)<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
     </div>
     <div class="form-actions">
-      <button type="submit" [disabled]="vm.admissionForm.invalid">{{ vm.editingStudentId ? 'Update student' : 'Save admission' }}</button>
+      <button type="submit" [disabled]="vm.admissionForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingStudentId ? 'Update student' : 'Save admission') }}</button>
     </div>
   </form>
 
   <section class="data-card span-8">
     <div class="section-head"><div><p class="eyebrow">Directory</p><h3>Students</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search admission no or name" [value]="vm.filters.studentSearch" (input)="vm.filters.studentSearch = $any($event.target).value; vm.resetPage('students')"></div>
-      <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.filters.studentClass = $any($event.target).value; vm.resetPage('students')">
-        <option value="">All classes</option>
-        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
-      </select>
-    </div>
-    <div class="table-wrap">
+    <app-listing-toolbar
+      searchPlaceholder="Search adm no, name, roll, guardian, phone, aadhaar, UDISE"
+      [searchValue]="vm.filters.studentSearch"
+      [loading]="vm.isListingLoading('students')"
+      (searchChange)="vm.updateListSearch('students', 'studentSearch', $event)"
+      (refresh)="vm.refreshListing('students')"
+      (exportCsv)="vm.exportStudentsCsv()"
+      (exportPdf)="vm.exportStudentsPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.studentYear" (change)="vm.updateListFilter('students', 'studentYear', $any($event.target).value)">
+          <option value="">All years</option>
+          <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.updateListFilter('students', 'studentClass', $any($event.target).value)">
+          <option value="">All classes</option>
+          <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.studentSection" (change)="vm.updateListFilter('students', 'studentSection', $any($event.target).value)">
+          <option value="">All sections</option>
+          <option *ngFor="let section of vm.studentSectionOptions" [value]="section">{{ section }}</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.studentStatus" (change)="vm.updateListFilter('students', 'studentStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="left_school">Left School</option>
+          <option value="passed_out">Passed Out</option>
+          <option value="tc_issued">TC Issued</option>
+        </select>
+        <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionFrom" (change)="vm.updateListFilter('students', 'studentAdmissionFrom', $any($event.target).value)" title="Admission from">
+        <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionTo" (change)="vm.updateListFilter('students', 'studentAdmissionTo', $any($event.target).value)" title="Admission to">
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('students')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('students') || vm.sortedStudents.length">
       <table>
-        <thead><tr><th>Adm no</th><th>Name</th><th>Class</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr>
+          <th>Photo</th>
+          <th class="sortable" (click)="vm.toggleListSort('students', 'admissionNumber')">Adm no{{ vm.listSortIndicator('students', 'admissionNumber') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('students', 'name')">Name{{ vm.listSortIndicator('students', 'name') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('students', 'class')">Class{{ vm.listSortIndicator('students', 'class') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('students', 'admissionDate')">Admission date{{ vm.listSortIndicator('students', 'admissionDate') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('students', 'status')">Status{{ vm.listSortIndicator('students', 'status') }}</th>
+          <th>Docs</th>
+          <th>Actions</th>
+        </tr></thead>
         <tbody>
-          <tr *ngFor="let student of vm.paged('students', vm.filteredStudents)">
+          <tr *ngFor="let student of vm.paged('students', vm.sortedStudents)">
+            <td>
+              <div class="table-photo" [class.has-photo]="vm.studentPhotoUrl(student)">
+                <img *ngIf="vm.studentPhotoUrl(student) as photoUrl" [src]="photoUrl" alt="">
+                <span *ngIf="!vm.studentPhotoUrl(student)">{{ student.firstName.charAt(0) }}</span>
+              </div>
+            </td>
             <td>{{ student.admissionNumber }}</td>
             <td>{{ vm.studentName(student) }}</td>
             <td>{{ vm.enrollmentClassName(student) }}</td>
-            <td><span class="status-badge" [ngClass]="student.status">{{ student.status }}</span></td>
+            <td>{{ student.admissionDate ? (student.admissionDate | date:'mediumDate') : '—' }}</td>
+            <td><span class="status-badge" [ngClass]="student.status">{{ vm.studentStatusLabel(student.status) }}</span></td>
+            <td><span class="status-badge doc-status" [ngClass]="vm.studentDocumentStatus(student)">{{ vm.studentDocumentStatus(student) }}</span></td>
             <td>
               <div class="table-actions">
-                <button type="button" class="ghost small" (click)="vm.openStudentProfile(student._id)">Profile</button>
-                <button type="button" class="ghost small" (click)="vm.loadStudentDocuments(student._id)">Docs</button>
-                <button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editStudent(student)">Edit</button>
-                <button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteStudent(student._id)">Delete</button>
+                <app-action-btn type="profile" (clicked)="vm.openStudentProfile(student._id)"></app-action-btn>
+                <app-action-btn type="docs" (clicked)="vm.loadStudentDocuments(student._id)"></app-action-btn>
+                <app-action-btn *ngIf="vm.isAdmin" type="edit" (clicked)="vm.editStudent(student)"></app-action-btn>
+                <app-action-btn *ngIf="vm.can('students', 'deactivate') && vm.isAdmin" type="deactivate" (clicked)="vm.deactivateStudent(student._id)"></app-action-btn>
               </div>
             </td>
           </tr>
-          <tr *ngIf="!vm.filteredStudents.length"><td colspan="5" class="empty-cell">No students found</td></tr>
+          <tr *ngIf="!vm.sortedStudents.length && !vm.isListingLoading('students')">
+            <td colspan="8">
+              <app-empty-state
+                title="No students found"
+                message="Adjust filters or register a new admission using the form above.">
+              </app-empty-state>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="students" [items]="vm.filteredStudents"></app-pagination-bar>
+    <app-table-skeleton *ngIf="vm.isListingLoading('students') && !vm.sortedStudents.length" [columns]="8" [rows]="6"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="students" [items]="vm.sortedStudents"></app-pagination-bar>
   </section>
 
-  <section class="panel span-4">
+  <section class="panel span-4 document-vault-panel">
     <div class="section-head"><div><p class="eyebrow">Documents</p><h3>Document vault</h3></div></div>
-    <label>Select student
+    <label class="vault-student-select">Select student
       <select [value]="vm.selectedStudentId" (change)="vm.loadStudentDocuments($any($event.target).value)">
         <option value="">Choose a student</option>
         <option *ngFor="let student of vm.students" [value]="student._id">{{ vm.studentName(student) }} · {{ student.admissionNumber }}</option>
       </select>
     </label>
     <div class="document-list" *ngIf="vm.selectedStudentDocuments.length; else noDocuments">
-      <article *ngFor="let document of vm.selectedStudentDocuments" class="document-card-enhanced">
+      <article *ngFor="let document of vm.selectedStudentDocuments"
+               class="document-card-enhanced"
+               [class.doc-approved]="document.status === 'approved'"
+               [class.doc-rejected]="document.status === 'rejected'"
+               [class.doc-pending]="document.status === 'pending' || document.status === 'uploaded' || !document.status">
         <div class="doc-card-header">
-          <strong>{{ document.title }}</strong>
-          <span class="status-badge small" [ngClass]="document.status || 'pending'">{{ document.status || 'pending' }}</span>
+          <div class="doc-card-title-wrap">
+            <span class="doc-type-icon" aria-hidden="true">📄</span>
+            <div>
+              <strong>{{ document.title }}</strong>
+              <span class="doc-card-type">{{ document.type | titlecase }}</span>
+            </div>
+          </div>
+          <span class="status-badge doc-status" [ngClass]="document.status || 'pending'">{{ document.status || 'pending' }}</span>
         </div>
-        <span class="doc-card-type">{{ document.type | titlecase }}</span>
-        <span class="reject-reason" *ngIf="document.rejectReason">{{ document.rejectReason }}</span>
-        <a class="doc-view-link" [href]="document.fileUrl" target="_blank" rel="noopener noreferrer">
-          <span class="doc-view-icon">📄</span> View Document
-        </a>
-        <div class="verify-actions" *ngIf="vm.isAdmin">
-          <button type="button" class="ghost small success-btn" (click)="vm.verifyStudentDoc(document._id, 'approve')">Approve</button>
-          <input [(ngModel)]="vm.verifyDocReason" placeholder="Rejection reason" class="reject-input">
-          <button type="button" class="danger-btn small" (click)="vm.verifyStudentDoc(document._id, 'reject')">Reject</button>
+
+        <p class="doc-approved-note" *ngIf="document.status === 'approved'">
+          <span class="doc-approved-check" aria-hidden="true">✓</span> Verified and approved — view or download only.
+        </p>
+
+        <p class="reject-reason" *ngIf="document.status === 'rejected' && document.rejectReason">
+          <strong>Rejection reason:</strong> {{ document.rejectReason }}
+        </p>
+
+        <div class="doc-action-row doc-primary-actions">
+          <button type="button" class="doc-view-btn" (click)="vm.openStudentDocument(document)">
+            <span class="doc-view-icon" aria-hidden="true">👁</span> Preview
+          </button>
+          <button type="button" class="doc-download-btn" (click)="vm.downloadStudentDocument(document)">
+            <span aria-hidden="true">⬇</span> Download
+          </button>
+        </div>
+
+        <div class="doc-action-row doc-admin-row" *ngIf="vm.isAdmin && document.status !== 'approved'">
+          <label class="replace-doc-label">
+            <span class="replace-doc-text">Replace file</span>
+            <input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.replaceStudentDocument(document._id!, $event)">
+          </label>
+          <button type="button" class="danger-btn small" (click)="vm.deleteStudentDocument(document._id!)">Delete</button>
+        </div>
+
+        <div class="verify-actions" *ngIf="vm.isAdmin && document.status !== 'approved'">
+          <button type="button" class="ghost small success-btn" (click)="vm.verifyStudentDoc(document._id!, 'approve')">Approve</button>
+          <input [(ngModel)]="vm.verifyDocReason" placeholder="Rejection reason (required to reject)" class="reject-input">
+          <button type="button" class="danger-btn small" (click)="vm.verifyStudentDoc(document._id!, 'reject')">Reject</button>
         </div>
       </article>
     </div>
-    <ng-template #noDocuments><div class="empty-state">Select a student to review uploaded files.</div></ng-template>
+    <ng-template #noDocuments>
+      <app-empty-state
+        title="No documents selected"
+        message="Choose a student from the directory to review uploaded files.">
+      </app-empty-state>
+    </ng-template>
   </section>
   </ng-container>
 </section>

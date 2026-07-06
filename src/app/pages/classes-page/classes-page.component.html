@@ -3,48 +3,182 @@
     <app-spinner [show]="true" label="Loading classes..."></app-spinner>
   </div>
   <ng-container *ngIf="!vm.loading || vm.classes.length">
+
   <form *ngIf="vm.isAdmin" [formGroup]="vm.academicYearForm" (ngSubmit)="vm.saveAcademicYear()" class="panel span-4">
-    <div class="section-head"><div><p class="eyebrow">Academic</p><h3>Academic year</h3></div></div>
-    <label>Name<input formControlName="name" placeholder="2026-2027"></label>
-    <label>Start<input type="date" formControlName="startDate"></label>
-    <label>End<input type="date" formControlName="endDate"></label>
-    <label class="inline"><input type="checkbox" formControlName="isActive"> Active year</label>
-    <button type="submit" [disabled]="vm.academicYearForm.invalid">Save year</button>
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Academic</p>
+        <h3>{{ vm.editingAcademicYearId ? 'Update academic year' : 'New academic year' }}</h3>
+      </div>
+    </div>
+    <div class="form-grid compact">
+      <label class="required">Name<input formControlName="name" placeholder="2026-2027"></label>
+      <app-field-error [control]="vm.academicYearForm.get('name')" label="Name"></app-field-error>
+      <label class="required">Start<input type="date" formControlName="startDate"></label>
+      <app-field-error [control]="vm.academicYearForm.get('startDate')" label="Start date"></app-field-error>
+      <label class="required">End<input type="date" formControlName="endDate"></label>
+      <app-field-error [control]="vm.academicYearForm.get('endDate')" label="End date"></app-field-error>
+      <label class="inline span-2" *ngIf="!vm.editingAcademicYearId">
+        <input type="checkbox" formControlName="isActive"> Set as active year on create
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.academicYearForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingAcademicYearId ? 'Update year' : 'Create year') }}</button>
+    </div>
   </form>
 
-  <form *ngIf="vm.isAdmin" [formGroup]="vm.classForm" (ngSubmit)="vm.saveClass()" class="panel span-8">
+  <section *ngIf="vm.isAdmin" class="data-card span-8">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">History</p>
+        <h3>Academic year history</h3>
+      </div>
+      <span class="status-badge active" *ngIf="vm.activeAcademicYear as activeYear">{{ activeYear.name }} · Active</span>
+    </div>
+    <app-listing-toolbar
+      searchPlaceholder="Search academic year"
+      [searchValue]="vm.filters.yearSearch"
+      [loading]="vm.isListingLoading('years')"
+      (searchChange)="vm.updateListSearch('years', 'yearSearch', $event)"
+      (refresh)="vm.refreshListing('years')"
+      (exportCsv)="vm.exportYearsCsv()"
+      (exportPdf)="vm.exportYearsPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.yearStatus" (change)="vm.updateListFilter('years', 'yearStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('years')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('years') || vm.sortedYears.length">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" (click)="vm.toggleListSort('years', 'name')">Name{{ vm.listSortIndicator('years', 'name') }}</th>
+            <th class="sortable" (click)="vm.toggleListSort('years', 'startDate')">Period{{ vm.listSortIndicator('years', 'startDate') }}</th>
+            <th class="sortable" (click)="vm.toggleListSort('years', 'status')">Status{{ vm.listSortIndicator('years', 'status') }}</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let year of vm.paged('years', vm.sortedYears)">
+            <td><strong>{{ year.name }}</strong></td>
+            <td>{{ year.startDate | date:'MMM d, y' }} — {{ year.endDate | date:'MMM d, y' }}</td>
+            <td><span class="status-badge" [ngClass]="vm.yearStatus(year)">{{ vm.yearStatus(year) }}</span></td>
+            <td>
+              <div class="table-actions">
+                <app-action-btn *ngIf="vm.yearStatus(year) !== 'closed'" type="edit" (clicked)="vm.editAcademicYear(year)"></app-action-btn>
+                <app-action-btn *ngIf="vm.yearStatus(year) === 'draft'" type="activate" (clicked)="vm.activateAcademicYear(year._id)"></app-action-btn>
+                <app-action-btn *ngIf="vm.yearStatus(year) === 'active'" type="close" label="Close" (clicked)="vm.closeAcademicYear(year._id)"></app-action-btn>
+                <app-action-btn *ngIf="vm.yearStatus(year) !== 'active'" type="delete" (clicked)="vm.deleteAcademicYear(year._id)"></app-action-btn>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.sortedYears.length && !vm.isListingLoading('years')">
+            <td colspan="4">
+              <app-empty-state
+                title="No academic years"
+                message="Create an academic year using the form on the left to start configuring classes and admissions.">
+              </app-empty-state>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-table-skeleton *ngIf="vm.isListingLoading('years') && !vm.sortedYears.length" [columns]="4" [rows]="5"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="years" [items]="vm.sortedYears"></app-pagination-bar>
+  </section>
+
+  <form *ngIf="vm.isAdmin" [formGroup]="vm.classForm" (ngSubmit)="vm.saveClass()" class="panel span-12">
     <div class="section-head"><div><p class="eyebrow">Class & section</p><h3>{{ vm.editingClassId ? 'Update class' : 'Class configuration' }}</h3></div></div>
     <div class="form-grid compact">
-      <label>Class<input formControlName="name" placeholder="1, 2, 10"></label>
-      <label>Section<input formControlName="section"></label>
-      <label>Capacity<input type="number" formControlName="capacity" min="1"></label>
-      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label class="required">Class<input formControlName="name" placeholder="1, 2, 10"></label>
+      <app-field-error [control]="vm.classForm.get('name')" label="Class"></app-field-error>
+      <label class="required">Section<input formControlName="section"></label>
+      <app-field-error [control]="vm.classForm.get('section')" label="Section"></app-field-error>
+      <label class="required">Maximum capacity<input type="number" formControlName="capacity" min="1"></label>
+      <app-field-error [control]="vm.classForm.get('capacity')" label="Capacity"></app-field-error>
+      <label class="required">Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id" [disabled]="vm.yearStatus(year) === 'closed'">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container><ng-container *ngIf="vm.yearStatus(year) === 'closed'"> (Closed)</ng-container></option></select></label>
+      <app-field-error [control]="vm.classForm.get('academicYear')" label="Academic year"></app-field-error>
       <label>Class teacher<select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
-      <label>Monthly fee<input type="number" formControlName="monthlyFee" min="0"></label>
+      <label class="required">Monthly tuition fee<input type="number" formControlName="monthlyFee" min="0"></label>
+      <label class="required">Status<select formControlName="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
     </div>
-    <button type="submit" [disabled]="vm.classForm.invalid">{{ vm.editingClassId ? 'Update class' : 'Save class' }}</button>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.classForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingClassId ? 'Update class' : 'Save class') }}</button>
+    </div>
   </form>
 
   <section class="data-card span-12">
     <div class="section-head"><div><p class="eyebrow">Overview</p><h3>Classes and sections</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search class or teacher" [value]="vm.filters.classSearch" (input)="vm.filters.classSearch = $any($event.target).value; vm.resetPage('classes')"></div>
-    </div>
-    <div class="table-wrap">
+    <app-listing-toolbar
+      searchPlaceholder="Search class or teacher"
+      [searchValue]="vm.filters.classSearch"
+      [loading]="vm.isListingLoading('classes')"
+      (searchChange)="vm.updateListSearch('classes', 'classSearch', $event)"
+      (refresh)="vm.refreshListing('classes')"
+      (exportCsv)="vm.exportClassesCsv()"
+      (exportPdf)="vm.exportClassesPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.classYear" (change)="vm.updateListFilter('classes', 'classYear', $any($event.target).value)">
+          <option value="">All years</option>
+          <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.classStatus" (change)="vm.updateListFilter('classes', 'classStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('classes')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('classes') || vm.sortedClasses.length">
       <table>
-        <thead><tr><th>Class</th><th>Teacher</th><th>Monthly fee</th><th>Actions</th></tr></thead>
+        <thead><tr>
+          <th class="sortable" (click)="vm.toggleListSort('classes', 'class')">Class{{ vm.listSortIndicator('classes', 'class') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('classes', 'academicYear')">Academic Year{{ vm.listSortIndicator('classes', 'academicYear') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('classes', 'teacher')">Teacher{{ vm.listSortIndicator('classes', 'teacher') }}</th>
+          <th>Students</th>
+          <th>Available</th>
+          <th class="sortable" (click)="vm.toggleListSort('classes', 'monthlyFee')">Monthly fee{{ vm.listSortIndicator('classes', 'monthlyFee') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('classes', 'status')">Status{{ vm.listSortIndicator('classes', 'status') }}</th>
+          <th>Actions</th>
+        </tr></thead>
         <tbody>
-          <tr *ngFor="let room of vm.paged('classes', vm.filteredClasses)">
-            <td>{{ room.name }}-{{ room.section }}</td>
+          <tr *ngFor="let room of vm.paged('classes', vm.sortedClasses)">
+            <td><strong>{{ room.name }}-{{ room.section }}</strong></td>
+            <td>{{ vm.classYearName(room) }}</td>
             <td>{{ vm.teacherName(room.classTeacher) }}</td>
+            <td>{{ room.studentCount ?? vm.getClassStudentCount(room._id) }} / {{ room.capacity || 0 }}</td>
+            <td>{{ vm.getClassAvailableCapacity(room) }}</td>
             <td>{{ room.monthlyFee | currency: 'INR' }}</td>
-            <td><div class="table-actions"><button *ngIf="vm.isAdmin" type="button" class="ghost small" (click)="vm.editClass(room)">Edit</button><button *ngIf="vm.isAdmin" type="button" class="danger-btn small" (click)="vm.deleteClass(room._id)">Delete</button></div></td>
+            <td><span class="status-badge" [ngClass]="room.status || 'active'">{{ room.status || 'active' }}</span></td>
+            <td>
+              <div class="table-actions">
+                <app-action-btn *ngIf="vm.isAdmin && !vm.isClassYearClosed(room)" type="edit" (clicked)="vm.editClass(room)"></app-action-btn>
+                <app-action-btn *ngIf="vm.isAdmin && !vm.isClassYearClosed(room)" [type]="(room.status || 'active') === 'active' ? 'deactivate' : 'activate'" [label]="(room.status || 'active') === 'active' ? 'Deactivate' : 'Activate'" (clicked)="vm.toggleClassStatus(room._id)"></app-action-btn>
+                <app-action-btn *ngIf="vm.isAdmin" type="delete" [disabled]="(room.studentCount ?? vm.getClassStudentCount(room._id)) > 0" (clicked)="vm.deleteClass(room._id)"></app-action-btn>
+              </div>
+            </td>
           </tr>
-          <tr *ngIf="!vm.filteredClasses.length"><td colspan="4" class="empty-cell">No classes found</td></tr>
+          <tr *ngIf="!vm.sortedClasses.length && !vm.isListingLoading('classes')">
+            <td colspan="8">
+              <app-empty-state
+                title="No classes found"
+                message="Configure a class and section for the active academic year.">
+              </app-empty-state>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="classes" [items]="vm.filteredClasses"></app-pagination-bar>
+    <app-table-skeleton *ngIf="vm.isListingLoading('classes') && !vm.sortedClasses.length" [columns]="8" [rows]="6"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="classes" [items]="vm.sortedClasses"></app-pagination-bar>
   </section>
   </ng-container>
 </section>

@@ -1,5 +1,5 @@
 export const APP_CONSTANTS = {
-  PAGE_SIZE: 5,
+  PAGE_SIZE: 10,
   LOCAL_STORAGE_TOKEN_KEY: 'erp_token',
   LOCAL_STORAGE_USER_KEY: 'erp_user',
   FINANCE_RANGES: [
@@ -25,8 +25,11 @@ export const APP_CONSTANTS = {
 };
 
 export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   TEACHER: 'teacher',
+  RECEPTION: 'reception',
+  ACCOUNTANT: 'accountant',
   STUDENT: 'student',
   PARENT: 'parent'
 } as const;

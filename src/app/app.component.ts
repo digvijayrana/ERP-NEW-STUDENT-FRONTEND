@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Observable, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AuthUser, ClassRoom, DashboardSummary, Exam, ExamClassReport, ExamSubmission, FeeInvoice, PayrollRecord, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
+import { AcademicYear, AttendanceRecord, AuthUser, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeInvoice, PayrollRecord, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
+import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
 import { ClassesPageComponent } from './pages/classes-page/classes-page.component';
@@ -18,10 +19,17 @@ import { TeachersPageComponent } from './pages/teachers-page/teachers-page.compo
 import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
 import { UsersPageComponent } from './pages/users-page/users-page.component';
 import { SpinnerComponent } from './shared/spinner.component';
+import { ToastContainerComponent } from './shared/toast-container.component';
+import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
 import { ErpApiService } from './services/erp-api.service';
+import { ListingStateService } from './services/listing-state.service';
+import { PermissionAction, PermissionService } from './services/permission.service';
+import { ToastService } from './services/toast.service';
+import { ConfirmDialogService } from './services/confirm-dialog.service';
+import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, sortItems, SortDirection } from './core/listing.util';
 
 type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users';
-type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'students' | 'classes' | 'teachers' | 'invoices' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
+type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
 type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users';
 
 @Component({
@@ -42,7 +50,9 @@ type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'pay
     ExamsPageComponent,
     StudentProfilePageComponent,
     UsersPageComponent,
-    SpinnerComponent
+    SpinnerComponent,
+    ToastContainerComponent,
+    ConfirmDialogComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
@@ -51,9 +61,14 @@ type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'pay
 export class AppComponent implements OnInit {
   private readonly api = inject(ErpApiService);
   private readonly fb = inject(FormBuilder);
+  readonly permissionService = inject(PermissionService);
+  private readonly listingState = inject(ListingStateService);
+  private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   activeTab: TabKey = 'dashboard';
   loading = false;
+  submitting = false;
   message = '';
   token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
   currentUser: AuthUser | null = this.readStoredUser();
@@ -78,6 +93,15 @@ export class AppComponent implements OnInit {
   examPdfFile: File | null = null;
   selectedLoginRole: UserRole = 'admin';
   users: Array<AuthUser & { _id?: string; isActive?: boolean }> = [];
+  roles: ErpRole[] = [];
+  permissionSchema: { modules: string[]; actions: string[] } = { modules: [], actions: [] };
+  selectedRoleSlug = '';
+  editablePermissions: Record<string, Record<string, boolean>> = {};
+  roleForm = this.fb.group({
+    slug: ['', Validators.required],
+    name: ['', Validators.required],
+    description: ['']
+  });
   studentProfile: StudentProfile | null = null;
   profileStudentId = '';
   profileLoading = false;
@@ -90,7 +114,7 @@ export class AppComponent implements OnInit {
   parentLinkedStudentIds = new Set<string>();
   selectedStudentIds = new Set<string>();
   selectedStudentId = '';
-  selectedStudentDocuments: Array<{ _id?: string; type: string; title: string; fileUrl: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string; status?: string; rejectReason?: string }> = [];
+  selectedStudentDocuments: Array<{ _id?: string; type: string; title: string; fileUrl: string; storageKey?: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string; status?: string; rejectReason?: string }> = [];
   files: Record<string, File | FileList | null> = {};
 
   private readonly documentShape = {
@@ -105,15 +129,32 @@ export class AppComponent implements OnInit {
   editingTeacherId = '';
   viewingTeacher: Teacher | null = null;
   editingClassId = '';
+  editingAcademicYearId = '';
   editingPayrollId = '';
   financeRangeDays = APP_CONSTANTS.DEFAULT_FINANCE_RANGE_DAYS;
   readonly financeRanges = APP_CONSTANTS.FINANCE_RANGES;
   readonly pageSize = APP_CONSTANTS.PAGE_SIZE;
+  pageSizes: Partial<Record<ListKey, number>> = {};
+  listSort: Partial<Record<ListKey, { field: string; dir: SortDirection }>> = {};
+  readonly serverPagedKeys: ListKey[] = ['students', 'classes', 'years', 'teachers', 'users'];
+  listingRows: Partial<Record<ListKey, unknown[]>> = {};
+  listingTotals: Partial<Record<ListKey, number>> = {};
+  listingLoading: Partial<Record<ListKey, boolean>> = {};
   readonly filters = {
     studentSearch: '',
     studentClass: '',
+    studentYear: '',
+    studentSection: '',
+    studentStatus: '',
+    studentAdmissionFrom: '',
+    studentAdmissionTo: '',
     classSearch: '',
+    classYear: '',
+    classStatus: '',
+    yearSearch: '',
+    yearStatus: '',
     teacherSearch: '',
+    teacherStatus: '',
     invoiceSearch: '',
     invoiceStatus: '',
     invoiceYear: '',
@@ -130,6 +171,7 @@ export class AppComponent implements OnInit {
     attendanceStatus: '',
     userSearch: '',
     userRole: '',
+    userStatus: '',
     examResultSearch: '',
     examResultGrade: '',
     profileSearch: '',
@@ -146,6 +188,7 @@ export class AppComponent implements OnInit {
     dashboardTimetable: 1,
     students: 1,
     classes: 1,
+    years: 1,
     teachers: 1,
     invoices: 1,
     payroll: 1,
@@ -201,7 +244,7 @@ export class AppComponent implements OnInit {
     name: ['', Validators.required],
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
-    isActive: [true]
+    isActive: [false]
   });
 
   classForm = this.fb.group({
@@ -210,7 +253,8 @@ export class AppComponent implements OnInit {
     capacity: [APP_CONSTANTS.DEFAULT_CAPACITY, Validators.required],
     academicYear: ['', Validators.required],
     classTeacher: [''],
-    monthlyFee: [0, [Validators.required, Validators.min(0)]]
+    monthlyFee: [0, [Validators.required, Validators.min(0)]],
+    status: ['active' as 'active' | 'inactive', Validators.required]
   });
 
   teacherForm = this.fb.group({
@@ -219,17 +263,24 @@ export class AppComponent implements OnInit {
     lastName: [''],
     phone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     email: [''],
+    aadhaarNumber: ['', Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
     qualification: [''],
     baseSalary: [0, [Validators.required, Validators.min(0)]]
   });
 
   admissionForm = this.fb.group({
     admissionNumber: [''],
+    admissionDate: [{ value: new Date().toISOString().slice(0, 10), disabled: true }],
     firstName: ['', Validators.required],
     lastName: [''],
     gender: ['male', Validators.required],
     dateOfBirth: ['', Validators.required],
+    bloodGroup: [''],
+    category: [''],
+    nationality: ['Indian'],
+    motherName: [''],
     aadhaarNumber: ['', Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
+    udisePenId: [''],
     line1: ['', Validators.required],
     city: ['', Validators.required],
     state: ['', Validators.required],
@@ -240,12 +291,18 @@ export class AppComponent implements OnInit {
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
     rollNumber: [''],
+    studentStatus: [{ value: 'active', disabled: true }],
+    hasPreviousSchool: ['no' as 'yes' | 'no'],
     previousSchool: [''],
+    previousSchoolBoard: [''],
+    previousSchoolPercentage: [''],
+    previousSchoolRollNumber: [''],
     previousSchoolAddress: [''],
     previousSchoolLastClass: [''],
     previousSchoolYearOfPassing: [''],
     previousSchoolReasonForLeaving: [''],
-    previousSchoolTcNumber: ['']
+    previousSchoolTcNumber: [''],
+    previousSchoolTcDate: ['']
   });
 
   feeForm = this.fb.group({
@@ -319,25 +376,68 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.currentUser) {
+      this.permissionService.setPermissions(this.currentUser.permissions);
       this.activeTab = 'dashboard';
       if (this.currentUser.role === 'parent') {
         this.parentSelectedChild = this.currentUser.linkedStudents?.[0] || this.currentUser.linkedStudent || '';
       }
       this.refresh();
+      this.restoreAllListingStates();
+      this.api.me().subscribe({
+        next: (user) => {
+          this.currentUser = user;
+          this.permissionService.setPermissions(user.permissions);
+          localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+        }
+      });
     }
   }
 
   get tabs(): Array<{ key: TabKey; label: string; icon: TabIcon }> {
     if (!this.currentUser) return [];
-    return this.allTabs.filter((tab) => tab.roles.includes(this.currentUser!.role)).map(({ key, label, icon }) => ({ key, label, icon }));
+    return this.allTabs
+      .filter((tab) => this.permissionService.canViewTab(tab.key, this.currentUser!.role))
+      .map(({ key, label, icon }) => ({ key, label, icon }));
   }
 
   get isAdmin(): boolean {
-    return this.currentUser?.role === 'admin';
+    return this.currentUser?.role === 'admin' || this.currentUser?.role === 'super_admin';
+  }
+
+  get isSuperAdmin(): boolean {
+    return this.currentUser?.role === 'super_admin';
+  }
+
+  can(module: string, action: PermissionAction): boolean {
+    return this.permissionService.can(module, action, this.currentUser?.role);
   }
 
   get isTeacher(): boolean {
     return this.currentUser?.role === 'teacher';
+  }
+
+  get activeAcademicYear(): AcademicYear | undefined {
+    return this.years.find((y) => y.status === 'active' || y.isActive);
+  }
+
+  yearStatus(year: AcademicYear): 'draft' | 'active' | 'closed' {
+    if (year.status) return year.status;
+    return year.isActive ? 'active' : 'draft';
+  }
+
+  applyActiveYearDefaults(): void {
+    const active = this.activeAcademicYear;
+    if (!active) return;
+
+    if (!this.admissionForm.get('academicYear')?.value && !this.editingStudentId) {
+      this.admissionForm.patchValue({ academicYear: active._id });
+    }
+    if (!this.filters.studentYear) {
+      this.filters.studentYear = active._id;
+    }
+    if (!this.classForm.get('academicYear')?.value && !this.editingClassId) {
+      this.classForm.patchValue({ academicYear: active._id });
+    }
   }
 
   get isStudent(): boolean {
@@ -416,8 +516,10 @@ export class AppComponent implements OnInit {
     const { email, password } = this.loginForm.getRawValue();
     this.api.login(email || '', password || '').subscribe({
       next: ({ token, user }) => {
-        if (user.role !== this.selectedLoginRole) {
-          this.message = `This account is registered as ${user.role}. Please select the correct role and try again.`;
+        const roleMatches = user.role === this.selectedLoginRole
+          || (this.selectedLoginRole === 'admin' && user.role === 'super_admin');
+        if (!roleMatches) {
+          this.message = `This account is registered as ${this.roleLabelFor(user.role)}. Please select the correct role and try again.`;
           return;
         }
         this.persistSession(token, user);
@@ -459,23 +561,26 @@ export class AppComponent implements OnInit {
     if (!this.currentUser) return;
     this.loading = true;
     forkJoin({
-      summary: this.api.dashboard(this.financeRangeDays),
-      years: this.api.academicYears(),
-      classes: this.isStudent ? of([] as ClassRoom[]) : this.api.classes(),
-      teachers: this.isStudent ? of([] as Teacher[]) : this.api.teachers(),
-      students: this.api.students(),
-      invoices: this.isTeacher ? of([] as FeeInvoice[]) : this.api.invoices(),
-      payrolls: this.isAdmin ? this.api.payroll() : of([] as PayrollRecord[]),
+      summary: this.api.dashboard(),
+      years: this.api.academicYears({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
+      classes: this.isStudent ? of([] as ClassRoom[]) : this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+      teachers: this.isStudent ? of([] as Teacher[]) : this.api.teachers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+      students: this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+      invoices: this.can('fees', 'view') ? this.api.invoices() : of([] as FeeInvoice[]),
+      payrolls: this.can('payroll', 'view') ? this.api.payroll() : of([] as PayrollRecord[]),
       attendance: this.api.attendance(),
       holidays: this.api.holidays(),
       timetable: this.api.timetable(),
       exams: this.api.exams(),
       examResults: this.api.examResults(),
-      users: this.isAdmin ? this.api.listUsers() : of([])
+      users: this.can('users', 'view') ? this.api.listUsers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)) : of([]),
+      roles: this.can('roles', 'view') ? this.api.roles() : of([] as ErpRole[]),
+      permissionSchema: this.can('roles', 'view') ? this.api.rolePermissionSchema() : of({ modules: [], actions: [] })
     }).subscribe({
       next: (data) => {
         this.summary = data.summary;
         this.years = data.years;
+        this.applyActiveYearDefaults();
         this.classes = data.classes;
         this.teachers = data.teachers;
         this.students = data.students;
@@ -487,7 +592,14 @@ export class AppComponent implements OnInit {
         this.exams = data.exams;
         this.examResults = data.examResults;
         this.users = data.users as Array<AuthUser & { _id?: string; isActive?: boolean }>;
+        this.roles = data.roles;
+        this.permissionSchema = data.permissionSchema;
+        if (this.roles.length && !this.selectedRoleSlug) {
+          this.selectRoleForEdit(this.roles[0].slug);
+        }
         this.loading = false;
+        this.submitting = false;
+        this.loadServerListings();
         this.loadSelfAttendanceStatus();
         if (this.isStudent && this.currentUser?.student && this.activeTab === 'profile') {
           this.loadStudentProfile(this.currentUser.student);
@@ -496,7 +608,7 @@ export class AppComponent implements OnInit {
         }
       },
       error: () => {
-        this.message = 'Could not load workspace data. Check backend, MongoDB, and your role permissions.';
+        this.toast.error('Could not load workspace data. Check backend, MongoDB, and your role permissions.');
         this.loading = false;
       }
     });
@@ -504,6 +616,14 @@ export class AppComponent implements OnInit {
 
   setTab(tab: TabKey): void {
     this.activeTab = tab;
+    const tabListKey: Partial<Record<TabKey, ListKey>> = {
+      students: 'students',
+      classes: 'classes',
+      teachers: 'teachers',
+      users: 'users'
+    };
+    const listKey = tabListKey[tab];
+    if (listKey) this.loadListing(listKey);
     if (tab === 'profile') {
       if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
       else if (this.isParent && this.effectiveChildId) this.loadStudentProfile(this.effectiveChildId);
@@ -563,6 +683,16 @@ export class AppComponent implements OnInit {
     this.refresh();
   }
 
+  dashboardActivityLabel(type: string): string {
+    const labels: Record<string, string> = {
+      student_admission: 'Admission',
+      teacher_registration: 'Teacher',
+      class_creation: 'Class',
+      student_status_change: 'Status change'
+    };
+    return labels[type] || type;
+  }
+
   loadStudentDocuments(studentId: string): void {
     this.selectedStudentId = studentId;
     if (!studentId) {
@@ -578,6 +708,7 @@ export class AppComponent implements OnInit {
           type: String(document['type'] || ''),
           title: String(document['title'] || ''),
           fileUrl: String(document['fileUrl'] || ''),
+          storageKey: document['storageKey'] ? String(document['storageKey']) : undefined,
           storageProvider: (document['storageProvider'] === 's3' ? 's3' : 'local') as 'local' | 's3',
           mimeType: document['mimeType'] ? String(document['mimeType']) : undefined,
           uploadedAt: document['uploadedAt'] ? String(document['uploadedAt']) : undefined,
@@ -597,10 +728,109 @@ export class AppComponent implements OnInit {
   }
 
   saveAcademicYear(): void {
-    this.submit(this.api.createAcademicYear(this.academicYearForm.getRawValue() as Partial<AcademicYear>), 'Academic year saved', this.academicYearForm);
+    const value = this.academicYearForm.getRawValue();
+    const payload: Partial<AcademicYear> = {
+      name: value.name || undefined,
+      startDate: value.startDate || undefined,
+      endDate: value.endDate || undefined,
+      isActive: !!value.isActive
+    };
+
+    if (this.editingAcademicYearId) {
+      this.submit(
+        this.api.updateAcademicYear(this.editingAcademicYearId, {
+          name: payload.name,
+          startDate: payload.startDate,
+          endDate: payload.endDate
+        }),
+        'Academic year updated',
+        this.academicYearForm
+      );
+      this.editingAcademicYearId = '';
+      return;
+    }
+
+    this.submit(this.api.createAcademicYear(payload), 'Academic year created', this.academicYearForm);
+  }
+
+  editAcademicYear(year: AcademicYear): void {
+    if (this.yearStatus(year) === 'closed') {
+      this.message = 'Closed academic years cannot be edited';
+      return;
+    }
+    this.editingAcademicYearId = year._id;
+    this.academicYearForm.patchValue({
+      name: year.name,
+      startDate: year.startDate ? year.startDate.slice(0, 10) : '',
+      endDate: year.endDate ? year.endDate.slice(0, 10) : '',
+      isActive: false
+    });
+    this.message = `Editing ${year.name}`;
+  }
+
+  activateAcademicYear(id: string): void {
+    void this.confirmAction({
+      title: 'Activate academic year',
+      message: 'Activate this academic year? The current active year will be deactivated.',
+      confirmLabel: 'Activate'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.activateAcademicYear(id).subscribe({
+        next: () => {
+          this.toast.success('Academic year activated');
+          this.editingAcademicYearId = '';
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not activate academic year'))
+      });
+    });
+  }
+
+  closeAcademicYear(id: string): void {
+    void this.confirmAction({
+      title: 'Close academic year',
+      message: 'Close this academic year? Linked classes become read-only.',
+      danger: true,
+      confirmLabel: 'Close year'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.closeAcademicYear(id).subscribe({
+        next: () => {
+          this.toast.success('Academic year closed');
+          this.editingAcademicYearId = '';
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not close academic year'))
+      });
+    });
+  }
+
+  deleteAcademicYear(id: string): void {
+    void this.confirmAction({
+      title: 'Delete academic year',
+      message: 'Delete this academic year? This is only allowed when no dependent records exist.',
+      danger: true,
+      confirmLabel: 'Delete'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.deleteAcademicYear(id).subscribe({
+        next: () => {
+          this.toast.success('Academic year deleted');
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not delete academic year'))
+      });
+    });
   }
 
   saveClass(): void {
+    if (this.editingClassId) {
+      const room = this.classes.find((c) => c._id === this.editingClassId);
+      if (room && this.isClassYearClosed(room)) {
+        this.message = 'Classes linked to a closed academic year are read-only';
+        return;
+      }
+    }
     const request = this.editingClassId
       ? this.api.updateClass(this.editingClassId, this.classForm.getRawValue())
       : this.api.createClass(this.classForm.getRawValue());
@@ -609,16 +839,81 @@ export class AppComponent implements OnInit {
   }
 
   editClass(room: ClassRoom): void {
+    if (this.isClassYearClosed(room)) {
+      this.message = 'Classes linked to a closed academic year are read-only';
+      return;
+    }
     this.editingClassId = room._id;
     this.classForm.patchValue({
       name: room.name,
       section: room.section,
-      capacity: (room as any).capacity || 40,
+      capacity: room.capacity || APP_CONSTANTS.DEFAULT_CAPACITY,
       academicYear: typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id,
       classTeacher: typeof room.classTeacher === 'string' ? room.classTeacher : room.classTeacher?._id || '',
-      monthlyFee: room.monthlyFee
+      monthlyFee: room.monthlyFee,
+      status: room.status || 'active'
     });
     this.message = `Editing class ${room.name}-${room.section}`;
+  }
+
+  isClassYearClosed(room: ClassRoom): boolean {
+    const year = typeof room.academicYear === 'string'
+      ? this.years.find((y) => y._id === room.academicYear)
+      : room.academicYear;
+    return year ? this.yearStatus(year) === 'closed' : false;
+  }
+
+  getClassStudentCount(classId: string, academicYearId?: string): number {
+    const yearId = academicYearId || this.admissionForm.get('academicYear')?.value || this.activeAcademicYear?._id;
+    const room = this.classes.find((c) => c._id === classId);
+    if (room?.studentCount !== undefined && (!yearId || (typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id) === yearId)) {
+      return room.studentCount;
+    }
+    return this.students.filter((student) => {
+      if (student.status !== 'active') return false;
+      return student.enrollments?.some((enrollment) => {
+        const eYear = typeof enrollment.academicYear === 'string' ? enrollment.academicYear : enrollment.academicYear?._id;
+        const eClass = typeof enrollment.classRoom === 'string' ? enrollment.classRoom : enrollment.classRoom?._id;
+        return eYear === yearId && eClass === classId && enrollment.status === 'studying';
+      });
+    }).length;
+  }
+
+  getClassAvailableCapacity(room: ClassRoom): number {
+    if (room.availableCapacity !== undefined) return room.availableCapacity;
+    const yearId = typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id;
+    const count = this.getClassStudentCount(room._id, yearId);
+    return Math.max((room.capacity || 0) - count, 0);
+  }
+
+  get admissionClassOptions(): ClassRoom[] {
+    const yearId = this.admissionForm.get('academicYear')?.value || this.activeAcademicYear?._id;
+    const selectedClassId = this.admissionForm.get('classRoom')?.value;
+    return this.classes.filter((room) => {
+      if ((room.status || 'active') !== 'active') return false;
+      const roomYearId = typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id;
+      if (yearId && roomYearId !== yearId) return false;
+      const hasCapacity = this.getClassAvailableCapacity(room) > 0;
+      if (!hasCapacity && this.editingStudentId && room._id === selectedClassId) return true;
+      return hasCapacity;
+    });
+  }
+
+  toggleClassStatus(id: string): void {
+    void this.confirmAction({
+      title: 'Change class status',
+      message: 'Change the status of this class?',
+      confirmLabel: 'Confirm'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.toggleClassStatus(id).subscribe({
+        next: () => {
+          this.toast.success('Class status updated');
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not update class status'))
+      });
+    });
   }
 
   teacherAssignedClass(teacherId: string): ClassRoom | undefined {
@@ -640,7 +935,15 @@ export class AppComponent implements OnInit {
   }
 
   deleteClass(id: string): void {
-    this.submit(this.api.deleteClass(id), 'Class deleted');
+    void this.confirmAction({
+      title: 'Delete class',
+      message: 'Delete this class? This action is only allowed when no students are enrolled.',
+      danger: true,
+      confirmLabel: 'Delete'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.deleteClass(id), 'Class deleted');
+    });
   }
 
   saveTeacher(): void {
@@ -659,6 +962,7 @@ export class AppComponent implements OnInit {
       lastName: teacher.lastName || '',
       phone: teacher.phone,
       email: teacher.email || '',
+      aadhaarNumber: teacher.aadhaarNumber || '',
       baseSalary: teacher.baseSalary
     });
     this.message = `Editing ${teacher.firstName}`;
@@ -725,16 +1029,27 @@ export class AppComponent implements OnInit {
   }
 
   removeTeacherExperience(index: number): void {
-    const teacher = this.viewingTeacher || this.myTeacherProfile;
-    if (!teacher) return;
-    const exp = [...(teacher.experience || [])];
-    exp.splice(index, 1);
-    const request = this.isTeacher
-      ? this.api.selfUpdateTeacher({ experience: exp })
-      : this.api.updateTeacher(teacher._id, { experience: exp });
-    request.subscribe({
-      next: () => { this.message = 'Experience removed'; this.refresh(); },
-      error: (err) => { this.message = err.error?.message || 'Could not remove experience'; }
+    void this.confirmAction({
+      title: 'Remove experience',
+      message: 'Remove this work experience entry from the teacher profile?',
+      danger: true,
+      confirmLabel: 'Remove'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      const teacher = this.viewingTeacher || this.myTeacherProfile;
+      if (!teacher) return;
+      const exp = [...(teacher.experience || [])];
+      exp.splice(index, 1);
+      const request = this.isTeacher
+        ? this.api.selfUpdateTeacher({ experience: exp })
+        : this.api.updateTeacher(teacher._id, { experience: exp });
+      request.subscribe({
+        next: () => {
+          this.toast.success('Experience removed');
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not remove experience'))
+      });
     });
   }
 
@@ -778,16 +1093,27 @@ export class AppComponent implements OnInit {
   }
 
   removeTeacherEducation(index: number): void {
-    const teacher = this.viewingTeacher || this.myTeacherProfile;
-    if (!teacher) return;
-    const edu = [...(teacher.education || [])];
-    edu.splice(index, 1);
-    const request = this.isTeacher
-      ? this.api.selfUpdateTeacher({ education: edu })
-      : this.api.updateTeacher(teacher._id, { education: edu });
-    request.subscribe({
-      next: () => { this.message = 'Education removed'; this.refresh(); },
-      error: (err) => { this.message = err.error?.message || 'Could not remove education'; }
+    void this.confirmAction({
+      title: 'Remove education',
+      message: 'Remove this education entry from the teacher profile?',
+      danger: true,
+      confirmLabel: 'Remove'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      const teacher = this.viewingTeacher || this.myTeacherProfile;
+      if (!teacher) return;
+      const edu = [...(teacher.education || [])];
+      edu.splice(index, 1);
+      const request = this.isTeacher
+        ? this.api.selfUpdateTeacher({ education: edu })
+        : this.api.updateTeacher(teacher._id, { education: edu });
+      request.subscribe({
+        next: () => {
+          this.toast.success('Education removed');
+          this.refresh();
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Could not remove education'))
+      });
     });
   }
 
@@ -834,12 +1160,26 @@ export class AppComponent implements OnInit {
     if (!this.selectedStudentId || !documentId) return;
     this.api.verifyStudentDocument(this.selectedStudentId, documentId, action, this.verifyDocReason).subscribe({
       next: () => {
-        this.message = `Document ${action === 'approve' ? 'approved' : 'rejected — reupload requested'}`;
+        this.toast.success(action === 'approve' ? 'Document approved' : 'Document rejected — reupload requested');
         this.verifyDocReason = '';
         this.loadStudentDocuments(this.selectedStudentId);
       },
-      error: (err) => { this.message = err.error?.message || 'Verification failed'; }
+      error: (err) => this.toast.error(extractApiMessage(err, 'Verification failed'))
     });
+  }
+
+  openStudentDocument(document: { _id?: string; title?: string }): void {
+    if (!this.selectedStudentId || !document._id) return;
+    this.openProtectedFile(this.api.studentDocumentFileUrl(this.selectedStudentId, document._id));
+  }
+
+  openTeacherDocument(teacherId: string, docType: string): void {
+    if (!teacherId || !docType) return;
+    this.openProtectedFile(this.api.teacherDocumentFileUrl(teacherId, docType));
+  }
+
+  get showPreviousSchoolDetails(): boolean {
+    return this.admissionForm.get('hasPreviousSchool')?.value === 'yes';
   }
 
   getTeacherClasses(teacherId: string): ClassRoom[] {
@@ -863,8 +1203,15 @@ export class AppComponent implements OnInit {
     return results;
   }
 
-  deleteTeacher(id: string): void {
-    this.submit(this.api.deleteTeacher(id), 'Teacher deleted');
+  async deleteTeacher(id: string): Promise<void> {
+    const confirmed = await this.confirmAction({
+      title: 'Deactivate teacher',
+      message: 'Deactivate this teacher? The record will be retained with inactive status.',
+      danger: true,
+      confirmLabel: 'Deactivate'
+    });
+    if (!confirmed) return;
+    this.submit(this.api.deleteTeacher(id), 'Teacher deactivated');
   }
 
   saveAdmission(): void {
@@ -876,7 +1223,12 @@ export class AppComponent implements OnInit {
         lastName: value.lastName,
         gender: value.gender,
         dateOfBirth: value.dateOfBirth,
-        aadhaarNumber: value.aadhaarNumber,
+        bloodGroup: value.bloodGroup,
+        category: value.category,
+        nationality: value.nationality,
+        motherName: value.motherName,
+        aadhaarNumber: value.aadhaarNumber || undefined,
+        udisePenId: value.udisePenId || undefined,
         address: {
           line1: value.line1,
           city: value.city,
@@ -891,6 +1243,20 @@ export class AppComponent implements OnInit {
             isPrimary: true
           }
         ],
+        previousSchoolDetails: value.hasPreviousSchool === 'yes'
+          ? {
+              schoolName: value.previousSchool,
+              board: value.previousSchoolBoard,
+              percentage: value.previousSchoolPercentage ? Number(value.previousSchoolPercentage) : undefined,
+              rollNumber: value.previousSchoolRollNumber,
+              address: value.previousSchoolAddress,
+              lastClass: value.previousSchoolLastClass,
+              yearOfPassing: value.previousSchoolYearOfPassing ? Number(value.previousSchoolYearOfPassing) : undefined,
+              reasonForLeaving: value.previousSchoolReasonForLeaving,
+              tcNumber: value.previousSchoolTcNumber,
+              tcDate: value.previousSchoolTcDate || undefined
+            }
+          : undefined,
         enrollments: value.academicYear && value.classRoom
           ? [
               {
@@ -914,7 +1280,12 @@ export class AppComponent implements OnInit {
         lastName: value.lastName,
         gender: value.gender,
         dateOfBirth: value.dateOfBirth,
-        aadhaarNumber: value.aadhaarNumber,
+        bloodGroup: value.bloodGroup,
+        category: value.category,
+        nationality: value.nationality,
+        motherName: value.motherName,
+        aadhaarNumber: value.aadhaarNumber || undefined,
+        udisePenId: value.udisePenId || undefined,
         address: {
           line1: value.line1,
           city: value.city,
@@ -933,15 +1304,23 @@ export class AppComponent implements OnInit {
       academicYear: value.academicYear,
       classRoom: value.classRoom,
       rollNumber: value.rollNumber,
-      previousSchool: value.previousSchool,
-      previousSchoolDetails: {
-        schoolName: value.previousSchool,
-        address: value.previousSchoolAddress,
-        lastClass: value.previousSchoolLastClass,
-        yearOfPassing: value.previousSchoolYearOfPassing ? Number(value.previousSchoolYearOfPassing) : undefined,
-        reasonForLeaving: value.previousSchoolReasonForLeaving,
-        tcNumber: value.previousSchoolTcNumber
-      }
+      ...(value.hasPreviousSchool === 'yes'
+        ? {
+            previousSchool: value.previousSchool,
+            previousSchoolDetails: {
+              schoolName: value.previousSchool,
+              board: value.previousSchoolBoard,
+              percentage: value.previousSchoolPercentage ? Number(value.previousSchoolPercentage) : undefined,
+              rollNumber: value.previousSchoolRollNumber,
+              address: value.previousSchoolAddress,
+              lastClass: value.previousSchoolLastClass,
+              yearOfPassing: value.previousSchoolYearOfPassing ? Number(value.previousSchoolYearOfPassing) : undefined,
+              reasonForLeaving: value.previousSchoolReasonForLeaving,
+              tcNumber: value.previousSchoolTcNumber,
+              tcDate: value.previousSchoolTcDate || undefined
+            }
+          }
+        : {})
     };
 
     const formData = new FormData();
@@ -962,30 +1341,464 @@ export class AppComponent implements OnInit {
   editStudent(student: Student): void {
     const latest = student.enrollments?.[student.enrollments.length - 1];
     const guardian = student.guardians?.[0];
+    const prev = student.previousSchoolDetails;
+    const hasPrev = !!(prev?.schoolName);
     this.editingStudentId = student._id;
     this.admissionForm.patchValue({
       admissionNumber: student.admissionNumber,
+      admissionDate: student.admissionDate ? student.admissionDate.slice(0, 10) : '',
       firstName: student.firstName,
       lastName: student.lastName || '',
       gender: student.gender,
       dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
+      bloodGroup: student.bloodGroup || '',
+      category: student.category || '',
+      nationality: student.nationality || 'Indian',
+      motherName: student.motherName || '',
       aadhaarNumber: student.aadhaarNumber || '',
-      line1: (student as any).address?.line1 || '',
-      city: (student as any).address?.city || '',
-      state: (student as any).address?.state || '',
-      pincode: (student as any).address?.pincode || '',
+      udisePenId: student.udisePenId || '',
+      line1: student.address?.line1 || '',
+      city: student.address?.city || '',
+      state: student.address?.state || '',
+      pincode: student.address?.pincode || '',
       guardianName: guardian?.name || '',
       guardianRelation: guardian?.relation || 'Father',
       guardianPhone: guardian?.phone || '',
       academicYear: typeof latest?.academicYear === 'string' ? latest.academicYear : latest?.academicYear?._id || '',
       classRoom: typeof latest?.classRoom === 'string' ? latest.classRoom : latest?.classRoom?._id || '',
-      rollNumber: latest?.rollNumber || ''
+      rollNumber: latest?.rollNumber || '',
+      studentStatus: student.status || 'active',
+      hasPreviousSchool: hasPrev ? 'yes' : 'no',
+      previousSchool: prev?.schoolName || '',
+      previousSchoolBoard: prev?.board || '',
+      previousSchoolPercentage: prev?.percentage != null ? String(prev.percentage) : '',
+      previousSchoolRollNumber: prev?.rollNumber || '',
+      previousSchoolAddress: prev?.address || '',
+      previousSchoolLastClass: prev?.lastClass || '',
+      previousSchoolYearOfPassing: prev?.yearOfPassing ? String(prev.yearOfPassing) : '',
+      previousSchoolReasonForLeaving: prev?.reasonForLeaving || '',
+      previousSchoolTcNumber: prev?.tcNumber || '',
+      previousSchoolTcDate: prev?.tcDate ? String(prev.tcDate).slice(0, 10) : ''
     });
     this.message = `Editing student ${this.studentName(student)}`;
   }
 
+  async deactivateStudent(id: string): Promise<void> {
+    const confirmed = await this.confirmAction({
+      title: 'Deactivate student',
+      message: 'Deactivate this student? Records are retained; status will be set to Inactive.',
+      danger: true,
+      confirmLabel: 'Deactivate'
+    });
+    if (!confirmed) return;
+    this.submit(this.api.deleteStudent(id), 'Student deactivated');
+  }
+
+  changeStudentStatus(id: string, status: string): void {
+    const reason = status === 'left_school' || status === 'tc_issued' ? prompt('Reason (optional):') || '' : '';
+    this.api.updateStudentStatus(id, status, reason || undefined).subscribe({
+      next: () => {
+        this.message = `Student status updated to ${this.studentStatusLabel(status)}`;
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Status update failed'; }
+    });
+  }
+
+  generateUdisePenId(): void {
+    const year = new Date().getFullYear();
+    const random = Math.floor(100000 + Math.random() * 900000);
+    this.admissionForm.patchValue({ udisePenId: `UDISE-${year}-${random}` });
+  }
+
+  searchByUdise(): void {
+    const udise = this.admissionForm.get('udisePenId')?.value?.trim();
+    if (!udise) {
+      this.message = 'Enter or generate a UDISE+/PEN ID first';
+      return;
+    }
+    const match = this.students.find((s) => s.udisePenId === udise);
+    if (match) {
+      this.message = `Found existing student: ${this.studentName(match)} (${match.admissionNumber})`;
+      this.editStudent(match);
+    } else {
+      this.message = 'No existing student with this UDISE+/PEN ID';
+    }
+  }
+
+  studentStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      active: 'Active',
+      inactive: 'Inactive',
+      left_school: 'Left School',
+      passed_out: 'Passed Out',
+      tc_issued: 'TC Issued',
+      alumni: 'Passed Out'
+    };
+    return labels[status] || status;
+  }
+
+  studentDocumentStatus(student: Student): 'uploaded' | 'pending' {
+    const docs = student.documents || [];
+    const hasPhoto = docs.some((d) => d.type === 'photo' && d.fileUrl);
+    const hasBirth = docs.some((d) => d.type === 'birth_certificate' && d.fileUrl);
+    return hasPhoto && hasBirth ? 'uploaded' : 'pending';
+  }
+
+  studentPhotoUrl(student: Student): string | null {
+    const photo = student.documents?.find((d) => d.type === 'photo');
+    return photo?.fileUrl || null;
+  }
+
+  get studentSectionOptions(): string[] {
+    return [...new Set(this.classes.map((c) => c.section).filter(Boolean))].sort();
+  }
+
+  exportStudentsCsv(): void {
+    const items = this.sortedStudents;
+    exportRowsToCsv(`students-${new Date().toISOString().slice(0, 10)}.csv`, ['Admission No', 'Name', 'Class', 'Roll No', 'Admission Date', 'Status', 'Documents'], items.map((s) => {
+      const latest = s.enrollments?.[s.enrollments.length - 1];
+      return [
+        s.admissionNumber,
+        this.studentName(s),
+        this.enrollmentClassName(s),
+        latest?.rollNumber || '',
+        s.admissionDate ? new Date(s.admissionDate).toLocaleDateString() : '',
+        this.studentStatusLabel(s.status),
+        this.studentDocumentStatus(s)
+      ];
+    }));
+  }
+
+  exportStudentsPdf(): void {
+    const items = this.sortedStudents;
+    exportRowsToPdf('Student Directory', ['Adm No', 'Name', 'Class', 'Admission Date', 'Status'], items.map((s) => [
+      s.admissionNumber,
+      this.studentName(s),
+      this.enrollmentClassName(s),
+      s.admissionDate ? new Date(s.admissionDate).toLocaleDateString() : '—',
+      this.studentStatusLabel(s.status)
+    ]));
+  }
+
+  exportClassesCsv(): void {
+    const items = this.sortedClasses;
+    exportRowsToCsv(`classes-${new Date().toISOString().slice(0, 10)}.csv`, ['Class', 'Academic Year', 'Teacher', 'Students', 'Available', 'Fee', 'Status'], items.map((room) => [
+      `${room.name}-${room.section}`,
+      this.classYearName(room),
+      this.teacherName(room.classTeacher),
+      String(room.studentCount ?? this.getClassStudentCount(room._id)),
+      String(this.getClassAvailableCapacity(room)),
+      String(room.monthlyFee ?? 0),
+      room.status || 'active'
+    ]));
+  }
+
+  exportClassesPdf(): void {
+    const items = this.sortedClasses;
+    exportRowsToPdf('Classes & Sections', ['Class', 'Year', 'Teacher', 'Status'], items.map((room) => [
+      `${room.name}-${room.section}`,
+      this.classYearName(room),
+      this.teacherName(room.classTeacher),
+      room.status || 'active'
+    ]));
+  }
+
+  exportTeachersCsv(): void {
+    const items = this.sortedTeachers;
+    exportRowsToCsv(`teachers-${new Date().toISOString().slice(0, 10)}.csv`, ['Name', 'Employee Code', 'Phone', 'Email', 'Salary', 'Status'], items.map((t) => [
+      this.teacherName(t),
+      t.employeeCode,
+      t.phone,
+      t.email || '',
+      String(t.baseSalary),
+      t.status
+    ]));
+  }
+
+  exportTeachersPdf(): void {
+    const items = this.sortedTeachers;
+    exportRowsToPdf('Teacher Roster', ['Name', 'Code', 'Phone', 'Status'], items.map((t) => [
+      this.teacherName(t),
+      t.employeeCode,
+      t.phone,
+      t.status
+    ]));
+  }
+
+  exportUsersCsv(): void {
+    const items = this.sortedUsers;
+    exportRowsToCsv(`users-${new Date().toISOString().slice(0, 10)}.csv`, ['Name', 'Email', 'Role', 'Status'], items.map((u) => [
+      u.name,
+      u.email,
+      this.roleLabelFor(u.role),
+      u.isActive === false ? 'inactive' : 'active'
+    ]));
+  }
+
+  exportUsersPdf(): void {
+    const items = this.sortedUsers;
+    exportRowsToPdf('User Directory', ['Name', 'Email', 'Role', 'Status'], items.map((u) => [
+      u.name,
+      u.email,
+      this.roleLabelFor(u.role),
+      u.isActive === false ? 'inactive' : 'active'
+    ]));
+  }
+
+  exportYearsCsv(): void {
+    const items = this.sortedYears;
+    exportRowsToCsv(`academic-years-${new Date().toISOString().slice(0, 10)}.csv`, ['Name', 'Start', 'End', 'Status'], items.map((y) => [
+      y.name,
+      new Date(y.startDate).toLocaleDateString(),
+      new Date(y.endDate).toLocaleDateString(),
+      this.yearStatus(y)
+    ]));
+  }
+
+  exportYearsPdf(): void {
+    const items = this.sortedYears;
+    exportRowsToPdf('Academic Years', ['Name', 'Period', 'Status'], items.map((y) => [
+      y.name,
+      `${new Date(y.startDate).toLocaleDateString()} — ${new Date(y.endDate).toLocaleDateString()}`,
+      this.yearStatus(y)
+    ]));
+  }
+
+  refreshListing(_key?: ListKey): void {
+    this.refresh();
+    if (_key) this.loadListing(_key);
+  }
+
+  isServerPaged(key: ListKey): boolean {
+    return this.serverPagedKeys.includes(key);
+  }
+
+  getListTotalItems(key: ListKey): number {
+    if (this.isServerPaged(key)) return this.listingTotals[key] ?? 0;
+    return 0;
+  }
+
+  isListingLoading(key: ListKey): boolean {
+    return !!this.listingLoading[key];
+  }
+
+  saveButtonLabel(idleLabel: string, busyLabel = 'Saving...'): string {
+    return this.submitting ? busyLabel : idleLabel;
+  }
+
+  loadServerListings(): void {
+    this.serverPagedKeys.forEach((key) => this.loadListing(key));
+  }
+
+  loadListing(key: ListKey): void {
+    if (!this.currentUser || !this.isServerPaged(key)) return;
+    const query = this.buildListQuery(key);
+    const request = this.getListRequest(key, query);
+    if (!request) return;
+
+    this.listingLoading[key] = true;
+    request.subscribe({
+      next: (response) => {
+        this.listingRows[key] = response.data;
+        this.listingTotals[key] = response.pagination?.totalItems ?? response.data.length;
+        this.listingLoading[key] = false;
+      },
+      error: (error) => {
+        this.listingLoading[key] = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  private getListRequest(key: ListKey, query: ListQueryParams) {
+    switch (key) {
+      case 'students': return this.can('students', 'view') ? this.api.students(query) : null;
+      case 'classes': return this.can('classes', 'view') ? this.api.classes(query) : null;
+      case 'years': return this.can('classes', 'view') ? this.api.academicYears(query) : null;
+      case 'teachers': return this.can('teachers', 'view') ? this.api.teachers(query) : null;
+      case 'users': return this.can('users', 'view') ? this.api.listUsers(query) : null;
+      default: return null;
+    }
+  }
+
+  private buildListQuery(key: ListKey): ListQueryParams {
+    const query: ListQueryParams = {
+      page: this.pages[key] || 1,
+      pageSize: this.getListPageSize(key)
+    };
+    const sort = this.listSort[key];
+    if (sort?.field) {
+      query.sortField = this.mapSortField(key, sort.field);
+      query.sortDir = sort.dir || 'asc';
+    }
+
+    if (key === 'students') {
+      if (this.filters.studentSearch) query.search = this.filters.studentSearch;
+      if (this.filters.studentClass) query.classRoom = this.filters.studentClass;
+      if (this.filters.studentYear) query.academicYear = this.filters.studentYear;
+      if (this.filters.studentSection) query.section = this.filters.studentSection;
+      if (this.filters.studentStatus) query.status = this.filters.studentStatus;
+      if (this.filters.studentAdmissionFrom) query.admissionFrom = this.filters.studentAdmissionFrom;
+      if (this.filters.studentAdmissionTo) query.admissionTo = this.filters.studentAdmissionTo;
+    }
+    if (key === 'classes') {
+      if (this.filters.classSearch) query.search = this.filters.classSearch;
+      if (this.filters.classYear) query.academicYear = this.filters.classYear;
+      if (this.filters.classStatus) query.status = this.filters.classStatus;
+    }
+    if (key === 'years') {
+      if (this.filters.yearSearch) query.search = this.filters.yearSearch;
+      if (this.filters.yearStatus) query.status = this.filters.yearStatus;
+    }
+    if (key === 'teachers') {
+      if (this.filters.teacherSearch) query.search = this.filters.teacherSearch;
+      if (this.filters.teacherStatus) query.status = this.filters.teacherStatus;
+    }
+    if (key === 'users') {
+      if (this.filters.userSearch) query.search = this.filters.userSearch;
+      if (this.filters.userRole) query.role = this.filters.userRole;
+      if (this.filters.userStatus) query.status = this.filters.userStatus;
+    }
+    return query;
+  }
+
+  private mapSortField(key: ListKey, field: string): string {
+    const maps: Partial<Record<ListKey, Record<string, string>>> = {
+      students: { name: 'firstName', class: 'firstName' },
+      teachers: { name: 'firstName' },
+      classes: { class: 'name', academicYear: 'name', teacher: 'name' },
+      users: { status: 'createdAt' }
+    };
+    return maps[key]?.[field] || field;
+  }
+
+  private reloadListing(key: ListKey): void {
+    if (this.isServerPaged(key)) this.loadListing(key);
+  }
+
+  getListPageSize(key: ListKey): number {
+    return this.pageSizes[key] ?? this.pageSize;
+  }
+
+  setListPageSize(key: ListKey, size: number): void {
+    this.pageSizes[key] = size;
+    this.pages[key] = 1;
+    this.persistListState(key);
+    this.reloadListing(key);
+  }
+
+  toggleListSort(key: ListKey, field: string): void {
+    const current = this.listSort[key];
+    this.listSort[key] = current?.field === field
+      ? { field, dir: current.dir === 'asc' ? 'desc' : 'asc' }
+      : { field, dir: 'asc' };
+    this.pages[key] = 1;
+    this.persistListState(key);
+    this.reloadListing(key);
+  }
+
+  listSortIndicator(key: ListKey, field: string): string {
+    const sort = this.listSort[key];
+    if (sort?.field !== field) return '';
+    return sort.dir === 'asc' ? ' ↑' : ' ↓';
+  }
+
+  updateListSearch(key: ListKey, filterKey: keyof typeof this.filters, value: string): void {
+    this.filters[filterKey] = value as never;
+    this.resetPage(key);
+    this.persistListState(key);
+    this.reloadListing(key);
+  }
+
+  updateListFilter(key: ListKey, filterKey: keyof typeof this.filters, value: string): void {
+    this.filters[filterKey] = value as never;
+    this.resetPage(key);
+    this.persistListState(key);
+    this.reloadListing(key);
+  }
+
+  private persistListState(key: ListKey): void {
+    const filterKeys = LIST_FILTER_KEYS[key];
+    const filters: Record<string, string> = {};
+    if (filterKeys) {
+      for (const filterKey of filterKeys) {
+        filters[filterKey] = String(this.filters[filterKey as keyof typeof this.filters] || '');
+      }
+    }
+    this.listingState.save(key, {
+      page: this.pages[key],
+      pageSize: this.getListPageSize(key),
+      sortField: this.listSort[key]?.field,
+      sortDir: this.listSort[key]?.dir,
+      filters
+    });
+  }
+
+  private restoreAllListingStates(): void {
+    (Object.keys(LIST_FILTER_KEYS) as ListKey[]).forEach((key) => this.restoreListState(key));
+  }
+
+  private restoreListState(key: ListKey): void {
+    const stored = this.listingState.load(key);
+    if (!stored) return;
+    if (stored.page) this.pages[key] = stored.page;
+    if (stored.pageSize) this.pageSizes[key] = stored.pageSize;
+    if (stored.sortField) {
+      this.listSort[key] = { field: stored.sortField, dir: stored.sortDir || 'asc' };
+    }
+    if (stored.filters) {
+      for (const [filterKey, value] of Object.entries(stored.filters)) {
+        if (filterKey in this.filters) {
+          (this.filters as Record<string, string>)[filterKey] = value;
+        }
+      }
+    }
+  }
+
+  downloadStudentDocument(doc: { _id?: string; title?: string }): void {
+    if (!this.selectedStudentId || !doc._id) return;
+    this.openProtectedFile(
+      this.api.studentDocumentFileUrl(this.selectedStudentId, doc._id, true),
+      { download: true, fileName: doc.title || 'document' }
+    );
+  }
+
+  replaceStudentDocument(documentId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.item(0);
+    if (!this.selectedStudentId || !file || !documentId) return;
+    const formData = new FormData();
+    formData.append('document', file);
+    this.api.replaceStudentDocument(this.selectedStudentId, documentId, formData).subscribe({
+      next: () => {
+        this.message = 'Document replaced';
+        this.loadStudentDocuments(this.selectedStudentId);
+      },
+      error: (err) => { this.message = err.error?.message || 'Replace failed'; }
+    });
+  }
+
+  async deleteStudentDocument(documentId: string): Promise<void> {
+    if (!this.selectedStudentId || !documentId) return;
+    const confirmed = await this.confirmAction({
+      title: 'Remove document',
+      message: 'Remove this document from the vault?',
+      danger: true,
+      confirmLabel: 'Remove'
+    });
+    if (!confirmed) return;
+    this.api.deleteStudentDocument(this.selectedStudentId, documentId).subscribe({
+      next: () => {
+        this.toast.success('Document removed');
+        this.loadStudentDocuments(this.selectedStudentId);
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Delete failed'))
+    });
+  }
+
   deleteStudent(id: string): void {
-    this.submit(this.api.deleteStudent(id), 'Student archived');
+    this.deactivateStudent(id);
   }
 
   onFeeClassChange(): void {
@@ -1079,6 +1892,10 @@ export class AppComponent implements OnInit {
   }
 
   saveUser(): void {
+    if (!this.can('users', 'create')) {
+      this.message = 'You do not have permission to create user accounts';
+      return;
+    }
     const payload = { ...this.userForm.getRawValue() } as Record<string, unknown>;
     if (payload['role'] === 'parent' && this.parentLinkedStudentIds.size) {
       payload['linkedStudents'] = [...this.parentLinkedStudentIds];
@@ -1086,6 +1903,123 @@ export class AppComponent implements OnInit {
     }
     this.submit(this.api.createUser(payload), 'User account created', this.userForm);
     this.parentLinkedStudentIds.clear();
+  }
+
+  deactivateUserAccount(id: string): void {
+    if (!this.can('users', 'deactivate')) return;
+    void this.confirmAction({
+      title: 'Deactivate user',
+      message: 'Deactivate this user account? The user will no longer be able to sign in.',
+      danger: true,
+      confirmLabel: 'Deactivate'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.deactivateUser(id), 'User account deactivated');
+    });
+  }
+
+  async deleteUserAccount(id: string): Promise<void> {
+    if (!this.isSuperAdmin) {
+      this.toast.warning('Only Super Admin can permanently delete users');
+      return;
+    }
+    const confirmed = await this.confirmAction({
+      title: 'Delete user account',
+      message: 'Permanently delete this user account? This cannot be undone.',
+      danger: true,
+      confirmLabel: 'Delete permanently'
+    });
+    if (!confirmed) return;
+    this.api.deleteUser(id).subscribe({
+      next: () => {
+        this.toast.success('User permanently deleted');
+        this.refresh();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Delete failed'))
+    });
+  }
+
+  roleLabelFor(role: string): string {
+    const labels: Record<string, string> = {
+      super_admin: 'Super Admin',
+      admin: 'Admin',
+      teacher: 'Teacher',
+      reception: 'Reception',
+      accountant: 'Accountant',
+      parent: 'Parent',
+      student: 'Student'
+    };
+    return labels[role] || role;
+  }
+
+  selectRoleForEdit(slug: string): void {
+    this.selectedRoleSlug = slug;
+    const role = this.roles.find((r) => r.slug === slug);
+    this.editablePermissions = JSON.parse(JSON.stringify(role?.permissions || {}));
+  }
+
+  toggleRolePermission(module: string, action: string): void {
+    if (!this.isSuperAdmin) return;
+    if (!this.editablePermissions[module]) this.editablePermissions[module] = {};
+    this.editablePermissions[module][action] = !this.editablePermissions[module][action];
+  }
+
+  saveRolePermissions(): void {
+    if (!this.isSuperAdmin || !this.selectedRoleSlug) return;
+    this.api.updateRolePermissions(this.selectedRoleSlug, this.editablePermissions).subscribe({
+      next: () => {
+        this.message = 'Role permissions updated';
+        this.api.me().subscribe({
+          next: (user) => {
+            this.currentUser = user;
+            this.permissionService.setPermissions(user.permissions);
+            localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+          }
+        });
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Permission update failed'; }
+    });
+  }
+
+  createRole(): void {
+    if (!this.isSuperAdmin) return;
+    const value = this.roleForm.getRawValue();
+    this.api.createRole(value).subscribe({
+      next: () => {
+        this.message = 'Role created';
+        this.roleForm.reset();
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Role creation failed'; }
+    });
+  }
+
+  async deleteRole(slug: string): Promise<void> {
+    if (!this.isSuperAdmin) return;
+    if (this.isSystemRole(slug)) {
+      this.toast.warning('System roles cannot be deleted');
+      return;
+    }
+    const confirmed = await this.confirmAction({
+      title: 'Delete role',
+      message: `Delete role ${slug}?`,
+      danger: true,
+      confirmLabel: 'Delete role'
+    });
+    if (!confirmed) return;
+    this.api.deleteRole(slug).subscribe({
+      next: () => {
+        this.toast.success('Role deleted');
+        this.selectedRoleSlug = '';
+        this.refresh();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Role delete failed'))
+    });
+  }
+
+  isSystemRole(slug: string): boolean {
+    return !!this.roles.find((r) => r.slug === slug)?.isSystem;
   }
 
   saveAttendance(): void {
@@ -1361,6 +2295,13 @@ export class AppComponent implements OnInit {
     return `${classRoom.name}-${classRoom.section}`;
   }
 
+  classYearName(classRoom: ClassRoom): string {
+    if (typeof classRoom.academicYear === 'string') {
+      return this.years.find((y) => y._id === classRoom.academicYear)?.name || '';
+    }
+    return classRoom.academicYear?.name || '';
+  }
+
   enrollmentClassName(student?: Student): string {
     const latest = student?.enrollments?.[student.enrollments.length - 1];
     if (!latest) return 'Unassigned';
@@ -1388,23 +2329,119 @@ export class AppComponent implements OnInit {
   get filteredStudents(): Student[] {
     const search = this.filters.studentSearch.toLowerCase().trim();
     return this.students.filter((student) => {
-      const matchesSearch = !search || `${student.admissionNumber} ${this.studentName(student)} ${student.status}`.toLowerCase().includes(search);
+      const guardian = student.guardians?.[0];
+      const latest = student.enrollments?.[student.enrollments.length - 1];
+      const rollNumber = latest?.rollNumber || '';
+      const searchBlob = [
+        student.admissionNumber,
+        this.studentName(student),
+        student.status,
+        rollNumber,
+        guardian?.name,
+        guardian?.phone,
+        student.aadhaarNumber,
+        student.udisePenId
+      ].filter(Boolean).join(' ').toLowerCase();
+      const matchesSearch = !search || searchBlob.includes(search);
+
       const matchesClass = !this.filters.studentClass || student.enrollments?.some((enrollment) => {
         const classId = typeof enrollment.classRoom === 'string' ? enrollment.classRoom : enrollment.classRoom?._id;
         return classId === this.filters.studentClass;
       });
-      return matchesSearch && matchesClass;
+
+      const matchesYear = !this.filters.studentYear || student.enrollments?.some((enrollment) => {
+        const yearId = typeof enrollment.academicYear === 'string' ? enrollment.academicYear : enrollment.academicYear?._id;
+        return yearId === this.filters.studentYear;
+      });
+
+      const matchesSection = !this.filters.studentSection || student.enrollments?.some((enrollment) => {
+        const room = enrollment.classRoom;
+        const section = typeof room === 'string'
+          ? this.classes.find((c) => c._id === room)?.section
+          : room?.section;
+        return section === this.filters.studentSection;
+      });
+
+      const matchesStatus = !this.filters.studentStatus || student.status === this.filters.studentStatus;
+
+      const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+      const matchesAdmissionFrom = !this.filters.studentAdmissionFrom || (admissionDate && admissionDate >= new Date(this.filters.studentAdmissionFrom));
+      const matchesAdmissionTo = !this.filters.studentAdmissionTo || (admissionDate && admissionDate <= new Date(this.filters.studentAdmissionTo + 'T23:59:59'));
+
+      return matchesSearch && matchesClass && matchesYear && matchesSection && matchesStatus && matchesAdmissionFrom && matchesAdmissionTo;
+    });
+  }
+
+  get sortedStudents(): Student[] {
+    if (this.isServerPaged('students')) return (this.listingRows.students as Student[]) || [];
+    return sortItems(this.filteredStudents, this.listSort.students?.field, this.listSort.students?.dir, {
+      admissionNumber: (student) => student.admissionNumber,
+      name: (student) => this.studentName(student),
+      class: (student) => this.enrollmentClassName(student),
+      admissionDate: (student) => student.admissionDate || '',
+      status: (student) => student.status
     });
   }
 
   get filteredClasses(): ClassRoom[] {
     const search = this.filters.classSearch.toLowerCase().trim();
-    return this.classes.filter((room) => !search || `${room.name}-${room.section} ${this.teacherName(room.classTeacher)}`.toLowerCase().includes(search));
+    return this.classes.filter((room) => {
+      const matchesSearch = !search || `${room.name}-${room.section} ${this.teacherName(room.classTeacher)}`.toLowerCase().includes(search);
+      const matchesYear = !this.filters.classYear || String(room.academicYear) === this.filters.classYear
+        || (typeof room.academicYear === 'object' && room.academicYear?._id === this.filters.classYear);
+      const matchesStatus = !this.filters.classStatus || (room.status || 'active') === this.filters.classStatus;
+      return matchesSearch && matchesYear && matchesStatus;
+    });
+  }
+
+  get sortedClasses(): ClassRoom[] {
+    if (this.isServerPaged('classes')) return (this.listingRows.classes as ClassRoom[]) || [];
+    return sortItems(this.filteredClasses, this.listSort.classes?.field, this.listSort.classes?.dir, {
+      class: (room) => `${room.name}-${room.section}`,
+      academicYear: (room) => this.classYearName(room),
+      teacher: (room) => this.teacherName(room.classTeacher),
+      status: (room) => room.status || 'active',
+      monthlyFee: (room) => room.monthlyFee || 0
+    });
+  }
+
+  get filteredYears(): AcademicYear[] {
+    const search = this.filters.yearSearch.toLowerCase().trim();
+    return this.years.filter((year) => {
+      const matchesSearch = !search || year.name.toLowerCase().includes(search);
+      const matchesStatus = !this.filters.yearStatus || this.yearStatus(year) === this.filters.yearStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  get sortedYears(): AcademicYear[] {
+    if (this.isServerPaged('years')) return (this.listingRows.years as AcademicYear[]) || [];
+    return sortItems(this.filteredYears, this.listSort.years?.field, this.listSort.years?.dir, {
+      name: (year) => year.name,
+      startDate: (year) => year.startDate,
+      endDate: (year) => year.endDate,
+      status: (year) => this.yearStatus(year)
+    });
   }
 
   get filteredTeachers(): Teacher[] {
     const search = this.filters.teacherSearch.toLowerCase().trim();
-    return this.teachers.filter((teacher) => !search || `${teacher.employeeCode} ${this.teacherName(teacher)} ${teacher.phone} ${teacher.email || ''}`.toLowerCase().includes(search));
+    return this.teachers.filter((teacher) => {
+      const matchesSearch = !search || `${teacher.employeeCode} ${this.teacherName(teacher)} ${teacher.phone} ${teacher.email || ''}`.toLowerCase().includes(search);
+      const matchesStatus = !this.filters.teacherStatus || teacher.status === this.filters.teacherStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  get sortedTeachers(): Teacher[] {
+    if (this.isServerPaged('teachers')) return (this.listingRows.teachers as Teacher[]) || [];
+    return sortItems(this.filteredTeachers, this.listSort.teachers?.field, this.listSort.teachers?.dir, {
+      name: (teacher) => this.teacherName(teacher),
+      employeeCode: (teacher) => teacher.employeeCode,
+      phone: (teacher) => teacher.phone,
+      baseSalary: (teacher) => teacher.baseSalary,
+      status: (teacher) => teacher.status
+    });
   }
 
   get filteredInvoices(): FeeInvoice[] {
@@ -1478,7 +2515,19 @@ export class AppComponent implements OnInit {
     return this.users.filter((user) => {
       const matchesSearch = !search || `${user.name} ${user.email} ${user.role}`.toLowerCase().includes(search);
       const matchesRole = !this.filters.userRole || user.role === this.filters.userRole;
-      return matchesSearch && matchesRole;
+      const status = user.isActive === false ? 'inactive' : 'active';
+      const matchesStatus = !this.filters.userStatus || status === this.filters.userStatus;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }
+
+  get sortedUsers(): Array<AuthUser & { _id?: string; isActive?: boolean }> {
+    if (this.isServerPaged('users')) return (this.listingRows.users as Array<AuthUser & { _id?: string; isActive?: boolean }>) || [];
+    return sortItems(this.filteredUsers, this.listSort.users?.field, this.listSort.users?.dir, {
+      name: (user) => user.name,
+      email: (user) => user.email,
+      role: (user) => user.role,
+      status: (user) => (user.isActive === false ? 'inactive' : 'active')
     });
   }
 
@@ -1524,21 +2573,29 @@ export class AppComponent implements OnInit {
   }
 
   paged<T>(key: ListKey, items: T[]): T[] {
-    const page = Math.min(this.pages[key], this.pageCount(items));
-    const start = (page - 1) * this.pageSize;
-    return items.slice(start, start + this.pageSize);
+    if (this.isServerPaged(key)) return items;
+    const size = this.getListPageSize(key);
+    const page = Math.min(this.pages[key], this.pageCount(items, key));
+    const start = (page - 1) * size;
+    return items.slice(start, start + size);
   }
 
-  pageCount(items: unknown[]): number {
-    return Math.max(1, Math.ceil(items.length / this.pageSize));
+  pageCount(items: unknown[], key: ListKey): number {
+    const size = this.getListPageSize(key);
+    const total = this.isServerPaged(key) ? (this.listingTotals[key] ?? 0) : items.length;
+    return Math.max(1, Math.ceil(total / size));
   }
 
   setPage(key: ListKey, page: number, items: unknown[]): void {
-    this.pages[key] = Math.min(Math.max(page, 1), this.pageCount(items));
+    const nextPage = Math.min(Math.max(page, 1), this.pageCount(items, key));
+    this.pages[key] = nextPage;
+    this.persistListState(key);
+    this.reloadListing(key);
   }
 
   resetPage(key: ListKey): void {
     this.pages[key] = 1;
+    this.persistListState(key);
   }
 
   private readStoredUser(): AuthUser | null {
@@ -1555,6 +2612,7 @@ export class AppComponent implements OnInit {
     localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     this.token = token;
     this.currentUser = user;
+    this.permissionService.setPermissions(user.permissions);
     if (user.role === 'parent') {
       this.parentSelectedChild = user.linkedStudents?.[0] || user.linkedStudent || '';
     }
@@ -1565,29 +2623,63 @@ export class AppComponent implements OnInit {
     localStorage.removeItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY);
     this.token = null;
     this.currentUser = null;
+    this.permissionService.clear();
   }
 
   private openProtectedPdf(url: string): void {
+    this.openProtectedFile(url);
+  }
+
+  private openProtectedFile(url: string, options?: { download?: boolean; fileName?: string }): void {
     const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) return;
+    if (!token) {
+      this.toast.error('Please sign in again');
+      return;
+    }
+
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) => response.blob())
-      .then((blob) => window.open(URL.createObjectURL(blob), '_blank'));
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({} as { message?: string }));
+          throw new Error(body.message || 'Unable to open document');
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        if (options?.download) {
+          const anchor = document.createElement('a');
+          anchor.href = blobUrl;
+          anchor.download = options.fileName || 'document';
+          anchor.click();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+          return;
+        }
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      })
+      .catch((error: Error) => this.toast.error(error.message || 'Document unavailable'));
   }
 
   private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }): void {
+    if (this.submitting) return;
     this.message = '';
+    this.submitting = true;
     this.loading = true;
     request.subscribe({
       next: () => {
-        this.message = successMessage;
+        this.toast.success(successMessage);
         if (formToReset) formToReset.reset();
         this.refresh();
       },
       error: (error) => {
-        this.message = error.error?.message || 'Could not save record';
+        this.toast.error(extractApiMessage(error, 'Could not save record'));
+        this.submitting = false;
         this.loading = false;
       }
     });
+  }
+
+  private async confirmAction(options: { message: string; title?: string; danger?: boolean; confirmLabel?: string }): Promise<boolean> {
+    return this.confirmDialog.confirm(options);
   }
 }

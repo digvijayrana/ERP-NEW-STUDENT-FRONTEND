@@ -3,15 +3,30 @@
     <app-spinner [show]="true" label="Loading user accounts..."></app-spinner>
   </div>
   <ng-container *ngIf="!vm.loading || vm.users.length">
-  <form [formGroup]="vm.userForm" (ngSubmit)="vm.saveUser()" class="panel span-4">
+  <form [formGroup]="vm.userForm" (ngSubmit)="vm.saveUser()" class="panel span-4" *ngIf="vm.can('users', 'create')">
     <div class="section-head"><div><p class="eyebrow">Access</p><h3>Create role login</h3></div></div>
-    <label>Name<input formControlName="name"></label>
-    <label>Email<input type="email" formControlName="email"></label>
-    <label>Password<input type="password" formControlName="password"></label>
-    <label>Role<select formControlName="role"><option value="admin">Admin</option><option value="teacher">Teacher</option><option value="student">Student</option><option value="parent">Parent / Guardian</option></select></label>
-    <label>Teacher profile<select formControlName="teacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
-    <label>Student profile<select formControlName="student"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
-    <label>Linked child (for parent)<select formControlName="linkedStudent"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+    <div class="form-grid compact">
+      <label class="required">Name<input formControlName="name"></label>
+      <app-field-error [control]="vm.userForm.get('name')" label="Name"></app-field-error>
+      <label class="required">Email<input type="email" formControlName="email"></label>
+      <app-field-error [control]="vm.userForm.get('email')" label="Email"></app-field-error>
+      <label class="required">Password<input type="password" formControlName="password"></label>
+      <app-field-error [control]="vm.userForm.get('password')" label="Password"></app-field-error>
+      <label class="required">Role
+        <select formControlName="role">
+          <option value="admin">Admin</option>
+          <option value="teacher">Teacher</option>
+          <option value="reception">Reception</option>
+          <option value="accountant">Accountant</option>
+          <option value="student">Student</option>
+          <option value="parent">Parent / Guardian</option>
+          <option value="super_admin" *ngIf="vm.isSuperAdmin">Super Admin</option>
+        </select>
+      </label>
+      <label>Teacher profile<select formControlName="teacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
+      <label>Student profile<select formControlName="student"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+      <label>Linked child (for parent)<select formControlName="linkedStudent"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+    </div>
     <div class="multi-child-select" *ngIf="vm.userForm.get('role')?.value === 'parent'">
       <label class="multi-label">Link additional children</label>
       <div class="multi-child-list">
@@ -21,36 +36,123 @@
         </label>
       </div>
     </div>
-    <button type="submit" [disabled]="vm.userForm.invalid">Create account</button>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.userForm.invalid || vm.submitting">{{ vm.saveButtonLabel('Create account') }}</button>
+    </div>
   </form>
 
-  <section class="data-card span-8">
+  <section class="data-card" [class.span-8]="vm.can('users', 'create')" [class.span-12]="!vm.can('users', 'create')">
     <div class="section-head"><div><p class="eyebrow">Accounts</p><h3>User directory</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search name or email" [value]="vm.filters.userSearch" (input)="vm.filters.userSearch = $any($event.target).value; vm.resetPage('users')"></div>
-      <select class="filter-select" [value]="vm.filters.userRole" (change)="vm.filters.userRole = $any($event.target).value; vm.resetPage('users')">
-        <option value="">All roles</option>
-        <option value="admin">Admin</option>
-        <option value="teacher">Teacher</option>
-        <option value="student">Student</option>
-        <option value="parent">Parent</option>
-      </select>
-    </div>
-    <div class="table-wrap">
+    <app-listing-toolbar
+      searchPlaceholder="Search name or email"
+      [searchValue]="vm.filters.userSearch"
+      [loading]="vm.isListingLoading('users')"
+      (searchChange)="vm.updateListSearch('users', 'userSearch', $event)"
+      (refresh)="vm.refreshListing('users')"
+      (exportCsv)="vm.exportUsersCsv()"
+      (exportPdf)="vm.exportUsersPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.userRole" (change)="vm.updateListFilter('users', 'userRole', $any($event.target).value)">
+          <option value="">All roles</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="teacher">Teacher</option>
+          <option value="reception">Reception</option>
+          <option value="accountant">Accountant</option>
+          <option value="student">Student</option>
+          <option value="parent">Parent</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.userStatus" (change)="vm.updateListFilter('users', 'userStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('users')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('users') || vm.sortedUsers.length">
       <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+        <thead><tr>
+          <th class="sortable" (click)="vm.toggleListSort('users', 'name')">Name{{ vm.listSortIndicator('users', 'name') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('users', 'email')">Email{{ vm.listSortIndicator('users', 'email') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('users', 'role')">Role{{ vm.listSortIndicator('users', 'role') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('users', 'status')">Status{{ vm.listSortIndicator('users', 'status') }}</th>
+          <th *ngIf="vm.can('users', 'deactivate')">Actions</th>
+        </tr></thead>
         <tbody>
-          <tr *ngFor="let user of vm.paged('users', vm.filteredUsers)">
+          <tr *ngFor="let user of vm.paged('users', vm.sortedUsers)">
             <td>{{ user.name }}</td>
             <td>{{ user.email }}</td>
-            <td><span class="role-pill small" [attr.data-role]="user.role">{{ user.role }}</span></td>
+            <td><span class="role-pill small" [attr.data-role]="user.role">{{ vm.roleLabelFor(user.role) }}</span></td>
             <td><span class="status-badge" [ngClass]="user.isActive === false ? 'inactive' : 'active'">{{ user.isActive === false ? 'inactive' : 'active' }}</span></td>
+            <td *ngIf="vm.can('users', 'deactivate')">
+              <div class="table-actions">
+                <app-action-btn *ngIf="user.isActive !== false" type="deactivate" (clicked)="vm.deactivateUserAccount(user.id || user._id!)"></app-action-btn>
+                <app-action-btn *ngIf="vm.isSuperAdmin" type="delete" (clicked)="vm.deleteUserAccount(user.id || user._id!)"></app-action-btn>
+              </div>
+            </td>
           </tr>
-          <tr *ngIf="!vm.filteredUsers.length"><td colspan="4" class="empty-cell">No user accounts found</td></tr>
+          <tr *ngIf="!vm.sortedUsers.length && !vm.isListingLoading('users')">
+            <td [attr.colspan]="vm.can('users', 'deactivate') ? 5 : 4">
+              <app-empty-state
+                title="No user accounts"
+                message="Create role-based logins to grant staff access to ERP modules.">
+              </app-empty-state>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="users" [items]="vm.filteredUsers"></app-pagination-bar>
+    <app-table-skeleton *ngIf="vm.isListingLoading('users') && !vm.sortedUsers.length" [columns]="5" [rows]="6"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="users" [items]="vm.sortedUsers"></app-pagination-bar>
+  </section>
+
+  <section class="panel span-12" *ngIf="vm.can('roles', 'view')">
+    <div class="section-head">
+      <div><p class="eyebrow">Roles</p><h3>Permission matrix</h3></div>
+    </div>
+    <div class="toolbar">
+      <select class="filter-select" [value]="vm.selectedRoleSlug" (change)="vm.selectRoleForEdit($any($event.target).value)">
+        <option value="">Select role</option>
+        <option *ngFor="let role of vm.roles" [value]="role.slug">{{ role.name }} ({{ role.slug }})</option>
+      </select>
+      <button type="button" class="ghost small" *ngIf="vm.isSuperAdmin && vm.selectedRoleSlug" (click)="vm.saveRolePermissions()">Save permissions</button>
+    </div>
+
+    <form [formGroup]="vm.roleForm" (ngSubmit)="vm.createRole()" class="role-create-form" *ngIf="vm.isSuperAdmin">
+      <label>Role slug<input formControlName="slug" placeholder="custom_role"></label>
+      <label>Role name<input formControlName="name" placeholder="Custom Role"></label>
+      <label>Description<input formControlName="description"></label>
+      <button type="submit" [disabled]="vm.roleForm.invalid">Create role</button>
+    </form>
+
+    <div class="table-wrap permission-matrix-wrap" *ngIf="vm.selectedRoleSlug && vm.permissionSchema.modules.length">
+      <table class="permission-matrix">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th *ngFor="let action of vm.permissionSchema.actions">{{ action }}</th>
+            <th *ngIf="vm.isSuperAdmin"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let module of vm.permissionSchema.modules">
+            <td>{{ module.replace('_', ' ') }}</td>
+            <td *ngFor="let action of vm.permissionSchema.actions">
+              <input type="checkbox"
+                [checked]="vm.editablePermissions[module]?.[action]"
+                [disabled]="!vm.isSuperAdmin"
+                (change)="vm.toggleRolePermission(module, action)">
+            </td>
+            <td *ngIf="vm.isSuperAdmin"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="form-actions" *ngIf="vm.isSuperAdmin">
+        <button type="button" class="danger-btn small" (click)="vm.deleteRole(vm.selectedRoleSlug)" [disabled]="vm.isSystemRole(vm.selectedRoleSlug)">Delete role</button>
+      </div>
+    </div>
   </section>
   </ng-container>
 </section>

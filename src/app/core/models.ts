@@ -4,6 +4,10 @@ export interface AcademicYear {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  status?: 'draft' | 'active' | 'closed';
+  closedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Teacher {
@@ -13,6 +17,7 @@ export interface Teacher {
   lastName?: string;
   phone: string;
   email?: string;
+  aadhaarNumber?: string;
   qualification?: string;
   baseSalary: number;
   status: 'active' | 'inactive';
@@ -30,22 +35,47 @@ export interface ClassRoom {
   name: string;
   section: string;
   monthlyFee: number;
+  capacity?: number;
   academicYear: AcademicYear | string;
   classTeacher?: Teacher | string;
   subjects?: Array<{ name: string; teacher: Teacher | string }>;
+  status?: 'active' | 'inactive';
+  studentCount?: number;
+  availableCapacity?: number;
 }
 
 export interface Student {
   _id: string;
   admissionNumber: string;
+  admissionDate?: string;
   firstName: string;
   lastName?: string;
   gender: string;
   dateOfBirth: string;
+  bloodGroup?: string;
+  category?: string;
+  nationality?: string;
+  motherName?: string;
   aadhaarNumber?: string;
+  udisePenId?: string;
   status: string;
+  address?: { line1: string; city: string; state: string; pincode: string };
   guardians: Array<{ name: string; relation: string; phone: string; isPrimary?: boolean }>;
+  documents?: Array<{ _id?: string; type: string; title: string; fileUrl?: string; status?: string; uploadedAt?: string }>;
+  previousSchoolDetails?: {
+    schoolName?: string;
+    board?: string;
+    percentage?: number;
+    rollNumber?: string;
+    address?: string;
+    lastClass?: string;
+    yearOfPassing?: number;
+    reasonForLeaving?: string;
+    tcNumber?: string;
+    tcDate?: string;
+  };
   enrollments: Array<{ academicYear: AcademicYear | string; classRoom: ClassRoom | string; status: string; rollNumber?: string }>;
+  updatedAt?: string;
 }
 
 export interface FeeInvoice {
@@ -66,20 +96,49 @@ export interface FeeInvoice {
   createdAt?: string;
 }
 
-export interface DashboardSummary {
-  students: number;
-  teachers: number;
-  feeCollected: number;
-  feeDue: number;
-  payrollDue: number;
-  rangeDays?: number;
-  activeYear?: AcademicYear;
-  exams?: number;
-  averageExamScore?: number;
-  recentExamResults?: ExamSubmission[];
+export interface DashboardActivity {
+  type: 'student_admission' | 'teacher_registration' | 'class_creation' | 'student_status_change';
+  description: string;
+  performedBy?: string;
+  performedAt: string;
+  meta?: Record<string, unknown>;
 }
 
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+export interface DashboardSummary {
+  activeYear?: AcademicYear;
+  totalStudents?: number;
+  activeStudents?: number;
+  totalTeachers?: number;
+  activeTeachers?: number;
+  totalClasses?: number;
+  totalSections?: number;
+  todaysAdmissions?: number;
+  pendingDocuments?: number;
+  recentActivities?: DashboardActivity[];
+  /** Scoped count for non-admin roles */
+  students?: number;
+  teachers?: number;
+}
+
+export type UserRole = 'super_admin' | 'admin' | 'teacher' | 'reception' | 'accountant' | 'student' | 'parent';
+
+export interface ModulePermissions {
+  view?: boolean;
+  create?: boolean;
+  edit?: boolean;
+  deactivate?: boolean;
+  export?: boolean;
+  approve?: boolean;
+}
+
+export interface ErpRole {
+  _id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  isSystem: boolean;
+  permissions: Record<string, ModulePermissions>;
+}
 
 export interface AuthUser {
   id: string;
@@ -90,6 +149,8 @@ export interface AuthUser {
   student?: string;
   linkedStudent?: string;
   linkedStudents?: string[];
+  isActive?: boolean;
+  permissions?: Record<string, ModulePermissions>;
 }
 
 export interface AuthResponse {
@@ -210,14 +271,22 @@ export interface StudentAiInsights {
 }
 
 export interface StudentProfile {
-  student: Student & { photoUrl?: string | null; address?: { line1: string; city: string; state: string; pincode: string } };
+  student: Student & { photoUrl?: string | null; admissionDate?: string; updatedAt?: string };
   academic: {
     className: string;
     rollNumber: string;
     classRank?: string | null;
     classTeacher?: Teacher | null;
     academicYear?: AcademicYear | string;
+    admissionDate?: string;
+    lastUpdated?: string;
   };
+  documents?: {
+    items: Array<{ _id?: string; type: string; title: string; status: string; verificationStatus?: string; uploadedAt?: string }>;
+    mandatoryStatus: { photo: string; birthCertificate: string; overall: string };
+  };
+  profileCompletion?: number;
+  activityTimeline?: Array<{ action: string; description: string; performedBy?: string; performedAt: string }>;
   attendance: {
     percentage: number;
     present: number;

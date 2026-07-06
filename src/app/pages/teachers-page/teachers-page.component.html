@@ -65,7 +65,7 @@
             <span class="my-profile-value" *ngIf="tp.documents?.idProof?.originalName">
               {{ tp.documents.idProof.originalName }}
               <span class="status-badge small" [ngClass]="tp.documents.idProof.status || 'pending'">{{ tp.documents.idProof.status || 'pending' }}</span>
-              <a class="doc-view-link inline" [href]="tp.documents.idProof.url" target="_blank" rel="noopener noreferrer">View</a>
+              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(tp._id, 'idProof')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!tp.documents?.idProof?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="tp.documents?.idProof?.rejectReason">Reason: {{ tp.documents.idProof.rejectReason }}</span>
@@ -79,7 +79,7 @@
             <span class="my-profile-value" *ngIf="tp.documents?.resume?.originalName">
               {{ tp.documents.resume.originalName }}
               <span class="status-badge small" [ngClass]="tp.documents.resume.status || 'pending'">{{ tp.documents.resume.status || 'pending' }}</span>
-              <a class="doc-view-link inline" [href]="tp.documents.resume.url" target="_blank" rel="noopener noreferrer">View</a>
+              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(tp._id, 'resume')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!tp.documents?.resume?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="tp.documents?.resume?.rejectReason">Reason: {{ tp.documents.resume.rejectReason }}</span>
@@ -153,43 +153,83 @@
   <!-- Admin view: form + roster -->
   <form *ngIf="vm.isAdmin" [formGroup]="vm.teacherForm" (ngSubmit)="vm.saveTeacher()" class="panel span-4">
     <div class="section-head"><div><p class="eyebrow">Teacher</p><h3>{{ vm.editingTeacherId ? 'Update teacher' : 'Teacher profile' }}</h3></div></div>
-    <label>Employee code<input formControlName="employeeCode"></label>
-    <label>First name<input formControlName="firstName"></label>
-    <label>Last name<input formControlName="lastName"></label>
-    <label>Phone<input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
-    <label>Email<input formControlName="email"></label>
-    <label>Qualification<input formControlName="qualification"></label>
-    <label>Base salary<input type="number" formControlName="baseSalary" min="0"></label>
-    <button type="submit" [disabled]="vm.teacherForm.invalid">{{ vm.editingTeacherId ? 'Update teacher' : 'Save teacher' }}</button>
+    <div class="form-grid compact">
+      <label class="required">Employee code<input formControlName="employeeCode"></label>
+      <app-field-error [control]="vm.teacherForm.get('employeeCode')" label="Employee code"></app-field-error>
+      <label class="required">First name<input formControlName="firstName"></label>
+      <app-field-error [control]="vm.teacherForm.get('firstName')" label="First name"></app-field-error>
+      <label>Last name<input formControlName="lastName"></label>
+      <label class="required">Phone<input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+      <app-field-error [control]="vm.teacherForm.get('phone')" label="Phone"></app-field-error>
+      <label>Email<input formControlName="email"></label>
+      <label>Aadhaar number<input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
+      <app-field-error [control]="vm.teacherForm.get('aadhaarNumber')" label="Aadhaar number"></app-field-error>
+      <label>Qualification<input formControlName="qualification"></label>
+      <label class="required">Base salary<input type="number" formControlName="baseSalary" min="0"></label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.teacherForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingTeacherId ? 'Update teacher' : 'Save teacher') }}</button>
+    </div>
   </form>
 
   <section *ngIf="vm.isAdmin" class="data-card span-8">
     <div class="section-head"><div><p class="eyebrow">Roster</p><h3>Teacher roster</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search teacher, employee code, phone" [value]="vm.filters.teacherSearch" (input)="vm.filters.teacherSearch = $any($event.target).value; vm.resetPage('teachers')"></div>
-    </div>
-    <div class="table-wrap">
+    <app-listing-toolbar
+      searchPlaceholder="Search teacher, employee code, phone, email"
+      [searchValue]="vm.filters.teacherSearch"
+      [loading]="vm.isListingLoading('teachers')"
+      (searchChange)="vm.updateListSearch('teachers', 'teacherSearch', $event)"
+      (refresh)="vm.refreshListing('teachers')"
+      (exportCsv)="vm.exportTeachersCsv()"
+      (exportPdf)="vm.exportTeachersPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.teacherStatus" (change)="vm.updateListFilter('teachers', 'teacherStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('teachers')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('teachers') || vm.sortedTeachers.length">
       <table>
-        <thead><tr><th>Name</th><th>Code</th><th>Phone</th><th>Base salary</th><th>Actions</th></tr></thead>
+        <thead><tr>
+          <th class="sortable" (click)="vm.toggleListSort('teachers', 'name')">Name{{ vm.listSortIndicator('teachers', 'name') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('teachers', 'employeeCode')">Code{{ vm.listSortIndicator('teachers', 'employeeCode') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('teachers', 'phone')">Phone{{ vm.listSortIndicator('teachers', 'phone') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('teachers', 'baseSalary')">Base salary{{ vm.listSortIndicator('teachers', 'baseSalary') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('teachers', 'status')">Status{{ vm.listSortIndicator('teachers', 'status') }}</th>
+          <th>Actions</th>
+        </tr></thead>
         <tbody>
-          <tr *ngFor="let teacher of vm.paged('teachers', vm.filteredTeachers)">
+          <tr *ngFor="let teacher of vm.paged('teachers', vm.sortedTeachers)">
             <td>{{ vm.teacherName(teacher) }}</td>
             <td>{{ teacher.employeeCode }}</td>
             <td>{{ teacher.phone }}</td>
             <td>{{ teacher.baseSalary | currency: 'INR' }}</td>
+            <td><span class="status-badge" [ngClass]="teacher.status">{{ teacher.status }}</span></td>
             <td>
               <div class="table-actions">
-                <button type="button" class="ghost small" (click)="vm.viewTeacherProfile(teacher)">View</button>
-                <button type="button" class="ghost small" (click)="vm.editTeacher(teacher)">Edit</button>
-                <button type="button" class="danger-btn small" (click)="vm.deleteTeacher(teacher._id)">Delete</button>
+                <app-action-btn type="view" (clicked)="vm.viewTeacherProfile(teacher)"></app-action-btn>
+                <app-action-btn type="edit" (clicked)="vm.editTeacher(teacher)"></app-action-btn>
+                <app-action-btn type="deactivate" label="Deactivate" (clicked)="vm.deleteTeacher(teacher._id)"></app-action-btn>
               </div>
             </td>
           </tr>
-          <tr *ngIf="!vm.filteredTeachers.length"><td colspan="5" class="empty-cell">No teachers found</td></tr>
+          <tr *ngIf="!vm.sortedTeachers.length && !vm.isListingLoading('teachers')">
+            <td colspan="6">
+              <app-empty-state
+                title="No teachers found"
+                message="Register a teacher using the form on the left to build your staff roster.">
+              </app-empty-state>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.filteredTeachers"></app-pagination-bar>
+    <app-table-skeleton *ngIf="vm.isListingLoading('teachers') && !vm.sortedTeachers.length" [columns]="6" [rows]="6"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.sortedTeachers"></app-pagination-bar>
   </section>
 
   <!-- Teacher Profile Modal -->
@@ -247,7 +287,7 @@
             <span class="my-profile-value" *ngIf="vm.viewingTeacher.documents?.idProof?.originalName">
               {{ vm.viewingTeacher.documents.idProof.originalName }}
               <span class="status-badge small" [ngClass]="vm.viewingTeacher.documents.idProof.status || 'pending'">{{ vm.viewingTeacher.documents.idProof.status || 'pending' }}</span>
-              <a class="doc-view-link inline" [href]="vm.viewingTeacher.documents.idProof.url" target="_blank" rel="noopener noreferrer">View</a>
+              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'idProof')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!vm.viewingTeacher.documents?.idProof?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="vm.viewingTeacher.documents?.idProof?.rejectReason">Reason: {{ vm.viewingTeacher.documents.idProof.rejectReason }}</span>
@@ -270,7 +310,7 @@
             <span class="my-profile-value" *ngIf="vm.viewingTeacher.documents?.resume?.originalName">
               {{ vm.viewingTeacher.documents.resume.originalName }}
               <span class="status-badge small" [ngClass]="vm.viewingTeacher.documents.resume.status || 'pending'">{{ vm.viewingTeacher.documents.resume.status || 'pending' }}</span>
-              <a class="doc-view-link inline" [href]="vm.viewingTeacher.documents.resume.url" target="_blank" rel="noopener noreferrer">View</a>
+              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'resume')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!vm.viewingTeacher.documents?.resume?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="vm.viewingTeacher.documents?.resume?.rejectReason">Reason: {{ vm.viewingTeacher.documents.resume.rejectReason }}</span>

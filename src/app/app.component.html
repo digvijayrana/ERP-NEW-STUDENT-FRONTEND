@@ -105,6 +105,8 @@
     </header>
 
     <div class="toast success" *ngIf="message && currentUser">{{ message }}</div>
+    <app-toast-container></app-toast-container>
+    <app-confirm-dialog></app-confirm-dialog>
 
     <!-- Parent child selector -->
     <div class="child-selector-bar" *ngIf="isParent && parentChildren.length > 0">
@@ -181,8 +183,8 @@
             <span class="my-profile-value">{{ summary.activeYear?.name || 'Not set' }}</span>
           </div>
           <div class="my-profile-field">
-            <span class="my-profile-label">Revenue Collected</span>
-            <span class="my-profile-value">{{ summary.feeCollected | currency: 'INR' }}</span>
+            <span class="my-profile-label">Today's Admissions</span>
+            <span class="my-profile-value">{{ summary.todaysAdmissions ?? 0 }}</span>
           </div>
         </div>
       </ng-container>

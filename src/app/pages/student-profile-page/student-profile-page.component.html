@@ -40,7 +40,9 @@
             <span class="meta-chip">ID: {{ p.student.admissionNumber }}</span>
             <span class="meta-chip">Class: {{ p.academic.className }}</span>
             <span class="meta-chip">Roll: {{ p.academic.rollNumber }}</span>
-            <span class="status-badge" [ngClass]="p.student.status">{{ p.student.status }}</span>
+            <span class="meta-chip" *ngIf="p.academic.admissionDate">Admitted: {{ p.academic.admissionDate | date:'mediumDate' }}</span>
+            <span class="meta-chip" *ngIf="p.academic.lastUpdated">Updated: {{ p.academic.lastUpdated | date:'mediumDate' }}</span>
+            <span class="status-badge" [ngClass]="p.student.status">{{ vm.studentStatusLabel(p.student.status) }}</span>
           </div>
         </div>
       </div>
@@ -57,7 +59,30 @@
       <article class="metric-card accent-purple"><span>Class rank</span><strong>{{ p.academic.classRank || '—' }}</strong><small>Among classmates</small></article>
       <article class="metric-card accent-orange"><span>Fee status</span><strong>{{ p.fees.status | titlecase }}</strong><small>Due: {{ p.fees.totalDue | currency:'INR' }}</small></article>
       <article class="metric-card accent-green"><span>Behavior</span><strong>{{ p.behavior.score }}</strong><small>{{ p.behavior.remarks }}</small></article>
+      <article class="metric-card accent-purple" *ngIf="p.profileCompletion != null"><span>Profile completion</span><strong>{{ p.profileCompletion }}%</strong><small>Mandatory fields & documents</small></article>
     </div>
+
+    <section class="panel span-5" *ngIf="p.documents">
+      <div class="section-head"><div><p class="eyebrow">Documents</p><h3>Uploaded documents</h3></div></div>
+      <div class="info-list">
+        <div><span>Mandatory status</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.overall">{{ p.documents.mandatoryStatus.overall }}</span></strong></div>
+        <div><span>Photo</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.photo">{{ p.documents.mandatoryStatus.photo }}</span></strong></div>
+        <div><span>Birth certificate</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.birthCertificate">{{ p.documents.mandatoryStatus.birthCertificate }}</span></strong></div>
+      </div>
+      <ul class="doc-summary-list" *ngIf="p.documents.items.length">
+        <li *ngFor="let doc of p.documents.items">{{ doc.title }} — <span class="status-badge doc-status" [ngClass]="doc.status">{{ doc.status }}</span></li>
+      </ul>
+    </section>
+
+    <section class="panel span-7" *ngIf="p.activityTimeline?.length">
+      <div class="section-head"><div><p class="eyebrow">Activity</p><h3>Student timeline</h3></div></div>
+      <div class="activity-timeline">
+        <article *ngFor="let event of p.activityTimeline" class="timeline-item">
+          <strong>{{ event.description }}</strong>
+          <span>{{ event.performedAt | date:'medium' }}<ng-container *ngIf="event.performedBy"> · {{ event.performedBy }}</ng-container></span>
+        </article>
+      </div>
+    </section>
 
     <section class="panel ai-panel span-7">
       <div class="section-head">
