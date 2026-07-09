@@ -10,6 +10,49 @@ export interface StoredListState {
 
 export const LIST_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
+export const LIST_FILTER_KEYS: Record<string, string[]> = {
+  students: ['studentSearch', 'studentClass', 'studentYear', 'studentSection', 'studentStatus', 'studentAdmissionFrom', 'studentAdmissionTo'],
+  classes: ['classSearch', 'classYear', 'classStatus'],
+  years: ['yearSearch', 'yearStatus'],
+  teachers: ['teacherSearch', 'teacherStatus'],
+  users: ['userSearch', 'userRole', 'userStatus'],
+  invoices: ['invoiceSearch', 'invoiceStatus', 'invoiceYear', 'invoiceClass', 'invoiceMonth'],
+  feeHistory: ['feeHistorySearch', 'feeHistoryStatus'],
+  payroll: ['payrollSearch', 'payrollStatus'],
+  busRoutes: ['busRouteSearch', 'busRouteStatus'],
+  busRegistrations: ['busRegYear', 'busRegRoute', 'busRegStatus', 'busRegSearch'],
+  profileExams: ['profileExamSearch'],
+  profileFees: ['profileFeeSearch', 'profileFeeStatus'],
+  attendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear']
+};
+
+export const DEFAULT_LIST_SORT: Record<string, { field: string; dir: SortDirection }> = {
+  students: { field: 'admissionNumber', dir: 'asc' },
+  classes: { field: 'class', dir: 'asc' },
+  years: { field: 'name', dir: 'asc' },
+  teachers: { field: 'name', dir: 'asc' },
+  users: { field: 'name', dir: 'asc' },
+  invoices: { field: 'dueDate', dir: 'desc' },
+  feeHistory: { field: 'paymentDate', dir: 'desc' },
+  payroll: { field: 'period', dir: 'desc' },
+  busRoutes: { field: 'routeCode', dir: 'asc' },
+  busRegistrations: { field: 'studentName', dir: 'asc' },
+  attendance: { field: 'date', dir: 'desc' },
+  profileExams: { field: 'submittedAt', dir: 'desc' },
+  profileFees: { field: 'dueDate', dir: 'desc' }
+};
+
+export function applyDefaultListSort(
+  listSort: Partial<Record<string, { field: string; dir: SortDirection }>>,
+  keys: string[]
+): void {
+  for (const key of keys) {
+    if (!listSort[key] && DEFAULT_LIST_SORT[key]) {
+      listSort[key] = { ...DEFAULT_LIST_SORT[key] };
+    }
+  }
+}
+
 export function compareValues(a: unknown, b: unknown): number {
   if (a == null && b == null) return 0;
   if (a == null) return 1;
@@ -57,11 +100,3 @@ export function exportRowsToPdf(title: string, headers: string[], rows: string[]
   win.focus();
   win.print();
 }
-
-export const LIST_FILTER_KEYS: Record<string, string[]> = {
-  students: ['studentSearch', 'studentClass', 'studentYear', 'studentSection', 'studentStatus', 'studentAdmissionFrom', 'studentAdmissionTo'],
-  classes: ['classSearch', 'classYear', 'classStatus'],
-  years: ['yearSearch', 'yearStatus'],
-  teachers: ['teacherSearch', 'teacherStatus'],
-  users: ['userSearch', 'userRole', 'userStatus']
-};

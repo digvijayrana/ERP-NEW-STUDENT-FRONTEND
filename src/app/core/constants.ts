@@ -44,6 +44,8 @@ export const EXAM_DIFFICULTY = {
 export const ATTENDANCE_STATUS = {
   PRESENT: 'present',
   ABSENT: 'absent',
+  LEAVE: 'leave',
+  HOLIDAY: 'holiday',
   LATE: 'late',
   HALF_DAY: 'half_day'
 } as const;

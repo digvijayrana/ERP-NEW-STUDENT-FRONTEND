@@ -2,8 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, DoCheck, Input } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 import { SpinnerComponent } from '../../shared/spinner.component';
+import { ListingToolbarComponent } from '../../shared/listing-toolbar.component';
+import { TableSkeletonComponent } from '../../shared/table-skeleton.component';
 import { AttendanceRecord } from '../../core/models';
 
 interface CalendarDay {
@@ -21,7 +24,7 @@ interface CalendarDay {
 @Component({
   selector: 'app-attendance-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginationBarComponent, SpinnerComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, PaginationBarComponent, SpinnerComponent, EmptyStateComponent, ListingToolbarComponent, TableSkeletonComponent],
   templateUrl: './attendance-page.component.html'
 })
 export class AttendancePageComponent implements DoCheck {
@@ -139,7 +142,12 @@ export class AttendancePageComponent implements DoCheck {
     return this.calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
-  get calendarStats(): { present: number; absent: number; late: number; total: number } {
+  registerWorkflow(row: AttendanceRecord): string | null {
+    if (!row.register || typeof row.register === 'string') return null;
+    return row.register.workflowStatus || null;
+  }
+
+  get calendarStats(): { present: number; absent: number; leave: number; holiday: number; late: number; total: number } {
     const attendance: AttendanceRecord[] = this.vm?.filteredAttendance || [];
     const year = this.calendarMonth.getFullYear();
     const month = this.calendarMonth.getMonth();
@@ -150,6 +158,8 @@ export class AttendancePageComponent implements DoCheck {
     return {
       present: monthRecords.filter((r) => r.status === 'present').length,
       absent: monthRecords.filter((r) => r.status === 'absent').length,
+      leave: monthRecords.filter((r) => r.status === 'leave').length,
+      holiday: monthRecords.filter((r) => r.status === 'holiday').length,
       late: monthRecords.filter((r) => r.status === 'late' || r.status === 'half_day').length,
       total: monthRecords.length
     };

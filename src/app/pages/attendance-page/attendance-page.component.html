@@ -1,11 +1,10 @@
 <section class="workspace">
-  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.attendance.length && !vm.students.length">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.attendance.length">
     <app-spinner [show]="true" label="Loading attendance records..."></app-spinner>
   </div>
-  <ng-container *ngIf="!vm.loading || vm.attendance.length || vm.students.length">
+  <ng-container *ngIf="!vm.loading || vm.attendance.length">
 
-  <!-- Self-attendance card for students and teachers -->
-  <article *ngIf="vm.isStudent || vm.isTeacher" class="panel span-4 self-attendance-card" [class.marked]="vm.selfAttendanceMarked">
+  <article *ngIf="vm.isTeacher" class="panel span-4 self-attendance-card" [class.marked]="vm.selfAttendanceMarked">
     <div class="section-head">
       <div>
         <p class="eyebrow">Today's Attendance</p>
@@ -32,19 +31,62 @@
     </div>
   </article>
 
-  <!-- Mark attendance form (admin/teacher) -->
-  <form *ngIf="vm.isAdmin || vm.isTeacher" [formGroup]="vm.attendanceForm" (ngSubmit)="vm.saveAttendance()" class="panel span-4">
-    <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Mark attendance</h3></div></div>
-    <label>Student<select formControlName="student"><option value="">Select</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
-    <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-    <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
-    <label>Date<input type="date" formControlName="date"></label>
-    <label>Status<select formControlName="status"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option><option value="half_day">Half day</option></select></label>
-    <label>Remarks<input formControlName="remarks"></label>
-    <button type="submit" [disabled]="vm.attendanceForm.invalid">Save attendance</button>
-  </form>
+  <section *ngIf="vm.isAdmin || vm.isTeacher" class="panel span-8">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Class register</p>
+        <h3>Daily attendance entry</h3>
+      </div>
+      <span class="status-badge" [ngClass]="vm.attendanceRegisterWorkflow">{{ vm.attendanceRegisterWorkflow }}</span>
+    </div>
+    <form [formGroup]="vm.attendanceForm" class="form-grid compact" (ngSubmit)="vm.loadAttendanceRegister()">
+      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class<select formControlName="classRoom"><option value="">Select class</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Date<input type="date" formControlName="date" [max]="today | date:'yyyy-MM-dd'"></label>
+      <div class="form-actions inline">
+        <button type="submit" [disabled]="vm.attendanceForm.invalid">Load students</button>
+        <button type="button" class="ghost" (click)="vm.markAllAttendancePresent()" [disabled]="!vm.attendanceRegisterRows.length || !vm.attendanceRegisterEditable">Mark all present</button>
+      </div>
+    </form>
+    <p class="hint-text" *ngIf="vm.attendanceRegisterHoliday">Holiday: {{ vm.attendanceRegisterHoliday.name }}</p>
+    <p class="hint-text" *ngIf="vm.attendanceRegisterSunday">Sunday — attendance entry is blocked unless using Holiday status.</p>
 
-  <!-- Holiday management (admin only) -->
+    <div class="inv-details fee-breakdown" *ngIf="vm.attendanceRegisterRows.length">
+      <div class="inv-detail"><span class="inv-label">Present</span><span class="inv-value">{{ vm.attendanceRegisterSummary.present }}</span></div>
+      <div class="inv-detail"><span class="inv-label">Absent</span><span class="inv-value">{{ vm.attendanceRegisterSummary.absent }}</span></div>
+      <div class="inv-detail"><span class="inv-label">Leave</span><span class="inv-value">{{ vm.attendanceRegisterSummary.leave }}</span></div>
+      <div class="inv-detail"><span class="inv-label">Holiday</span><span class="inv-value">{{ vm.attendanceRegisterSummary.holiday }}</span></div>
+      <div class="inv-detail"><span class="inv-label">Attendance %</span><span class="inv-value">{{ vm.attendanceRegisterSummary.percentage }}%</span></div>
+    </div>
+
+    <div class="table-wrap" *ngIf="vm.attendanceRegisterRows.length">
+      <table>
+        <thead><tr><th>Student</th><th>Status</th><th>Remarks</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of vm.attendanceRegisterRows">
+            <td>{{ row.admissionNumber }} — {{ row.studentName }}</td>
+            <td>
+              <select [value]="row.status" [disabled]="!vm.attendanceRegisterEditable" (change)="vm.setAttendanceRegisterRowStatus(row.studentId, $any($event.target).value)">
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="leave">Leave</option>
+                <option value="holiday">Holiday</option>
+              </select>
+            </td>
+            <td><input [value]="row.remarks" [disabled]="!vm.attendanceRegisterEditable" (input)="row.remarks = $any($event.target).value" class="inline-input"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-actions" *ngIf="vm.attendanceRegisterRows.length">
+      <button type="button" (click)="vm.saveAttendanceRegisterDraft()" [disabled]="!vm.attendanceRegisterEditable || vm.submitting">Save draft</button>
+      <button type="button" class="ghost" (click)="vm.submitAttendanceRegister()" [disabled]="!vm.attendanceRegisterEditable || vm.submitting">Submit</button>
+      <button *ngIf="vm.isAdmin" type="button" class="ghost" (click)="vm.lockAttendanceRegister()" [disabled]="vm.attendanceRegisterWorkflow === 'locked' || vm.submitting">Lock</button>
+      <button *ngIf="vm.isAdmin" type="button" class="ghost danger-text" (click)="vm.unlockAttendanceRegister()" [disabled]="vm.attendanceRegisterWorkflow === 'draft' || vm.submitting">Unlock</button>
+    </div>
+  </section>
+
   <article *ngIf="vm.isAdmin" class="panel span-4 holiday-card">
     <div class="section-head"><div><p class="eyebrow">Manage</p><h3>Holiday list</h3></div></div>
     <label>Date<input type="date" [(ngModel)]="vm.holidayForm.date"></label>
@@ -61,12 +103,11 @@
     <p *ngIf="!vm.holidays.length" class="muted" style="text-align:center; padding: 12px 0;">No holidays added yet</p>
   </article>
 
-  <!-- Calendar & Table section -->
   <section class="data-card span-12 attendance-calendar-section">
     <div class="section-head">
       <div>
         <p class="eyebrow">Records</p>
-        <h3>Attendance calendar</h3>
+        <h3>{{ vm.isPortalUser ? 'My attendance' : 'Attendance calendar' }}</h3>
       </div>
       <div class="view-toggle-bar">
         <button type="button" class="view-toggle-btn" [class.active]="viewMode === 'calendar'" (click)="viewMode = 'calendar'">Calendar</button>
@@ -74,8 +115,11 @@
       </div>
     </div>
 
-    <!-- Filters for admin/teacher -->
     <div class="toolbar" *ngIf="vm.isAdmin || vm.isTeacher">
+      <select class="filter-select" [value]="vm.filters.attendanceYear" (change)="vm.filters.attendanceYear = $any($event.target).value; vm.resetPage('attendance'); buildCalendar()">
+        <option value="">All years</option>
+        <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+      </select>
       <select class="filter-select" [value]="vm.filters.attendanceClass" (change)="vm.filters.attendanceClass = $any($event.target).value; vm.filters.attendanceStudent = ''; vm.resetPage('attendance'); buildCalendar()">
         <option value="">All classes</option>
         <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
@@ -88,12 +132,13 @@
         <option value="">All status</option>
         <option value="present">Present</option>
         <option value="absent">Absent</option>
+        <option value="leave">Leave</option>
+        <option value="holiday">Holiday</option>
         <option value="late">Late</option>
         <option value="half_day">Half day</option>
       </select>
     </div>
 
-    <!-- Calendar View -->
     <div class="attendance-calendar" *ngIf="viewMode === 'calendar'">
       <div class="calendar-toolbar">
         <div class="calendar-nav">
@@ -105,7 +150,8 @@
         <div class="calendar-stats">
           <span class="cal-stat present">Present: {{ calendarStats.present }}</span>
           <span class="cal-stat absent">Absent: {{ calendarStats.absent }}</span>
-          <span class="cal-stat late">Late/Half: {{ calendarStats.late }}</span>
+          <span class="cal-stat leave">Leave: {{ calendarStats.leave }}</span>
+          <span class="cal-stat holiday">Holiday: {{ calendarStats.holiday }}</span>
           <span class="cal-stat total">Total: {{ calendarStats.total }}</span>
         </div>
       </div>
@@ -113,7 +159,7 @@
       <div class="calendar-legend">
         <span class="legend-item"><span class="legend-dot present"></span>Present</span>
         <span class="legend-item"><span class="legend-dot absent"></span>Absent</span>
-        <span class="legend-item"><span class="legend-dot late"></span>Late / Half day</span>
+        <span class="legend-item"><span class="legend-dot leave"></span>Leave</span>
         <span class="legend-item"><span class="legend-dot holiday"></span>Holiday</span>
         <span class="legend-item"><span class="legend-dot sunday"></span>Sunday</span>
       </div>
@@ -136,34 +182,118 @@
       </div>
     </div>
 
-    <!-- Table View -->
     <div *ngIf="viewMode === 'table'">
-      <div class="toolbar" *ngIf="vm.isStudent || vm.isParent">
-        <div class="search-box"><input placeholder="Search date, status" [value]="vm.filters.attendanceSearch" (input)="vm.filters.attendanceSearch = $any($event.target).value; vm.resetPage('attendance')"></div>
-        <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.filters.attendanceStatus = $any($event.target).value; vm.resetPage('attendance')">
-          <option value="">All status</option>
-          <option value="present">Present</option>
-          <option value="absent">Absent</option>
-          <option value="late">Late</option>
-          <option value="half_day">Half day</option>
-        </select>
-      </div>
-      <div class="table-wrap">
+      <app-listing-toolbar
+        searchPlaceholder="Search student, class, or status..."
+        [searchValue]="vm.filters.attendanceSearch"
+        [loading]="vm.isListingLoading('attendance')"
+        (searchChange)="vm.updateListSearch('attendance', 'attendanceSearch', $event)"
+        (refresh)="vm.refreshListing('attendance')"
+        (exportCsv)="vm.exportAttendanceListCsv()"
+        (exportPdf)="vm.exportAttendanceListPdf()"
+        [showExport]="!vm.isPortalUser">
+        <div listing-filters class="listing-filters">
+          <select class="filter-select" [value]="vm.filters.attendanceStatus" (change)="vm.updateListFilter('attendance', 'attendanceStatus', $any($event.target).value)">
+            <option value="">All status</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="leave">Leave</option>
+            <option value="holiday">Holiday</option>
+          </select>
+          <select *ngIf="!vm.isPortalUser" class="filter-select" [value]="vm.filters.attendanceClass" (change)="vm.updateListFilter('attendance', 'attendanceClass', $any($event.target).value)">
+            <option value="">All classes</option>
+            <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+          </select>
+          <select *ngIf="!vm.isPortalUser" class="filter-select" [value]="vm.filters.attendanceYear" (change)="vm.updateListFilter('attendance', 'attendanceYear', $any($event.target).value)">
+            <option value="">All years</option>
+            <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+          </select>
+        </div>
+      </app-listing-toolbar>
+      <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('attendance')">
+      <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('attendance') || vm.sortedAttendance.length">
         <table>
-          <thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Status</th></tr></thead>
+          <thead><tr>
+            <th class="sortable" (click)="vm.toggleListSort('attendance', 'date')">Date{{ vm.listSortIndicator('attendance', 'date') }}</th>
+            <th *ngIf="!vm.isPortalUser" class="sortable" (click)="vm.toggleListSort('attendance', 'studentName')">Student{{ vm.listSortIndicator('attendance', 'studentName') }}</th>
+            <th class="sortable" (click)="vm.toggleListSort('attendance', 'className')">Class{{ vm.listSortIndicator('attendance', 'className') }}</th>
+            <th class="sortable" (click)="vm.toggleListSort('attendance', 'status')">Status{{ vm.listSortIndicator('attendance', 'status') }}</th>
+            <th *ngIf="!vm.isPortalUser">Workflow</th>
+          </tr></thead>
           <tbody>
-            <tr *ngFor="let row of vm.paged('attendance', vm.filteredAttendance)">
+            <tr *ngFor="let row of vm.paged('attendance', vm.sortedAttendance)">
               <td>{{ row.date | date }}</td>
-              <td>{{ vm.studentName(row.student) }}</td>
+              <td *ngIf="!vm.isPortalUser">{{ vm.studentName(row.student) }}</td>
               <td>{{ vm.className(row.classRoom) }}</td>
               <td><span class="status-badge" [ngClass]="row.status">{{ row.status }}</span></td>
+              <td *ngIf="!vm.isPortalUser"><span class="status-badge" *ngIf="registerWorkflow(row) as workflow">{{ workflow }}</span></td>
             </tr>
-            <tr *ngIf="!vm.filteredAttendance.length"><td colspan="4" class="empty-cell">No attendance records</td></tr>
+            <tr *ngIf="!vm.sortedAttendance.length && !vm.isListingLoading('attendance')">
+              <td [attr.colspan]="vm.isPortalUser ? 3 : 5">
+                <app-empty-state title="No attendance records" message="No attendance records match the selected filters."></app-empty-state>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
-      <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+      <app-table-skeleton *ngIf="vm.isListingLoading('attendance') && !vm.sortedAttendance.length" [columns]="5" [rows]="6" [embedded]="true"></app-table-skeleton>
+      </div>
+      <app-pagination-bar [vm]="vm" listKey="attendance" [items]="vm.sortedAttendance"></app-pagination-bar>
     </div>
+  </section>
+
+  <section *ngIf="!vm.isPortalUser && vm.can('attendance', 'view')" class="data-card span-12">
+    <div class="section-head"><div><p class="eyebrow">Reports</p><h3>Attendance reports</h3></div></div>
+    <div class="toolbar">
+      <select class="filter-select" [value]="vm.attendanceReportType" (change)="vm.attendanceReportType = $any($event.target).value; vm.loadAttendanceReport()">
+        <option value="daily">Daily attendance</option>
+        <option value="monthly">Monthly attendance</option>
+        <option value="student-summary">Student summary</option>
+        <option value="class-summary">Class summary</option>
+      </select>
+      <select class="filter-select" [value]="vm.filters.attendanceYear" (change)="vm.filters.attendanceYear = $any($event.target).value; vm.loadAttendanceReport()">
+        <option value="">All years</option>
+        <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+      </select>
+      <select *ngIf="vm.attendanceReportType === 'monthly'" class="filter-select" [value]="vm.filters.attendanceReportMonth" (change)="vm.filters.attendanceReportMonth = $any($event.target).value; vm.loadAttendanceReport()">
+        <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option>
+      </select>
+      <button type="button" class="ghost small" (click)="vm.loadAttendanceReport()">Refresh</button>
+      <button *ngIf="vm.can('attendance', 'export')" type="button" class="ghost small" (click)="vm.exportAttendanceReportCsv()">Export Excel</button>
+      <button *ngIf="vm.can('attendance', 'export')" type="button" class="ghost small" (click)="vm.exportAttendanceReportPdf()">Export PDF</button>
+      <button *ngIf="vm.can('attendance', 'export')" type="button" class="ghost small" (click)="vm.openAttendanceReportServerPdf()">Download PDF</button>
+    </div>
+    <div class="table-wrap sticky-header">
+      <table>
+        <thead>
+          <tr>
+            <th *ngIf="vm.attendanceReportType === 'daily'">Date</th>
+            <th *ngIf="vm.attendanceReportType !== 'class-summary'">Student</th>
+            <th>Class</th>
+            <th *ngIf="vm.attendanceReportType === 'monthly'">Month</th>
+            <th *ngIf="vm.attendanceReportType === 'daily'">Status</th>
+            <th *ngIf="vm.attendanceReportType !== 'daily'">Present</th>
+            <th *ngIf="vm.attendanceReportType !== 'daily'">Absent</th>
+            <th *ngIf="vm.attendanceReportType !== 'daily'">Leave</th>
+            <th *ngIf="vm.attendanceReportType !== 'daily'">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of vm.attendanceReportRows">
+            <td *ngIf="vm.attendanceReportType === 'daily'">{{ row.date | date:'dd MMM yyyy' }}</td>
+            <td *ngIf="vm.attendanceReportType !== 'class-summary'">{{ row.studentName }}</td>
+            <td>{{ row.className }}</td>
+            <td *ngIf="vm.attendanceReportType === 'monthly'">{{ row.month }}</td>
+            <td *ngIf="vm.attendanceReportType === 'daily'"><span class="status-badge" [ngClass]="row.status">{{ row.status }}</span></td>
+            <td *ngIf="vm.attendanceReportType !== 'daily'">{{ row.present }}</td>
+            <td *ngIf="vm.attendanceReportType !== 'daily'">{{ row.absent }}</td>
+            <td *ngIf="vm.attendanceReportType !== 'daily'">{{ row.leave }}</td>
+            <td *ngIf="vm.attendanceReportType !== 'daily'">{{ row.percentage }}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-empty-state *ngIf="!vm.attendanceReportRows.length" message="No attendance report data for the selected filters."></app-empty-state>
   </section>
   </ng-container>
 </section>

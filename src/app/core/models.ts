@@ -78,6 +78,18 @@ export interface Student {
   updatedAt?: string;
 }
 
+export interface FeePayment {
+  _id?: string;
+  receiptNumber: string;
+  amount: number;
+  mode: string;
+  paidAt?: string;
+  referenceNumber?: string;
+  remarks?: string;
+  status?: 'active' | 'void';
+  locked?: boolean;
+}
+
 export interface FeeInvoice {
   _id: string;
   invoiceNumber: string;
@@ -85,23 +97,135 @@ export interface FeeInvoice {
   classRoom: ClassRoom | string;
   academicYear: AcademicYear | string;
   dueDate: string;
+  feeMonth?: number;
+  feeYear?: number;
+  tuitionFee?: number;
+  busFee?: number;
+  otherCharges?: number;
+  previousPending?: number;
   items: Array<{ label: string; amount: number }>;
   discount: number;
   fine: number;
-  payments: Array<{ amount: number; mode: string; date: string }>;
+  payments: FeePayment[];
   status: string;
+  locked?: boolean;
   totalAmount: number;
   paidAmount: number;
   balanceAmount: number;
   createdAt?: string;
 }
 
+export interface FeeHistoryRow {
+  invoiceId: string;
+  paymentId?: string | null;
+  invoiceNumber: string;
+  receiptNumber?: string | null;
+  student: Student | string;
+  academicYear: AcademicYear | string;
+  classRoom: ClassRoom | string;
+  feeMonth: number;
+  feeYear: number;
+  tuitionFee?: number;
+  busFee?: number;
+  paidAmount: number;
+  pendingAmount: number;
+  paymentDate?: string | null;
+  paymentStatus: string;
+  mode?: string | null;
+  locked?: boolean;
+}
+
+export interface BusStop {
+  name: string;
+  sequence: number;
+  distance: number;
+  monthlyFee: number;
+}
+
+export interface BusRoute {
+  _id: string;
+  routeName: string;
+  routeCode: string;
+  vehicleNumber: string;
+  driverName: string;
+  driverMobile: string;
+  status: 'active' | 'inactive';
+  capacity: number;
+  feeType: 'stop_based' | 'fixed';
+  fixedMonthlyFee: number;
+  stops: BusStop[];
+  assignedCount?: number;
+  availableCapacity?: number;
+}
+
+export interface BusRegistration {
+  _id: string;
+  student: Student | string;
+  academicYear: AcademicYear | string;
+  route: BusRoute | string;
+  stopName: string;
+  stopSequence: number;
+  monthlyFee: number;
+  busService: boolean;
+  serviceStartDate: string;
+  serviceEndDate?: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+}
+
+export interface BusReportRow {
+  studentName?: string;
+  admissionNumber?: string;
+  academicYear?: string;
+  className?: string;
+  routeName?: string;
+  routeCode?: string;
+  vehicleNumber?: string;
+  stopName?: string;
+  monthlyFee?: number;
+  busFee?: number;
+  paidAmount?: number;
+  pendingAmount?: number;
+  feeMonth?: string;
+  paymentDate?: string | null;
+  receiptNumber?: string | null;
+  status?: string;
+  busService?: boolean;
+  serviceStartDate?: string;
+  serviceEndDate?: string;
+}
+
 export interface DashboardActivity {
-  type: 'student_admission' | 'teacher_registration' | 'class_creation' | 'student_status_change';
+  type: 'student_admission' | 'teacher_registration' | 'class_creation' | 'student_status_change' | string;
   description: string;
   performedBy?: string;
   performedAt: string;
   meta?: Record<string, unknown>;
+}
+
+export interface DashboardOperationalAnalytics {
+  todaysAttendance?: { present: number; absent: number; leave: number; total: number };
+  todaysFeeCollection?: number;
+  pendingFees?: number;
+  busStudents?: number;
+  payrollStatus?: {
+    month: number;
+    year: number;
+    total: number;
+    paid: number;
+    pending: number;
+    paidAmount: number;
+    pendingAmount: number;
+  };
+  recentFeeCollections?: Array<{
+    studentName: string;
+    admissionNumber: string;
+    amount: number;
+    receiptNumber: string;
+    paidAt: string;
+    mode: string;
+    feeMonth: string;
+  }>;
 }
 
 export interface DashboardSummary {
@@ -115,10 +239,14 @@ export interface DashboardSummary {
   todaysAdmissions?: number;
   pendingDocuments?: number;
   recentActivities?: DashboardActivity[];
+  operational?: DashboardOperationalAnalytics;
   /** Scoped count for non-admin roles */
   students?: number;
   teachers?: number;
 }
+
+export type ReportDomain = 'students' | 'fees' | 'attendance' | 'payroll' | 'transport';
+export type ReportRow = Record<string, unknown>;
 
 export type UserRole = 'super_admin' | 'admin' | 'teacher' | 'reception' | 'accountant' | 'student' | 'parent';
 
@@ -162,9 +290,55 @@ export interface AttendanceRecord {
   _id: string;
   student: Student | string;
   classRoom: ClassRoom | string;
+  academicYear?: AcademicYear | string;
   date: string;
-  status: 'present' | 'absent' | 'late' | 'half_day';
+  status: 'present' | 'absent' | 'leave' | 'holiday' | 'late' | 'half_day';
   remarks?: string;
+  register?: { workflowStatus?: 'draft' | 'submitted' | 'locked' } | string;
+}
+
+export interface AttendanceRegisterSheet {
+  register: {
+    _id?: string;
+    academicYear: string;
+    classRoom: string;
+    date: string;
+    workflowStatus: 'draft' | 'submitted' | 'locked';
+  };
+  classRoom?: ClassRoom;
+  holiday?: { name: string; date: string } | null;
+  isSunday?: boolean;
+  rows: Array<{
+    student: Student;
+    status: string;
+    remarks?: string;
+    recordId?: string | null;
+  }>;
+  summary: {
+    present: number;
+    absent: number;
+    leave: number;
+    holiday: number;
+    total: number;
+    percentage: number;
+  };
+}
+
+export interface AttendanceReportRow {
+  date?: string;
+  studentName?: string;
+  admissionNumber?: string;
+  className?: string;
+  month?: string;
+  status?: string;
+  remarks?: string;
+  present?: number;
+  absent?: number;
+  leave?: number;
+  holiday?: number;
+  total?: number;
+  percentage?: number;
+  studentCount?: number;
 }
 
 export interface TimetableRow {
@@ -286,11 +460,22 @@ export interface StudentProfile {
     mandatoryStatus: { photo: string; birthCertificate: string; overall: string };
   };
   profileCompletion?: number;
-  activityTimeline?: Array<{ action: string; description: string; performedBy?: string; performedAt: string }>;
+  activityTimeline?: Array<{
+    action: string;
+    description: string;
+    performedBy?: string;
+    performedAt: string;
+    previousStatus?: string;
+    newStatus?: string;
+    remarks?: string;
+    source?: string;
+  }>;
   attendance: {
     percentage: number;
     present: number;
     absent: number;
+    leave?: number;
+    holiday?: number;
     total: number;
     recent: Array<{ date: string; status: string }>;
   };
@@ -312,11 +497,43 @@ export interface StudentProfile {
   };
   fees: {
     status: string;
+    monthlyFee?: number;
+    busFee?: number;
     totalDue: number;
     totalPaid: number;
-    invoices: Array<{ invoiceNumber: string; status: string; balanceAmount: number; totalAmount: number; dueDate: string }>;
+    pendingAmount?: number;
+    lastReceipt?: {
+      receiptNumber: string;
+      amount: number;
+      paidAt: string;
+      mode?: string;
+      invoiceNumber?: string;
+    } | null;
+    invoices: Array<{
+      invoiceNumber: string;
+      status: string;
+      balanceAmount: number;
+      totalAmount: number;
+      tuitionFee?: number;
+      busFee?: number;
+      dueDate: string;
+      feeMonth?: number;
+      feeYear?: number;
+    }>;
   };
-  transport: { route: string; busNumber: string; pickupPoint: string };
+  transport: {
+    route: string;
+    busStop?: string;
+    busNumber: string;
+    pickupPoint: string;
+    monthlyFee?: number;
+    status?: string;
+    assigned?: boolean;
+    serviceStartDate?: string;
+    serviceEndDate?: string;
+    driverName?: string;
+    driverMobile?: string;
+  };
   behavior: { score: string; remarks: string };
   aiInsights: StudentAiInsights;
 }

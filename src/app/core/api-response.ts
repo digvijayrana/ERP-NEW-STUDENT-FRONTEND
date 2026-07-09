@@ -45,6 +45,13 @@ export interface ListQueryParams {
   teacherStatus?: string;
   userRole?: string;
   userStatus?: string;
+  feeMonth?: string;
+  feeYear?: string;
+  paymentStatus?: string;
+  route?: string;
+  month?: string;
+  year?: string;
+  student?: string;
 }
 
 export function extractApiMessage(error: unknown, fallback = 'Something went wrong'): string {

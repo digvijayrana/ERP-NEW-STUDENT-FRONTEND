@@ -36,12 +36,20 @@ export const TAB_MODULE_MAP: Record<string, ErpModule> = {
   teachers: 'teachers',
   fees: 'fees',
   payroll: 'payroll',
+  transport: 'transport',
   promotion: 'students',
   attendance: 'attendance',
   timetable: 'timetable',
   exams: 'exams',
   profile: 'students',
-  users: 'users'
+  users: 'users',
+  reports: 'reports'
+};
+
+/** Tabs each self-service role may see (in addition to module permissions). */
+export const ROLE_TAB_ALLOWLIST: Partial<Record<string, string[]>> = {
+  student: ['dashboard', 'profile', 'fees', 'attendance', 'timetable', 'exams'],
+  parent: ['dashboard', 'profile', 'fees', 'attendance', 'timetable', 'exams']
 };
 
 @Injectable({ providedIn: 'root' })
@@ -64,6 +72,8 @@ export class PermissionService {
   canViewTab(tabKey: string, role?: string): boolean {
     const module = TAB_MODULE_MAP[tabKey];
     if (!module) return false;
+    const allowlist = role ? ROLE_TAB_ALLOWLIST[role] : undefined;
+    if (allowlist && !allowlist.includes(tabKey)) return false;
     return this.can(module, 'view', role);
   }
 }

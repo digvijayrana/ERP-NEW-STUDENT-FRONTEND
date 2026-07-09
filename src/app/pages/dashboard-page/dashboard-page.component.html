@@ -15,7 +15,8 @@
         {{ vm.isAdmin ? 'School Command Center' : vm.isTeacher ? 'Teacher Workspace' : vm.isParent ? 'Parent Dashboard' : 'Student Portal' }}
       </h2>
       <p class="dash-sub" *ngIf="vm.isAdmin">Monitor admissions, staff, classes, documents, and recent school activity from one place.</p>
-      <p class="dash-sub" *ngIf="!vm.isAdmin">Track students, attendance, exams, and academic operations &mdash; all from one place.</p>
+      <p class="dash-sub" *ngIf="vm.isTeacher">Track students, attendance, exams, and academic operations &mdash; all from one place.</p>
+      <p class="dash-sub" *ngIf="vm.isStudent || vm.isParent">View your fees, attendance, timetable, exams, and profile from one place.</p>
     </div>
     <div class="dash-welcome-actions">
       <div class="active-year-pill" *ngIf="vm.summary?.activeYear as activeYear">
@@ -109,24 +110,143 @@
     </div>
   </div>
 
-  <!-- Scoped summary for non-admin roles -->
-  <div class="dash-stats" *ngIf="vm.summary && !vm.isAdmin">
+  <!-- Operational analytics (admin / accountant) -->
+  <div class="dash-stats" *ngIf="vm.summary?.operational && vm.showOperationalDashboard">
+    <div class="dash-stat-card dash-stat-teal clickable" (click)="vm.setTab('attendance')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Today's Attendance</span>
+        <strong>{{ vm.summary!.operational!.todaysAttendance?.present || 0 }} present</strong>
+        <small>{{ vm.summary!.operational!.todaysAttendance?.absent || 0 }} absent · {{ vm.summary!.operational!.todaysAttendance?.total || 0 }} total</small>
+      </div>
+    </div>
+
+    <div class="dash-stat-card dash-stat-green clickable" (click)="vm.setTab('fees')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Today's Fee Collection</span>
+        <strong>{{ vm.summary!.operational!.todaysFeeCollection || 0 | currency: 'INR' }}</strong>
+      </div>
+    </div>
+
+    <div class="dash-stat-card dash-stat-red clickable" (click)="vm.setTab('fees')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Pending Fees</span>
+        <strong>{{ vm.summary!.operational!.pendingFees || 0 | currency: 'INR' }}</strong>
+      </div>
+    </div>
+
+    <div class="dash-stat-card dash-stat-orange clickable" (click)="vm.setTab('transport')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Students Using Bus</span>
+        <strong>{{ vm.summary!.operational!.busStudents || 0 }}</strong>
+      </div>
+    </div>
+
+    <div class="dash-stat-card dash-stat-purple clickable" (click)="vm.setTab('payroll')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Payroll Status</span>
+        <strong>{{ vm.summary!.operational!.payrollStatus?.paid || 0 }}/{{ vm.summary!.operational!.payrollStatus?.total || 0 }} paid</strong>
+        <small>{{ vm.summary!.operational!.payrollStatus?.pending || 0 }} pending this month</small>
+      </div>
+    </div>
+  </div>
+
+  <section class="data-card span-12" *ngIf="vm.summary?.operational?.recentFeeCollections?.length && vm.showOperationalDashboard">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Fee Collections</p>
+        <h3>Recent fee collections</h3>
+      </div>
+      <button type="button" class="ghost small view-all-link" (click)="vm.setTab('reports')">Reports &rarr;</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Month</th><th>Amount</th><th>Receipt</th><th>Date</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of vm.summary!.operational!.recentFeeCollections">
+            <td>{{ row.studentName }}</td>
+            <td>{{ row.feeMonth }}</td>
+            <td>{{ row.amount | currency: 'INR' }}</td>
+            <td>{{ row.receiptNumber }}</td>
+            <td>{{ row.paidAt | date:'medium' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Scoped summary for teacher -->
+  <div class="dash-stats" *ngIf="vm.summary && vm.isTeacher">
     <div class="dash-stat-card dash-stat-blue clickable" (click)="vm.setTab('students')">
       <div class="dash-stat-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       </div>
       <div class="dash-stat-info">
-        <span>{{ vm.isStudent || vm.isParent ? 'Linked Students' : 'Students' }}</span>
+        <span>Students</span>
         <strong>{{ vm.summary.students }}</strong>
       </div>
     </div>
-    <div class="dash-stat-card dash-stat-teal" *ngIf="!vm.isStudent && !vm.isParent">
+    <div class="dash-stat-card dash-stat-teal">
       <div class="dash-stat-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
       <div class="dash-stat-info">
         <span>Teachers</span>
         <strong>{{ vm.summary.teachers }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portal summary for student / parent -->
+  <div class="dash-stats" *ngIf="vm.summary && vm.isPortalUser">
+    <div class="dash-stat-card dash-stat-blue clickable" (click)="vm.setTab('profile')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>My Profile</span>
+        <strong>View</strong>
+      </div>
+    </div>
+    <div class="dash-stat-card dash-stat-green clickable" (click)="vm.setTab('fees')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>My Fees</span>
+        <strong>View</strong>
+      </div>
+    </div>
+    <div class="dash-stat-card dash-stat-orange clickable" (click)="vm.setTab('attendance')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Attendance</span>
+        <strong>View</strong>
+      </div>
+    </div>
+    <div class="dash-stat-card dash-stat-purple clickable" (click)="vm.setTab('exams')">
+      <div class="dash-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="dash-stat-info">
+        <span>Exams</span>
+        <strong>View</strong>
       </div>
     </div>
   </div>
@@ -182,7 +302,42 @@
         <strong>Attendance</strong>
         <span>Daily records</span>
       </button>
-      <button type="button" class="dash-module dash-mod-green" *ngIf="vm.isTeacher || vm.isStudent || vm.isParent" (click)="vm.setTab('profile')">
+      <button type="button" class="dash-module dash-mod-green" *ngIf="vm.isStudent || vm.isParent" (click)="vm.setTab('profile')">
+        <div class="dash-mod-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <strong>My Profile</strong>
+        <span>Academic overview</span>
+      </button>
+      <button type="button" class="dash-module dash-mod-blue" *ngIf="vm.isStudent || vm.isParent" (click)="vm.setTab('fees')">
+        <div class="dash-mod-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <strong>My Fees</strong>
+        <span>Payment history</span>
+      </button>
+      <button type="button" class="dash-module dash-mod-orange" *ngIf="vm.isStudent || vm.isParent" (click)="vm.setTab('attendance')">
+        <div class="dash-mod-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <strong>Attendance</strong>
+        <span>View records</span>
+      </button>
+      <button type="button" class="dash-module dash-mod-purple" *ngIf="vm.isStudent || vm.isParent" (click)="vm.setTab('timetable')">
+        <div class="dash-mod-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <strong>Timetable</strong>
+        <span>Class schedule</span>
+      </button>
+      <button type="button" class="dash-module dash-mod-red" *ngIf="vm.isStudent || vm.isParent" (click)="vm.setTab('exams')">
+        <div class="dash-mod-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <strong>Exams</strong>
+        <span>Unit tests</span>
+      </button>
+      <button type="button" class="dash-module dash-mod-green" *ngIf="vm.isTeacher" (click)="vm.setTab('profile')">
         <div class="dash-mod-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
@@ -219,7 +374,7 @@
   </section>
 
   <!-- Students Table -->
-  <section class="data-card span-8">
+  <section class="data-card span-8" *ngIf="!vm.isPortalUser">
     <div class="section-head">
       <div>
         <p class="eyebrow">Students</p>
@@ -276,7 +431,7 @@
   </section>
 
   <!-- Attendance Table -->
-  <section class="data-card span-12">
+  <section class="data-card span-12" *ngIf="!vm.isPortalUser">
     <div class="section-head">
       <div><p class="eyebrow">Attendance</p><h3>Recent records</h3></div>
       <button type="button" class="ghost small view-all-link" (click)="vm.setTab('attendance')">View all &rarr;</button>
@@ -291,20 +446,20 @@
         <option value="half_day">Half day</option>
       </select>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap sticky-header">
       <table>
         <thead><tr><th>Student</th><th>Status</th><th>Date</th></tr></thead>
         <tbody>
-          <tr *ngFor="let record of vm.paged('dashboardAttendance', vm.filteredAttendance)">
+          <tr *ngFor="let record of vm.paged('dashboardAttendance', vm.sortedDashboardAttendance)">
             <td>{{ vm.studentName(record.student) }}</td>
             <td><span class="status-badge" [ngClass]="record.status">{{ record.status }}</span></td>
             <td>{{ record.date | date }}</td>
           </tr>
-          <tr *ngIf="!vm.filteredAttendance.length"><td colspan="3" class="empty-cell">No attendance records</td></tr>
         </tbody>
       </table>
     </div>
-    <app-pagination-bar [vm]="vm" listKey="dashboardAttendance" [items]="vm.filteredAttendance"></app-pagination-bar>
+    <app-empty-state *ngIf="!vm.sortedDashboardAttendance.length" title="No attendance records" message="No attendance records match the current filters."></app-empty-state>
+    <app-pagination-bar [vm]="vm" listKey="dashboardAttendance" [items]="vm.sortedDashboardAttendance"></app-pagination-bar>
   </section>
 
   </ng-container>

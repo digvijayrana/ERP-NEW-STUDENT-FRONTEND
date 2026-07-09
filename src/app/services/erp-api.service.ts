@@ -8,6 +8,8 @@ import { ApiSuccessResponse, ListQueryParams } from '../core/api-response';
 import {
   AcademicYear,
   AttendanceRecord,
+  AttendanceRegisterSheet,
+  AttendanceReportRow,
   AuthResponse,
   ClassRoom,
   DashboardSummary,
@@ -16,7 +18,13 @@ import {
   ErpRole,
   ExamSubmission,
   FeeInvoice,
+  FeeHistoryRow,
+  BusRoute,
+  BusRegistration,
+  BusReportRow,
   PayrollRecord,
+  ReportDomain,
+  ReportRow,
   Student,
   StudentProfile,
   Teacher,
@@ -191,20 +199,52 @@ export class ErpApiService {
     return this.http.post<{ promoted: number }>(`${this.baseUrl}/students/promotions`, payload, this.options());
   }
 
-  invoices(): Observable<FeeInvoice[]> {
-    return this.http.get<FeeInvoice[]>(`${this.baseUrl}/fees/invoices`, this.options());
+  invoices(params?: ListQueryParams): Observable<ApiSuccessResponse<FeeInvoice[]>> {
+    return this.http.get<ApiSuccessResponse<FeeInvoice[]>>(`${this.baseUrl}/fees/invoices`, this.listOptions(params));
+  }
+
+  generateFeeDemands(payload: Record<string, unknown>): Observable<{ created: number; skipped: number }> {
+    return this.http.post<{ created: number; skipped: number }>(`${this.baseUrl}/fees/demands/generate`, payload, this.options());
+  }
+
+  previewFeeDemand(params: Record<string, string>): Observable<Record<string, unknown>> {
+    let httpParams = new HttpParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value) httpParams = httpParams.set(key, value);
+    }
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/fees/invoices/preview`, { ...this.options(), params: httpParams });
+  }
+
+  feeHistory(params?: ListQueryParams): Observable<ApiSuccessResponse<FeeHistoryRow[]>> {
+    return this.http.get<ApiSuccessResponse<FeeHistoryRow[]>>(`${this.baseUrl}/fees/history`, this.listOptions(params));
   }
 
   createInvoice(payload: Record<string, unknown>): Observable<FeeInvoice> {
     return this.http.post<FeeInvoice>(`${this.baseUrl}/fees/invoices`, payload, this.options());
   }
 
+  updateInvoice(id: string, payload: Record<string, unknown>): Observable<FeeInvoice> {
+    return this.http.patch<FeeInvoice>(`${this.baseUrl}/fees/invoices/${id}`, payload, this.options());
+  }
+
   invoicePdfUrl(id: string): string {
     return `${this.baseUrl}/fees/invoices/${id}/pdf`;
   }
 
+  receiptPdfUrl(invoiceId: string, paymentId: string): string {
+    return `${this.baseUrl}/fees/invoices/${invoiceId}/receipts/${paymentId}/pdf`;
+  }
+
   addPayment(invoiceId: string, payload: Record<string, unknown>): Observable<FeeInvoice> {
     return this.http.post<FeeInvoice>(`${this.baseUrl}/fees/invoices/${invoiceId}/payments`, payload, this.options());
+  }
+
+  voidFeePayment(invoiceId: string, paymentId: string, reason?: string): Observable<FeeInvoice> {
+    return this.http.post<FeeInvoice>(`${this.baseUrl}/fees/invoices/${invoiceId}/payments/${paymentId}/void`, { reason }, this.options());
+  }
+
+  unlockFeePayment(invoiceId: string, paymentId: string): Observable<FeeInvoice> {
+    return this.http.post<FeeInvoice>(`${this.baseUrl}/fees/invoices/${invoiceId}/payments/${paymentId}/unlock`, {}, this.options());
   }
 
   createPayroll(payload: Record<string, unknown>): Observable<unknown> {
@@ -223,16 +263,16 @@ export class ErpApiService {
     return this.http.post<PayrollRecord>(`${this.baseUrl}/payroll/${id}/mark-paid`, {}, this.options());
   }
 
-  payroll(): Observable<PayrollRecord[]> {
-    return this.http.get<PayrollRecord[]>(`${this.baseUrl}/payroll`, this.options());
+  payroll(params?: ListQueryParams): Observable<ApiSuccessResponse<PayrollRecord[]>> {
+    return this.http.get<ApiSuccessResponse<PayrollRecord[]>>(`${this.baseUrl}/payroll`, this.listOptions(params));
   }
 
   payrollPdfUrl(id: string): string {
     return `${this.baseUrl}/payroll/${id}/pdf`;
   }
 
-  attendance(): Observable<AttendanceRecord[]> {
-    return this.http.get<AttendanceRecord[]>(`${this.baseUrl}/attendance`, this.options());
+  attendance(params?: ListQueryParams): Observable<ApiSuccessResponse<AttendanceRecord[]>> {
+    return this.http.get<ApiSuccessResponse<AttendanceRecord[]>>(`${this.baseUrl}/attendance`, this.listOptions(params));
   }
 
   markAttendance(payload: Record<string, unknown>): Observable<unknown> {
@@ -245,6 +285,45 @@ export class ErpApiService {
 
   selfMarkAttendance(status = 'present'): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/attendance/self-mark`, { status }, this.options());
+  }
+
+  attendanceRegister(params: Record<string, string>): Observable<AttendanceRegisterSheet> {
+    let httpParams = new HttpParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) httpParams = httpParams.set(key, value);
+    });
+    return this.http.get<AttendanceRegisterSheet>(`${this.baseUrl}/attendance/register`, { ...this.options(), params: httpParams });
+  }
+
+  saveAttendanceRegister(payload: Record<string, unknown>): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/attendance/register/save`, payload, this.options());
+  }
+
+  submitAttendanceRegister(payload: Record<string, unknown>): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/attendance/register/submit`, payload, this.options());
+  }
+
+  lockAttendanceRegister(payload: Record<string, unknown>): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/attendance/register/lock`, payload, this.options());
+  }
+
+  unlockAttendanceRegister(payload: Record<string, unknown>): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/attendance/register/unlock`, payload, this.options());
+  }
+
+  attendanceReport(type: string, params?: Record<string, string>): Observable<{ type: string; rows: AttendanceReportRow[]; total: number }> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) httpParams = httpParams.set(key, value);
+      });
+    }
+    return this.http.get<{ type: string; rows: AttendanceReportRow[]; total: number }>(`${this.baseUrl}/attendance/reports/${type}`, { ...this.options(), params: httpParams });
+  }
+
+  attendanceReportPdfUrl(type: string, params?: Record<string, string>): string {
+    const query = new URLSearchParams(params || {}).toString();
+    return `${this.baseUrl}/attendance/reports/${type}/pdf${query ? `?${query}` : ''}`;
   }
 
   timetable(): Observable<TimetableRow[]> {
@@ -350,6 +429,72 @@ export class ErpApiService {
 
   deleteHoliday(id: string): Observable<unknown> {
     return this.http.delete(`${this.baseUrl}/holidays/${id}`, this.options());
+  }
+
+  busRoutes(params?: ListQueryParams): Observable<ApiSuccessResponse<BusRoute[]>> {
+    return this.http.get<ApiSuccessResponse<BusRoute[]>>(`${this.baseUrl}/transport/routes`, this.listOptions(params));
+  }
+
+  createBusRoute(payload: Record<string, unknown>): Observable<BusRoute> {
+    return this.http.post<BusRoute>(`${this.baseUrl}/transport/routes`, payload, this.options());
+  }
+
+  updateBusRoute(id: string, payload: Record<string, unknown>): Observable<BusRoute> {
+    return this.http.patch<BusRoute>(`${this.baseUrl}/transport/routes/${id}`, payload, this.options());
+  }
+
+  toggleBusRouteStatus(id: string): Observable<BusRoute> {
+    return this.http.post<BusRoute>(`${this.baseUrl}/transport/routes/${id}/toggle-status`, {}, this.options());
+  }
+
+  deleteBusRoute(id: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/transport/routes/${id}`, this.options());
+  }
+
+  busRegistrations(params?: ListQueryParams): Observable<ApiSuccessResponse<BusRegistration[]>> {
+    return this.http.get<ApiSuccessResponse<BusRegistration[]>>(`${this.baseUrl}/transport/registrations`, this.listOptions(params));
+  }
+
+  createBusRegistration(payload: Record<string, unknown>): Observable<BusRegistration> {
+    return this.http.post<BusRegistration>(`${this.baseUrl}/transport/registrations`, payload, this.options());
+  }
+
+  updateBusRegistration(id: string, payload: Record<string, unknown>): Observable<BusRegistration> {
+    return this.http.patch<BusRegistration>(`${this.baseUrl}/transport/registrations/${id}`, payload, this.options());
+  }
+
+  deactivateBusRegistration(id: string): Observable<BusRegistration> {
+    return this.http.post<BusRegistration>(`${this.baseUrl}/transport/registrations/${id}/deactivate`, {}, this.options());
+  }
+
+  busReport(type: string, params?: Record<string, string>): Observable<{ type: string; rows: BusReportRow[]; total: number }> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) httpParams = httpParams.set(key, value);
+      });
+    }
+    return this.http.get<{ type: string; rows: BusReportRow[]; total: number }>(`${this.baseUrl}/transport/reports/${type}`, { ...this.options(), params: httpParams });
+  }
+
+  busReportPdfUrl(type: string, params?: Record<string, string>): string {
+    const query = new URLSearchParams(params || {}).toString();
+    return `${this.baseUrl}/transport/reports/${type}/pdf${query ? `?${query}` : ''}`;
+  }
+
+  report(domain: ReportDomain | string, type: string, params?: Record<string, string>): Observable<{ domain: string; type: string; rows: ReportRow[]; total: number }> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) httpParams = httpParams.set(key, value);
+      });
+    }
+    return this.http.get<{ domain: string; type: string; rows: ReportRow[]; total: number }>(`${this.baseUrl}/reports/${domain}/${type}`, { ...this.options(), params: httpParams });
+  }
+
+  reportPdfUrl(domain: ReportDomain | string, type: string, params?: Record<string, string>): string {
+    const query = new URLSearchParams(params || {}).toString();
+    return `${this.baseUrl}/reports/${domain}/${type}/pdf${query ? `?${query}` : ''}`;
   }
 
   private listOptions(params?: ListQueryParams): { headers: HttpHeaders; params?: HttpParams } {

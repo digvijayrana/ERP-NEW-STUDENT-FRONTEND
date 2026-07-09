@@ -30,13 +30,22 @@
 
   <section class="data-card span-12">
     <div class="section-head"><div><p class="eyebrow">Salary Records</p><h3>Payroll History</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search by teacher name..." [value]="vm.filters.payrollSearch" (input)="vm.filters.payrollSearch = $any($event.target).value; vm.resetPage('payroll')"></div>
-      <select class="filter-select" [value]="vm.filters.payrollStatus" (change)="vm.filters.payrollStatus = $any($event.target).value; vm.resetPage('payroll')"><option value="">All status</option><option value="pending">Pending</option><option value="paid">Paid</option></select>
-    </div>
+    <app-listing-toolbar
+      searchPlaceholder="Search teacher name or employee code..."
+      [searchValue]="vm.filters.payrollSearch"
+      [loading]="vm.isListingLoading('payroll')"
+      (searchChange)="vm.updateListSearch('payroll', 'payrollSearch', $event)"
+      (refresh)="vm.refreshListing('payroll')"
+      (exportCsv)="vm.exportPayrollsCsv()"
+      (exportPdf)="vm.exportPayrollsPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.payrollStatus" (change)="vm.updateListFilter('payroll', 'payrollStatus', $any($event.target).value)"><option value="">All status</option><option value="pending">Pending</option><option value="paid">Paid</option></select>
+      </div>
+    </app-listing-toolbar>
 
-    <div class="payroll-cards">
-      <div *ngFor="let payroll of vm.paged('payroll', vm.filteredPayrolls)" class="payroll-card">
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('payroll')">
+    <div class="payroll-cards" *ngIf="!vm.isListingLoading('payroll') || vm.sortedPayrolls.length">
+      <div *ngFor="let payroll of vm.paged('payroll', vm.sortedPayrolls)" class="payroll-card">
         <div class="pr-header">
           <div>
             <div class="pr-teacher">{{ vm.payrollTeacherName(payroll.teacher) }}</div>
@@ -70,8 +79,10 @@
         </div>
       </div>
     </div>
-    <div *ngIf="!vm.filteredPayrolls.length" class="empty-state"><p>No payroll records found</p></div>
-    <app-pagination-bar [vm]="vm" listKey="payroll" [items]="vm.filteredPayrolls"></app-pagination-bar>
+    <app-table-skeleton *ngIf="vm.isListingLoading('payroll') && !vm.sortedPayrolls.length" [columns]="4" [rows]="4"></app-table-skeleton>
+    </div>
+    <app-empty-state *ngIf="!vm.isListingLoading('payroll') && !vm.sortedPayrolls.length" title="No payroll records" message="Create a salary record using the form above or adjust your filters."></app-empty-state>
+    <app-pagination-bar [vm]="vm" listKey="payroll" [items]="vm.sortedPayrolls"></app-pagination-bar>
   </section>
   </ng-container>
 </section>

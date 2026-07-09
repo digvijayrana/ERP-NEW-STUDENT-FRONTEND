@@ -54,10 +54,10 @@
     </section>
 
     <div class="metrics-grid span-12">
-      <article class="metric-card accent-blue"><span>Attendance</span><strong>{{ p.attendance.percentage }}%</strong><small>{{ p.attendance.present }} present · {{ p.attendance.absent }} absent</small></article>
+      <article class="metric-card accent-blue"><span>Attendance</span><strong>{{ p.attendance.percentage }}%</strong><small>{{ p.attendance.present }} present · {{ p.attendance.absent }} absent · {{ p.attendance.leave || 0 }} leave</small></article>
       <article class="metric-card accent-teal"><span>Avg exam score</span><strong>{{ p.academics.averageScore }}%</strong><small>{{ p.academics.examCount }} exams taken</small></article>
       <article class="metric-card accent-purple"><span>Class rank</span><strong>{{ p.academic.classRank || '—' }}</strong><small>Among classmates</small></article>
-      <article class="metric-card accent-orange"><span>Fee status</span><strong>{{ p.fees.status | titlecase }}</strong><small>Due: {{ p.fees.totalDue | currency:'INR' }}</small></article>
+      <article class="metric-card accent-orange"><span>Fee status</span><strong>{{ p.fees.status | titlecase }}</strong><small>Paid: {{ p.fees.totalPaid | currency:'INR' }} · Pending: {{ (p.fees.pendingAmount ?? p.fees.totalDue) | currency:'INR' }}</small></article>
       <article class="metric-card accent-green"><span>Behavior</span><strong>{{ p.behavior.score }}</strong><small>{{ p.behavior.remarks }}</small></article>
       <article class="metric-card accent-purple" *ngIf="p.profileCompletion != null"><span>Profile completion</span><strong>{{ p.profileCompletion }}%</strong><small>Mandatory fields & documents</small></article>
     </div>
@@ -74,14 +74,18 @@
       </ul>
     </section>
 
-    <section class="panel span-7" *ngIf="p.activityTimeline?.length">
+    <section class="panel span-7">
       <div class="section-head"><div><p class="eyebrow">Activity</p><h3>Student timeline</h3></div></div>
-      <div class="activity-timeline">
+      <div class="activity-timeline" *ngIf="p.activityTimeline?.length; else noTimeline">
         <article *ngFor="let event of p.activityTimeline" class="timeline-item">
-          <strong>{{ event.description }}</strong>
+          <div class="timeline-item-head">
+            <span class="status-badge active">{{ vm.profileTimelineLabel(event.action) }}</span>
+            <strong>{{ event.description }}</strong>
+          </div>
           <span>{{ event.performedAt | date:'medium' }}<ng-container *ngIf="event.performedBy"> · {{ event.performedBy }}</ng-container></span>
         </article>
       </div>
+      <ng-template #noTimeline><div class="premium-empty">No activity recorded yet.</div></ng-template>
     </section>
 
     <section class="panel ai-panel span-7">
@@ -116,21 +120,24 @@
         <span>{{ g.relation }} · {{ g.phone }}</span>
         <span *ngIf="g.isPrimary" class="status-badge active">Primary</span>
       </div>
-      <div class="section-head" style="margin-top:1.5rem"><div><p class="eyebrow">Transport</p><h3>Route details</h3></div></div>
+      <div class="section-head" style="margin-top:1.5rem"><div><p class="eyebrow">Transport</p><h3>Bus service</h3></div></div>
       <div class="info-list">
-        <div><span>Route</span><strong>{{ p.transport.route }}</strong></div>
-        <div><span>Bus</span><strong>{{ p.transport.busNumber }}</strong></div>
-        <div><span>Pickup</span><strong>{{ p.transport.pickupPoint }}</strong></div>
+        <div><span>Bus route</span><strong>{{ p.transport.route }}</strong></div>
+        <div><span>Bus stop</span><strong>{{ p.transport.busStop || p.transport.pickupPoint }}</strong></div>
+        <div><span>Monthly bus fee</span><strong>{{ p.transport.monthlyFee || 0 | currency: 'INR' }}</strong></div>
+        <div><span>Service status</span><strong><span class="status-badge" [ngClass]="p.transport.status || 'inactive'">{{ p.transport.status || 'inactive' }}</span></strong></div>
+        <div *ngIf="p.transport.busNumber && p.transport.busNumber !== '—'"><span>Vehicle</span><strong>{{ p.transport.busNumber }}</strong></div>
+        <div *ngIf="p.transport.driverName && p.transport.driverName !== '—'"><span>Driver</span><strong>{{ p.transport.driverName }} ({{ p.transport.driverMobile }})</strong></div>
       </div>
     </section>
 
     <section class="data-card span-7">
       <div class="section-head"><div><p class="eyebrow">📊 Exam results</p><h3>Recent examination scores</h3></div></div>
       <div class="toolbar">
-        <div class="search-box"><input placeholder="Search exam or subject" [value]="vm.filters.profileExamSearch" (input)="vm.filters.profileExamSearch = $any($event.target).value; vm.resetPage('profileExams')"></div>
+        <div class="search-box"><input placeholder="Search exam or subject" [value]="vm.filters.profileExamSearch" (input)="vm.updateListFilter('profileExams', 'profileExamSearch', $any($event.target).value)"></div>
       </div>
-      <div class="score-card-grid" *ngIf="vm.filteredProfileExams.length; else noExams">
-        <article class="score-card" *ngFor="let exam of vm.paged('profileExams', vm.filteredProfileExams)" [class.pass]="exam.percentage >= 40" [class.fail]="exam.percentage < 40">
+      <div class="score-card-grid" *ngIf="vm.sortedProfileExams.length; else noExams">
+        <article class="score-card" *ngFor="let exam of vm.paged('profileExams', vm.sortedProfileExams)" [class.pass]="exam.percentage >= 40" [class.fail]="exam.percentage < 40">
           <div class="score-card-top">
             <span class="subject-tag">{{ exam.subject }}</span>
             <span class="grade-badge">{{ exam.grade || '—' }}</span>
@@ -147,16 +154,9 @@
           <small>{{ exam.submittedAt | date:'mediumDate' }}</small>
         </article>
       </div>
-      <ng-template #noExams><div class="premium-empty">No exam results yet. Attempt a published unit test.</div></ng-template>
-      <app-pagination-bar [vm]="vm" listKey="profileExams" [items]="vm.filteredProfileExams"></app-pagination-bar>
-    </section>
-
-    <section class="panel span-5">
-      <div class="section-head"><div><p class="eyebrow">📅 Attendance</p><h3>Last 30 days</h3></div></div>
-      <div class="attendance-calendar">
-        <span *ngFor="let day of p.attendance.recent" class="att-day" [attr.data-status]="day.status" [title]="day.date | date">{{ day.status === 'present' ? 'P' : day.status === 'absent' ? 'A' : day.status === 'late' ? 'L' : 'H' }}</span>
-      </div>
-      <div class="subject-bars">
+      <ng-template #noExams><app-empty-state title="No exam results" message="No exam results yet. Attempt a published unit test."></app-empty-state></ng-template>
+      <app-pagination-bar [vm]="vm" listKey="profileExams" [items]="vm.sortedProfileExams"></app-pagination-bar>
+      <div class="subject-bars" *ngIf="p.academics.subjectBreakdown.length" style="margin-top: 1rem;">
         <div *ngFor="let sub of p.academics.subjectBreakdown" class="subject-bar-row">
           <span>{{ sub.subject }}</span>
           <div class="bar-track"><div class="bar-fill" [style.width.%]="sub.average"></div></div>
@@ -165,33 +165,56 @@
       </div>
     </section>
 
+    <section class="panel span-5">
+      <div class="section-head"><div><p class="eyebrow">Attendance</p><h3>Attendance summary</h3></div></div>
+      <div class="info-list">
+        <div><span>Attendance %</span><strong>{{ p.attendance.percentage }}%</strong></div>
+        <div><span>Present days</span><strong>{{ p.attendance.present }}</strong></div>
+        <div><span>Absent days</span><strong>{{ p.attendance.absent }}</strong></div>
+        <div><span>Leave days</span><strong>{{ p.attendance.leave || 0 }}</strong></div>
+      </div>
+      <div class="section-head" style="margin-top:1.25rem"><div><p class="eyebrow">Recent</p><h3>Last 30 days</h3></div></div>
+      <div class="attendance-calendar">
+        <span *ngFor="let day of p.attendance.recent" class="att-day" [attr.data-status]="day.status" [title]="day.date | date">{{ day.status === 'present' ? 'P' : day.status === 'absent' ? 'A' : day.status === 'leave' ? 'L' : day.status === 'holiday' ? 'H' : day.status === 'late' ? 'L' : 'H' }}</span>
+      </div>
+    </section>
+
     <section class="data-card span-12">
-      <div class="section-head"><div><p class="eyebrow">💰 Fees</p><h3>Payment history</h3></div></div>
+      <div class="section-head"><div><p class="eyebrow">Fees</p><h3>Fee summary</h3></div></div>
+      <div class="inv-details fee-breakdown">
+        <div class="inv-detail"><span class="inv-label">Monthly fee</span><span class="inv-value">{{ p.fees.monthlyFee || 0 | currency:'INR' }}</span></div>
+        <div class="inv-detail"><span class="inv-label">Bus fee</span><span class="inv-value">{{ p.fees.busFee || 0 | currency:'INR' }}</span></div>
+        <div class="inv-detail"><span class="inv-label">Paid amount</span><span class="inv-value success-text">{{ p.fees.totalPaid | currency:'INR' }}</span></div>
+        <div class="inv-detail"><span class="inv-label">Pending amount</span><span class="inv-value" [class.danger-text]="(p.fees.pendingAmount ?? p.fees.totalDue) > 0">{{ (p.fees.pendingAmount ?? p.fees.totalDue) | currency:'INR' }}</span></div>
+        <div class="inv-detail"><span class="inv-label">Payment status</span><span class="inv-value"><span class="status-badge" [ngClass]="p.fees.status">{{ p.fees.status }}</span></span></div>
+        <div class="inv-detail" *ngIf="p.fees.lastReceipt as receipt"><span class="inv-label">Last receipt</span><span class="inv-value">{{ receipt.receiptNumber }} — {{ receipt.amount | currency:'INR' }}<small *ngIf="receipt.paidAt"> ({{ receipt.paidAt | date:'dd MMM yyyy' }})</small></span></div>
+      </div>
+      <div class="section-head" style="margin-top:1.5rem"><div><p class="eyebrow">History</p><h3>Payment history</h3></div></div>
       <div class="toolbar">
-        <div class="search-box"><input placeholder="Search invoice" [value]="vm.filters.profileFeeSearch" (input)="vm.filters.profileFeeSearch = $any($event.target).value; vm.resetPage('profileFees')"></div>
-        <select class="filter-select" [value]="vm.filters.profileFeeStatus" (change)="vm.filters.profileFeeStatus = $any($event.target).value; vm.resetPage('profileFees')">
+        <div class="search-box"><input placeholder="Search invoice" [value]="vm.filters.profileFeeSearch" (input)="vm.updateListFilter('profileFees', 'profileFeeSearch', $any($event.target).value)"></div>
+        <select class="filter-select" [value]="vm.filters.profileFeeStatus" (change)="vm.updateListFilter('profileFees', 'profileFeeStatus', $any($event.target).value)">
           <option value="">All status</option>
           <option value="paid">Paid</option>
           <option value="partial">Partial</option>
           <option value="unpaid">Unpaid</option>
         </select>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap sticky-header">
         <table>
           <thead><tr><th>Invoice</th><th>Due date</th><th>Amount</th><th>Balance</th><th>Status</th></tr></thead>
           <tbody>
-            <tr *ngFor="let inv of vm.paged('profileFees', vm.filteredProfileFees)">
+            <tr *ngFor="let inv of vm.paged('profileFees', vm.sortedProfileFees)">
               <td>{{ inv.invoiceNumber }}</td>
               <td>{{ inv.dueDate | date }}</td>
               <td>{{ inv.totalAmount | currency:'INR' }}</td>
               <td>{{ inv.balanceAmount | currency:'INR' }}</td>
               <td><span class="status-badge" [ngClass]="inv.status">{{ inv.status }}</span></td>
             </tr>
-            <tr *ngIf="!vm.filteredProfileFees.length"><td colspan="5" class="empty-cell">No fee records</td></tr>
           </tbody>
         </table>
       </div>
-      <app-pagination-bar [vm]="vm" listKey="profileFees" [items]="vm.filteredProfileFees"></app-pagination-bar>
+      <app-empty-state *ngIf="!vm.sortedProfileFees.length" title="No fee records" message="No fee invoices match the current filters."></app-empty-state>
+      <app-pagination-bar [vm]="vm" listKey="profileFees" [items]="vm.sortedProfileFees"></app-pagination-bar>
     </section>
   </ng-container>
 </section>

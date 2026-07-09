@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, forkJoin, map, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AuthUser, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeInvoice, PayrollRecord, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, PayrollRecord, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -17,6 +17,8 @@ import { StudentProfilePageComponent } from './pages/student-profile-page/studen
 import { StudentsPageComponent } from './pages/students-page/students-page.component';
 import { TeachersPageComponent } from './pages/teachers-page/teachers-page.component';
 import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
+import { TransportPageComponent } from './pages/transport-page/transport-page.component';
+import { ReportsPageComponent } from './pages/reports-page/reports-page.component';
 import { UsersPageComponent } from './pages/users-page/users-page.component';
 import { SpinnerComponent } from './shared/spinner.component';
 import { ToastContainerComponent } from './shared/toast-container.component';
@@ -26,11 +28,80 @@ import { ListingStateService } from './services/listing-state.service';
 import { PermissionAction, PermissionService } from './services/permission.service';
 import { ToastService } from './services/toast.service';
 import { ConfirmDialogService } from './services/confirm-dialog.service';
-import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, sortItems, SortDirection } from './core/listing.util';
+import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, applyDefaultListSort, sortItems, SortDirection } from './core/listing.util';
 
-type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users';
-type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
-type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users';
+type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
+type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+
+type HolidayRow = { _id: string; date: string; name: string; description?: string };
+type PermissionSchema = { modules: string[]; actions: string[] };
+type AppUser = AuthUser & { _id?: string; isActive?: boolean };
+type ForkJoinSources = Record<string, Observable<unknown>>;
+
+type PortalShellPayload = {
+  summary: DashboardSummary;
+  students?: Student[];
+};
+
+type TeacherAttendancePayload = {
+  attendance: AttendanceRecord[];
+  classes?: ClassRoom[];
+  students?: Student[];
+};
+
+type AdminRefreshPayload = {
+  summary: DashboardSummary;
+  years: AcademicYear[];
+  classes: ClassRoom[];
+  teachers: Teacher[];
+  students: Student[];
+  invoices: FeeInvoice[];
+  feeHistory: FeeHistoryRow[];
+  busRoutes: BusRoute[];
+  busRegistrations: BusRegistration[];
+  payrolls: PayrollRecord[];
+  attendance: AttendanceRecord[];
+  holidays: HolidayRow[];
+  timetable: TimetableRow[];
+  exams: Exam[];
+  examResults: ExamSubmission[];
+  users: AppUser[];
+  roles: ErpRole[];
+  permissionSchema: PermissionSchema;
+};
+
+interface PortalShellRequests {
+  summary: Observable<DashboardSummary>;
+  students?: Observable<Student[]>;
+}
+
+interface TeacherAttendanceRequests {
+  attendance: Observable<AttendanceRecord[]>;
+  classes?: Observable<ClassRoom[]>;
+  students?: Observable<Student[]>;
+}
+
+interface AdminRefreshRequests {
+  summary: Observable<DashboardSummary>;
+  years: Observable<AcademicYear[]>;
+  classes: Observable<ClassRoom[]>;
+  teachers: Observable<Teacher[]>;
+  students: Observable<Student[]>;
+  invoices: Observable<FeeInvoice[]>;
+  feeHistory: Observable<FeeHistoryRow[]>;
+  busRoutes: Observable<BusRoute[]>;
+  busRegistrations: Observable<BusRegistration[]>;
+  payrolls: Observable<PayrollRecord[]>;
+  attendance: Observable<AttendanceRecord[]>;
+  holidays: Observable<HolidayRow[]>;
+  timetable: Observable<TimetableRow[]>;
+  exams: Observable<Exam[]>;
+  examResults: Observable<ExamSubmission[]>;
+  users: Observable<AppUser[]>;
+  roles: Observable<ErpRole[]>;
+  permissionSchema: Observable<PermissionSchema>;
+}
 
 @Component({
   selector: 'app-root',
@@ -49,6 +120,8 @@ type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'pay
     TimetablePageComponent,
     ExamsPageComponent,
     StudentProfilePageComponent,
+    TransportPageComponent,
+    ReportsPageComponent,
     UsersPageComponent,
     SpinnerComponent,
     ToastContainerComponent,
@@ -81,9 +154,30 @@ export class AppComponent implements OnInit {
   teachers: Teacher[] = [];
   students: Student[] = [];
   invoices: FeeInvoice[] = [];
+  feeHistory: FeeHistoryRow[] = [];
+  busRoutes: BusRoute[] = [];
+  busRegistrations: BusRegistration[] = [];
+  busReportRows: BusReportRow[] = [];
+  busRouteStops: BusStop[] = [];
+  editingBusRouteId = '';
+  editingBusRegistrationId = '';
+  transportReportType = 'route-wise';
   payrolls: PayrollRecord[] = [];
   attendance: AttendanceRecord[] = [];
+  attendanceRegisterRows: Array<{ studentId: string; studentName: string; admissionNumber: string; status: string; remarks: string }> = [];
+  attendanceRegisterWorkflow: 'draft' | 'submitted' | 'locked' = 'draft';
+  attendanceRegisterSummary = { present: 0, absent: 0, leave: 0, holiday: 0, total: 0, percentage: 100 };
+  attendanceRegisterHoliday: { name: string; date: string } | null = null;
+  attendanceRegisterSunday = false;
+  attendanceReportRows: AttendanceReportRow[] = [];
+  attendanceReportType = 'daily';
+  reportDomain: ReportDomain = 'students';
+  reportType = 'register';
+  reportRows: ReportRow[] = [];
+  reportLoading = false;
   holidays: Array<{ _id: string; date: string; name: string; description?: string }> = [];
+  private holidaysLoaded = false;
+  private loadedTabs = new Set<TabKey>();
   timetable: TimetableRow[] = [];
   exams: Exam[] = [];
   examResults: ExamSubmission[] = [];
@@ -137,6 +231,8 @@ export class AppComponent implements OnInit {
   pageSizes: Partial<Record<ListKey, number>> = {};
   listSort: Partial<Record<ListKey, { field: string; dir: SortDirection }>> = {};
   readonly serverPagedKeys: ListKey[] = ['students', 'classes', 'years', 'teachers', 'users'];
+  readonly operationalPagedKeys: ListKey[] = ['invoices', 'feeHistory', 'payroll', 'busRoutes', 'busRegistrations', 'attendance'];
+  collectableInvoiceOptions: FeeInvoice[] = [];
   listingRows: Partial<Record<ListKey, unknown[]>> = {};
   listingTotals: Partial<Record<ListKey, number>> = {};
   listingLoading: Partial<Record<ListKey, boolean>> = {};
@@ -165,6 +261,7 @@ export class AppComponent implements OnInit {
     attendanceSearch: '',
     attendanceClass: '',
     attendanceStudent: '',
+    attendanceYear: '',
     timetableSearch: '',
     examSearch: '',
     examStatus: '',
@@ -178,7 +275,36 @@ export class AppComponent implements OnInit {
     profileClass: '',
     profileExamSearch: '',
     profileFeeSearch: '',
-    profileFeeStatus: ''
+    profileFeeStatus: '',
+    feeHistorySearch: '',
+    feeHistoryStatus: '',
+    busRouteSearch: '',
+    busRouteStatus: '',
+    busRegYear: '',
+    busRegRoute: '',
+    busRegStatus: '',
+    busRegSearch: '',
+    busRegClass: '',
+    busReportYear: '',
+    attendanceReportMonth: String(new Date().getMonth() + 1),
+    attendanceReportYear: String(new Date().getFullYear()),
+    reportYear: '',
+    reportClass: '',
+    reportSection: '',
+    reportStatus: '',
+    reportAdmissionFrom: '',
+    reportAdmissionTo: '',
+    reportMonth: String(new Date().getMonth() + 1),
+    reportYearNum: String(new Date().getFullYear()),
+    reportDate: new Date().toISOString().slice(0, 10),
+    reportPaymentStatus: '',
+    reportStudent: '',
+    reportDepartment: '',
+    reportDesignation: '',
+    reportPayrollStatus: '',
+    reportRoute: '',
+    reportStop: '',
+    reportBusStatus: ''
   };
   pages: Record<ListKey, number> = {
     dashboardStudents: 1,
@@ -191,6 +317,9 @@ export class AppComponent implements OnInit {
     years: 1,
     teachers: 1,
     invoices: 1,
+    feeHistory: 1,
+    busRoutes: 1,
+    busRegistrations: 1,
     payroll: 1,
     promotion: 1,
     attendance: 1,
@@ -215,12 +344,14 @@ export class AppComponent implements OnInit {
     { key: 'classes', label: 'Classes & Sections', icon: 'classes', roles: ['admin', 'teacher'] },
     { key: 'teachers', label: 'Teachers', icon: 'teachers', roles: ['admin', 'teacher'] },
     { key: 'fees', label: 'Fees', icon: 'fees', roles: ['admin', 'student', 'parent'] },
+    { key: 'transport', label: 'Bus', icon: 'transport', roles: ['admin'] },
     { key: 'payroll', label: 'Payroll', icon: 'payroll', roles: ['admin'] },
     { key: 'attendance', label: 'Attendance', icon: 'attendance', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'timetable', label: 'Timetable', icon: 'timetable', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'exams', label: 'AI Exams', icon: 'exams', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'profile', label: 'Student Profile', icon: 'profile', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'promotion', label: 'Promotions', icon: 'promotion', roles: ['admin'] },
+    { key: 'reports', label: 'Reports', icon: 'reports', roles: ['admin', 'super_admin', 'accountant'] },
     { key: 'users', label: 'Users & Roles', icon: 'users', roles: ['admin'] }
   ];
 
@@ -305,23 +436,46 @@ export class AppComponent implements OnInit {
     previousSchoolTcDate: ['']
   });
 
-  feeForm = this.fb.group({
-    student: ['', Validators.required],
+  feeDemandForm = this.fb.group({
     academicYear: ['', Validators.required],
-    classRoom: ['', Validators.required],
-    invoiceNumber: [''],
-    dueDate: ['', Validators.required],
-    label: [APP_CONSTANTS.DEFAULT_FEE_LABEL, Validators.required],
-    amount: [0, [Validators.required, Validators.min(0)]],
-    discount: [0, Validators.min(0)],
-    fine: [0, Validators.min(0)]
+    classRoom: [''],
+    month: [new Date().getMonth() + 1, Validators.required],
+    year: [new Date().getFullYear(), Validators.required]
   });
 
   paymentForm = this.fb.group({
     invoiceId: ['', Validators.required],
     amount: [0, [Validators.required, Validators.min(1)]],
     mode: [PAYMENT_MODES.CASH, Validators.required],
-    referenceNumber: ['']
+    referenceNumber: [''],
+    discount: [0, Validators.min(0)],
+    fine: [0, Validators.min(0)],
+    otherCharges: [0, Validators.min(0)]
+  });
+
+  busRouteForm = this.fb.group({
+    routeName: ['', Validators.required],
+    routeCode: ['', Validators.required],
+    vehicleNumber: ['', Validators.required],
+    driverName: ['', Validators.required],
+    driverMobile: ['', Validators.required],
+    capacity: [40, [Validators.required, Validators.min(1)]],
+    feeType: ['stop_based', Validators.required],
+    fixedMonthlyFee: [0, Validators.min(0)],
+    status: ['active', Validators.required]
+  });
+
+  busRegistrationForm = this.fb.group({
+    academicYear: ['', Validators.required],
+    classRoom: [''],
+    student: ['', Validators.required],
+    route: ['', Validators.required],
+    stopSequence: ['', Validators.required],
+    monthlyFee: [0, [Validators.required, Validators.min(0)]],
+    serviceStartDate: [new Date().toISOString().slice(0, 10), Validators.required],
+    serviceEndDate: [''],
+    busService: [true],
+    status: ['active', Validators.required]
   });
 
   payrollForm = this.fb.group({
@@ -340,12 +494,9 @@ export class AppComponent implements OnInit {
   });
 
   attendanceForm = this.fb.group({
-    student: ['', Validators.required],
-    classRoom: ['', Validators.required],
     academicYear: ['', Validators.required],
-    date: [new Date().toISOString().slice(0, 10), Validators.required],
-    status: [ATTENDANCE_STATUS.PRESENT, Validators.required],
-    remarks: ['']
+    classRoom: ['', Validators.required],
+    date: [new Date().toISOString().slice(0, 10), Validators.required]
   });
 
   timetableForm = this.fb.group({
@@ -375,6 +526,7 @@ export class AppComponent implements OnInit {
   examAttemptForm = this.fb.group({});
 
   ngOnInit(): void {
+    applyDefaultListSort(this.listSort, [...this.serverPagedKeys, ...this.operationalPagedKeys, 'profileExams', 'profileFees']);
     if (this.currentUser) {
       this.permissionService.setPermissions(this.currentUser.permissions);
       this.activeTab = 'dashboard';
@@ -395,13 +547,29 @@ export class AppComponent implements OnInit {
 
   get tabs(): Array<{ key: TabKey; label: string; icon: TabIcon }> {
     if (!this.currentUser) return [];
+    const role = this.currentUser.role;
     return this.allTabs
-      .filter((tab) => this.permissionService.canViewTab(tab.key, this.currentUser!.role))
+      .filter((tab) => tab.roles.includes(role))
+      .filter((tab) => this.permissionService.canViewTab(tab.key, role))
       .map(({ key, label, icon }) => ({ key, label, icon }));
+  }
+
+  get isPortalUser(): boolean {
+    return this.isStudent || this.isParent;
+  }
+
+  get portalStudentId(): string | undefined {
+    if (this.isStudent) return this.currentUser?.student;
+    if (this.isParent) return this.effectiveChildId || undefined;
+    return undefined;
   }
 
   get isAdmin(): boolean {
     return this.currentUser?.role === 'admin' || this.currentUser?.role === 'super_admin';
+  }
+
+  get showOperationalDashboard(): boolean {
+    return this.isAdmin || this.currentUser?.role === 'accountant';
   }
 
   get isSuperAdmin(): boolean {
@@ -417,7 +585,7 @@ export class AppComponent implements OnInit {
   }
 
   get activeAcademicYear(): AcademicYear | undefined {
-    return this.years.find((y) => y.status === 'active' || y.isActive);
+    return this.years.find((y) => y.status === 'active' || y.isActive) || this.summary?.activeYear;
   }
 
   yearStatus(year: AcademicYear): 'draft' | 'active' | 'closed' {
@@ -437,6 +605,19 @@ export class AppComponent implements OnInit {
     }
     if (!this.classForm.get('academicYear')?.value && !this.editingClassId) {
       this.classForm.patchValue({ academicYear: active._id });
+    }
+    if (!this.feeDemandForm.get('academicYear')?.value) {
+      this.feeDemandForm.patchValue({ academicYear: active._id });
+    }
+    if (!this.busRegistrationForm.get('academicYear')?.value) {
+      this.busRegistrationForm.patchValue({ academicYear: active._id });
+    }
+    if (!this.filters.busRegYear) this.filters.busRegYear = active._id;
+    if (!this.filters.busReportYear) this.filters.busReportYear = active._id;
+    if (!this.filters.attendanceYear) this.filters.attendanceYear = active._id;
+    if (!this.filters.reportYear) this.filters.reportYear = active._id;
+    if (!this.attendanceForm.get('academicYear')?.value) {
+      this.attendanceForm.patchValue({ academicYear: active._id });
     }
   }
 
@@ -467,13 +648,15 @@ export class AppComponent implements OnInit {
       classes: 'Classes & academic years',
       teachers: 'Teacher management',
       fees: 'Fee collection',
+      transport: 'Bus management',
       payroll: 'Payroll processing',
       promotion: 'Student promotions',
       attendance: 'Attendance tracking',
       timetable: 'Class schedules',
       exams: 'AI-powered unit tests',
       profile: 'Student profile & AI insights',
-      users: 'Users & access control'
+      users: 'Users & access control',
+      reports: 'Reports & analytics'
     };
     return titles[this.activeTab] || 'Operations workspace';
   }
@@ -506,6 +689,11 @@ export class AppComponent implements OnInit {
   selectParentChild(childId: string): void {
     this.parentSelectedChild = childId;
     this.message = '';
+    if (!this.isParent) return;
+    this.filters.attendanceStudent = childId;
+    if (this.loadedTabs.has('attendance')) this.ensurePortalTabData('attendance', true);
+    if (this.loadedTabs.has('fees')) this.ensurePortalTabData('fees', true);
+    if (this.activeTab === 'profile') this.loadStudentProfile(childId);
   }
 
   get activeTabLabel(): string {
@@ -559,39 +747,261 @@ export class AppComponent implements OnInit {
 
   refresh(): void {
     if (!this.currentUser) return;
+    if (this.isPortalUser) {
+      this.loadPortalShell();
+      if (this.activeTab !== 'dashboard') this.ensurePortalTabData(this.activeTab, true);
+      return;
+    }
+    if (this.isTeacher) {
+      this.loadTeacherShell();
+      if (this.activeTab !== 'dashboard') this.ensureTeacherTabData(this.activeTab, true);
+      return;
+    }
+    this.refreshAdminWorkspace();
+  }
+
+  private applyDashboardPayload(summary: DashboardSummary): void {
+    this.summary = summary;
+    if (summary?.activeYear) {
+      this.years = [summary.activeYear];
+      this.applyActiveYearDefaults();
+    }
+  }
+
+  private loadPortalShell(): void {
     this.loading = true;
-    forkJoin({
-      summary: this.api.dashboard(),
-      years: this.api.academicYears({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
-      classes: this.isStudent ? of([] as ClassRoom[]) : this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-      teachers: this.isStudent ? of([] as Teacher[]) : this.api.teachers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-      students: this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-      invoices: this.can('fees', 'view') ? this.api.invoices() : of([] as FeeInvoice[]),
-      payrolls: this.can('payroll', 'view') ? this.api.payroll() : of([] as PayrollRecord[]),
-      attendance: this.api.attendance(),
-      holidays: this.api.holidays(),
-      timetable: this.api.timetable(),
-      exams: this.api.exams(),
-      examResults: this.api.examResults(),
-      users: this.can('users', 'view') ? this.api.listUsers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)) : of([]),
-      roles: this.can('roles', 'view') ? this.api.roles() : of([] as ErpRole[]),
-      permissionSchema: this.can('roles', 'view') ? this.api.rolePermissionSchema() : of({ modules: [], actions: [] })
-    }).subscribe({
+    const requests: PortalShellRequests = {
+      summary: this.safeRefresh(this.api.dashboard(), {} as DashboardSummary)
+    };
+    if (this.isParent) {
+      requests.students = this.safeRefresh(
+        this.api.students({ page: 1, pageSize: 20 }).pipe(map((r) => r.data)),
+        [] as Student[]
+      );
+    }
+    this.forkJoinMap<PortalShellPayload>(requests as unknown as ForkJoinSources).subscribe({
+      next: (data) => {
+        this.applyDashboardPayload(data.summary);
+        if (data.students) this.students = data.students;
+        this.loading = false;
+        this.submitting = false;
+        this.loadedTabs.add('dashboard');
+      },
+      error: () => {
+        this.toast.error('Could not load dashboard. Check backend and your permissions.');
+        this.loading = false;
+      }
+    });
+  }
+
+  private loadTeacherShell(): void {
+    this.loading = true;
+    this.safeRefresh(this.api.dashboard(), {} as DashboardSummary).subscribe({
+      next: (summary) => {
+        this.applyDashboardPayload(summary);
+        this.loading = false;
+        this.submitting = false;
+        this.loadedTabs.add('dashboard');
+      },
+      error: () => {
+        this.toast.error('Could not load dashboard. Check backend and your permissions.');
+        this.loading = false;
+      }
+    });
+  }
+
+  private ensurePortalTabData(tab: TabKey, force = false): void {
+    if (!force && this.loadedTabs.has(tab)) return;
+
+    switch (tab) {
+      case 'dashboard':
+        if (!this.summary) this.loadPortalShell();
+        else this.loadedTabs.add('dashboard');
+        return;
+      case 'fees':
+        this.loading = true;
+        forkJoin({
+          invoices: this.safeRefresh(this.api.invoices({ page: 1, pageSize: 50 }).pipe(map((r) => r.data)), [] as FeeInvoice[]),
+          feeHistory: this.safeRefresh(this.api.feeHistory({ page: 1, pageSize: 50 }).pipe(map((r) => r.data)), [] as FeeHistoryRow[])
+        }).subscribe({
+          next: (data) => {
+            this.invoices = data.invoices;
+            this.feeHistory = data.feeHistory;
+            this.loadedTabs.add('fees');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'attendance':
+        if (this.portalStudentId) this.filters.attendanceStudent = this.portalStudentId;
+        this.loading = true;
+        this.safeRefresh(this.api.attendance({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as AttendanceRecord[]).subscribe({
+          next: (rows) => {
+            this.attendance = rows;
+            this.loadedTabs.add('attendance');
+            this.loading = false;
+            this.loadHolidays();
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'timetable':
+        this.loading = true;
+        this.safeRefresh(this.api.timetable(), [] as TimetableRow[]).subscribe({
+          next: (rows) => {
+            this.timetable = rows;
+            this.loadedTabs.add('timetable');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'exams':
+        this.loading = true;
+        forkJoin({
+          exams: this.safeRefresh(this.api.exams(), [] as Exam[]),
+          examResults: this.safeRefresh(this.api.examResults(), [] as ExamSubmission[])
+        }).subscribe({
+          next: (data) => {
+            this.exams = data.exams;
+            this.examResults = data.examResults;
+            this.loadedTabs.add('exams');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'profile':
+        this.loadedTabs.add('profile');
+        if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
+        else if (this.isParent && this.effectiveChildId) this.loadStudentProfile(this.effectiveChildId);
+        return;
+    }
+  }
+
+  private ensureTeacherTabData(tab: TabKey, force = false): void {
+    if (!force && this.loadedTabs.has(tab)) return;
+
+    switch (tab) {
+      case 'dashboard':
+        if (!this.summary) this.loadTeacherShell();
+        else this.loadedTabs.add('dashboard');
+        return;
+      case 'students':
+        this.loading = true;
+        forkJoin({
+          students: this.safeRefresh(this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)), [] as Student[]),
+          classes: this.safeRefresh(this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)), [] as ClassRoom[])
+        }).subscribe({
+          next: (data) => {
+            this.students = data.students;
+            this.classes = data.classes;
+            this.loadedTabs.add('students');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'teachers':
+        this.loading = true;
+        this.safeRefresh(this.api.teachers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)), [] as Teacher[]).subscribe({
+          next: (rows) => {
+            this.teachers = rows;
+            this.loadedTabs.add('teachers');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'attendance': {
+        const requests: TeacherAttendanceRequests = {
+          attendance: this.safeRefresh(this.api.attendance({ page: 1, pageSize: 200 }).pipe(map((r) => r.data)), [] as AttendanceRecord[])
+        };
+        if (!this.classes.length) {
+          requests.classes = this.safeRefresh(this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)), [] as ClassRoom[]);
+        }
+        if (!this.students.length) {
+          requests.students = this.safeRefresh(this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)), [] as Student[]);
+        }
+        this.loading = true;
+        this.forkJoinMap<TeacherAttendancePayload>(requests as unknown as ForkJoinSources).subscribe({
+          next: (data) => {
+            this.attendance = data.attendance;
+            if (data.classes) this.classes = data.classes;
+            if (data.students) this.students = data.students;
+            this.applyActiveYearDefaults();
+            this.loadedTabs.add('attendance');
+            this.loading = false;
+            this.loadSelfAttendanceStatus();
+            this.loadHolidays();
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      }
+      case 'timetable':
+        this.loading = true;
+        this.safeRefresh(this.api.timetable(), [] as TimetableRow[]).subscribe({
+          next: (rows) => {
+            this.timetable = rows;
+            this.loadedTabs.add('timetable');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'exams':
+        this.loading = true;
+        forkJoin({
+          exams: this.safeRefresh(this.api.exams(), [] as Exam[]),
+          examResults: this.safeRefresh(this.api.examResults(), [] as ExamSubmission[])
+        }).subscribe({
+          next: (data) => {
+            this.exams = data.exams;
+            this.examResults = data.examResults;
+            this.loadedTabs.add('exams');
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
+        return;
+      case 'profile':
+        this.loadedTabs.add('profile');
+        return;
+    }
+  }
+
+  private forkJoinMap<T extends Record<string, unknown>>(sources: ForkJoinSources): Observable<T> {
+    return forkJoin(sources) as Observable<T>;
+  }
+
+  private safeRefresh<T>(request: Observable<T>, fallback: T): Observable<T> {
+    return request.pipe(catchError(() => of(fallback)));
+  }
+
+  private refreshAdminWorkspace(): void {
+    this.loading = true;
+    this.forkJoinMap<AdminRefreshPayload>(this.buildAdminRefreshRequests() as unknown as ForkJoinSources).subscribe({
       next: (data) => {
         this.summary = data.summary;
-        this.years = data.years;
+        this.years = data.years.length ? data.years : (this.summary?.activeYear ? [this.summary.activeYear] : []);
         this.applyActiveYearDefaults();
         this.classes = data.classes;
         this.teachers = data.teachers;
         this.students = data.students;
         this.invoices = data.invoices;
+        this.feeHistory = data.feeHistory;
+        this.busRoutes = data.busRoutes;
+        this.busRegistrations = data.busRegistrations;
         this.payrolls = data.payrolls;
         this.attendance = data.attendance;
         this.holidays = data.holidays;
+        this.holidaysLoaded = true;
         this.timetable = data.timetable;
         this.exams = data.exams;
         this.examResults = data.examResults;
-        this.users = data.users as Array<AuthUser & { _id?: string; isActive?: boolean }>;
+        this.users = data.users;
         this.roles = data.roles;
         this.permissionSchema = data.permissionSchema;
         if (this.roles.length && !this.selectedRoleSlug) {
@@ -601,11 +1011,8 @@ export class AppComponent implements OnInit {
         this.submitting = false;
         this.loadServerListings();
         this.loadSelfAttendanceStatus();
-        if (this.isStudent && this.currentUser?.student && this.activeTab === 'profile') {
-          this.loadStudentProfile(this.currentUser.student);
-        } else if (this.isParent && this.effectiveChildId && this.activeTab === 'profile') {
-          this.loadStudentProfile(this.effectiveChildId);
-        }
+        if (this.can('transport', 'view')) this.loadBusReport();
+        if (this.can('attendance', 'view')) this.loadAttendanceReport();
       },
       error: () => {
         this.toast.error('Could not load workspace data. Check backend, MongoDB, and your role permissions.');
@@ -614,8 +1021,165 @@ export class AppComponent implements OnInit {
     });
   }
 
+  private buildAdminRefreshRequests(): AdminRefreshRequests {
+    const empty = {
+      years: [] as AcademicYear[],
+      classes: [] as ClassRoom[],
+      teachers: [] as Teacher[],
+      students: [] as Student[],
+      invoices: [] as FeeInvoice[],
+      feeHistory: [] as FeeHistoryRow[],
+      busRoutes: [] as BusRoute[],
+      busRegistrations: [] as BusRegistration[],
+      payrolls: [] as PayrollRecord[],
+      attendance: [] as AttendanceRecord[],
+      holidays: [] as HolidayRow[],
+      timetable: [] as TimetableRow[],
+      exams: [] as Exam[],
+      examResults: [] as ExamSubmission[],
+      users: [] as AppUser[],
+      roles: [] as ErpRole[],
+      permissionSchema: { modules: [], actions: [] } as PermissionSchema
+    };
+
+    const requests: AdminRefreshRequests = {
+      summary: this.safeRefresh(this.api.dashboard(), {} as DashboardSummary),
+      years: of(empty.years),
+      classes: of(empty.classes),
+      teachers: of(empty.teachers),
+      students: of(empty.students),
+      invoices: of(empty.invoices),
+      feeHistory: of(empty.feeHistory),
+      busRoutes: of(empty.busRoutes),
+      busRegistrations: of(empty.busRegistrations),
+      payrolls: of(empty.payrolls),
+      attendance: of(empty.attendance),
+      holidays: of(empty.holidays),
+      timetable: of(empty.timetable),
+      exams: of(empty.exams),
+      examResults: of(empty.examResults),
+      users: of(empty.users),
+      roles: of(empty.roles),
+      permissionSchema: of(empty.permissionSchema)
+    };
+
+    if (this.can('academic_year', 'view')) {
+      requests.years = this.safeRefresh(
+        this.api.academicYears({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
+        empty.years
+      );
+    } else {
+      requests.years = of(empty.years);
+    }
+
+    if (this.can('classes', 'view')) {
+      requests.classes = this.safeRefresh(
+        this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+        empty.classes
+      );
+    } else {
+      requests.classes = of(empty.classes);
+    }
+
+    if (this.can('teachers', 'view')) {
+      requests.teachers = this.safeRefresh(
+        this.api.teachers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+        empty.teachers
+      );
+    } else {
+      requests.teachers = of(empty.teachers);
+    }
+
+    if (this.can('students', 'view')) {
+      requests.students = this.safeRefresh(
+        this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
+        empty.students
+      );
+    } else {
+      requests.students = of(empty.students);
+    }
+
+    if (this.can('fees', 'view')) {
+      requests.invoices = of(empty.invoices);
+      requests.feeHistory = of(empty.feeHistory);
+    } else {
+      requests.invoices = of(empty.invoices);
+      requests.feeHistory = of(empty.feeHistory);
+    }
+
+    if (this.can('transport', 'view')) {
+      requests.busRoutes = this.safeRefresh(
+        this.api.busRoutes({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
+        empty.busRoutes
+      );
+      requests.busRegistrations = of(empty.busRegistrations);
+    } else {
+      requests.busRoutes = of(empty.busRoutes);
+      requests.busRegistrations = of(empty.busRegistrations);
+    }
+
+    if (this.can('payroll', 'view')) {
+      requests.payrolls = of(empty.payrolls);
+    } else {
+      requests.payrolls = of(empty.payrolls);
+    }
+
+    if (this.can('attendance', 'view')) {
+      requests.attendance = of(empty.attendance);
+      requests.holidays = this.safeRefresh(this.api.holidays(), empty.holidays);
+    } else {
+      requests.attendance = of(empty.attendance);
+      requests.holidays = of(empty.holidays);
+    }
+
+    if (this.can('timetable', 'view')) {
+      requests.timetable = this.safeRefresh(this.api.timetable(), empty.timetable);
+    } else {
+      requests.timetable = of(empty.timetable);
+    }
+
+    if (this.can('exams', 'view')) {
+      requests.exams = this.safeRefresh(this.api.exams(), empty.exams);
+      requests.examResults = this.safeRefresh(this.api.examResults(), empty.examResults);
+    } else {
+      requests.exams = of(empty.exams);
+      requests.examResults = of(empty.examResults);
+    }
+
+    if (this.can('users', 'view')) {
+      requests.users = this.safeRefresh(
+        this.api.listUsers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data as AppUser[])),
+        empty.users
+      );
+    } else {
+      requests.users = of(empty.users);
+    }
+
+    if (this.can('roles', 'view')) {
+      requests.roles = this.safeRefresh(this.api.roles(), empty.roles);
+      requests.permissionSchema = this.safeRefresh(this.api.rolePermissionSchema(), empty.permissionSchema);
+    } else {
+      requests.roles = of(empty.roles);
+      requests.permissionSchema = of(empty.permissionSchema);
+    }
+
+    return requests;
+  }
+
   setTab(tab: TabKey): void {
+    if (!this.tabs.some((item) => item.key === tab)) return;
     this.activeTab = tab;
+
+    if (this.isPortalUser) {
+      this.ensurePortalTabData(tab);
+      return;
+    }
+
+    if (this.isTeacher) {
+      this.ensureTeacherTabData(tab);
+      return;
+    }
+
     const tabListKey: Partial<Record<TabKey, ListKey>> = {
       students: 'students',
       classes: 'classes',
@@ -624,6 +1188,26 @@ export class AppComponent implements OnInit {
     };
     const listKey = tabListKey[tab];
     if (listKey) this.loadListing(listKey);
+    if (tab === 'reports' && this.can('reports', 'view')) this.loadReport();
+    if (tab === 'fees' && this.can('fees', 'view')) {
+      if (!this.isPortalUser) {
+        this.loadListing('invoices');
+        this.loadListing('feeHistory');
+        this.loadCollectableInvoices();
+      }
+    }
+    if (tab === 'payroll' && this.can('payroll', 'view')) this.loadListing('payroll');
+    if (tab === 'transport' && this.can('transport', 'view')) {
+      this.loadListing('busRoutes');
+      this.loadListing('busRegistrations');
+      this.loadBusReport();
+    }
+    if (tab === 'attendance' && this.can('attendance', 'view')) {
+      if (!this.isPortalUser) this.loadListing('attendance');
+      else this.ensurePortalTabData('attendance');
+      if (!this.holidaysLoaded) this.loadHolidays();
+      if (!this.isPortalUser) this.loadAttendanceReport();
+    }
     if (tab === 'profile') {
       if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
       else if (this.isParent && this.effectiveChildId) this.loadStudentProfile(this.effectiveChildId);
@@ -1438,6 +2022,25 @@ export class AppComponent implements OnInit {
     return labels[status] || status;
   }
 
+  profileTimelineLabel(action: string): string {
+    const labels: Record<string, string> = {
+      admission: 'Admission',
+      bus_assignment: 'Bus assignment',
+      bus_deactivate: 'Bus update',
+      fee_payment: 'Fee payment',
+      fee_collection: 'Fee payment',
+      attendance_update: 'Attendance',
+      attendance_entry: 'Attendance',
+      attendance_submit: 'Attendance',
+      status_change: 'Status change',
+      profile_update: 'Profile update',
+      document_upload: 'Document',
+      document_replace: 'Document',
+      document_delete: 'Document'
+    };
+    return labels[action] || action.replace(/_/g, ' ');
+  }
+
   studentDocumentStatus(student: Student): 'uploaded' | 'pending' {
     const docs = student.documents || [];
     const hasPhoto = docs.some((d) => d.type === 'photo' && d.fileUrl);
@@ -1571,7 +2174,8 @@ export class AppComponent implements OnInit {
   }
 
   isServerPaged(key: ListKey): boolean {
-    return this.serverPagedKeys.includes(key);
+    if (this.isPortalUser) return false;
+    return this.serverPagedKeys.includes(key) || this.operationalPagedKeys.includes(key);
   }
 
   getListTotalItems(key: ListKey): number {
@@ -1588,7 +2192,74 @@ export class AppComponent implements OnInit {
   }
 
   loadServerListings(): void {
-    this.serverPagedKeys.forEach((key) => this.loadListing(key));
+    if (this.isPortalUser) return;
+    const keys = [...this.listingKeysForRole()];
+    if (!this.isPortalUser) {
+      this.operationalPagedKeys.forEach((key) => {
+        if (this.canAccessOperationalList(key)) keys.push(key);
+      });
+    }
+    [...new Set(keys)].forEach((key) => this.loadListing(key));
+  }
+
+  private canAccessOperationalList(key: ListKey): boolean {
+    const map: Partial<Record<ListKey, [string, string]>> = {
+      invoices: ['fees', 'view'],
+      feeHistory: ['fees', 'view'],
+      payroll: ['payroll', 'view'],
+      busRoutes: ['transport', 'view'],
+      busRegistrations: ['transport', 'view'],
+      attendance: ['attendance', 'view']
+    };
+    const entry = map[key];
+    return entry ? this.can(entry[0], entry[1] as PermissionAction) : false;
+  }
+
+  loadCollectableInvoices(): void {
+    if (!this.can('fees', 'view')) return;
+    forkJoin([
+      this.api.invoices({ status: 'unpaid', page: 1, pageSize: 100 }),
+      this.api.invoices({ status: 'partial', page: 1, pageSize: 100 })
+    ]).subscribe({
+      next: ([unpaid, partial]) => {
+        const merged = [...unpaid.data, ...partial.data];
+        this.collectableInvoiceOptions = merged.filter(
+          (invoice) => invoice.status !== 'cancelled' && invoice.balanceAmount > 0
+        );
+      },
+      error: () => { this.collectableInvoiceOptions = []; }
+    });
+  }
+
+  private listingKeysForRole(): ListKey[] {
+    if (this.isAdmin) return this.serverPagedKeys;
+    if (this.currentUser?.role === 'accountant') {
+      return this.operationalPagedKeys.filter((key) => this.canAccessOperationalList(key));
+    }
+    if (this.isTeacher) return ['students', 'classes'];
+    return [];
+  }
+
+  private withFilteredExportRows<T>(key: ListKey, fallbackRows: T[], exporter: (rows: T[]) => void): void {
+    if (!this.isServerPaged(key)) {
+      exporter(fallbackRows);
+      return;
+    }
+    const total = this.listingTotals[key] ?? fallbackRows.length;
+    const query: ListQueryParams = {
+      ...this.buildListQuery(key),
+      page: 1,
+      pageSize: Math.min(Math.max(total, 1), 10000)
+    };
+    const request = this.getListRequest(key, query);
+    if (!request) {
+      exporter(fallbackRows);
+      return;
+    }
+    request.subscribe({
+      next: (response) => exporter(response.data as T[]),
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
   }
 
   loadListing(key: ListKey): void {
@@ -1602,6 +2273,12 @@ export class AppComponent implements OnInit {
       next: (response) => {
         this.listingRows[key] = response.data;
         this.listingTotals[key] = response.pagination?.totalItems ?? response.data.length;
+        if (key === 'invoices') this.invoices = response.data as FeeInvoice[];
+        if (key === 'feeHistory') this.feeHistory = response.data as FeeHistoryRow[];
+        if (key === 'payroll') this.payrolls = response.data as PayrollRecord[];
+        if (key === 'busRoutes') this.busRoutes = response.data as BusRoute[];
+        if (key === 'busRegistrations') this.busRegistrations = response.data as BusRegistration[];
+        if (key === 'attendance') this.attendance = response.data as AttendanceRecord[];
         this.listingLoading[key] = false;
       },
       error: (error) => {
@@ -1615,9 +2292,15 @@ export class AppComponent implements OnInit {
     switch (key) {
       case 'students': return this.can('students', 'view') ? this.api.students(query) : null;
       case 'classes': return this.can('classes', 'view') ? this.api.classes(query) : null;
-      case 'years': return this.can('classes', 'view') ? this.api.academicYears(query) : null;
+      case 'years': return this.can('academic_year', 'view') ? this.api.academicYears(query) : null;
       case 'teachers': return this.can('teachers', 'view') ? this.api.teachers(query) : null;
       case 'users': return this.can('users', 'view') ? this.api.listUsers(query) : null;
+      case 'invoices': return this.can('fees', 'view') ? this.api.invoices(query) : null;
+      case 'feeHistory': return this.can('fees', 'view') ? this.api.feeHistory(query) : null;
+      case 'payroll': return this.can('payroll', 'view') ? this.api.payroll(query) : null;
+      case 'busRoutes': return this.can('transport', 'view') ? this.api.busRoutes(query) : null;
+      case 'busRegistrations': return this.can('transport', 'view') ? this.api.busRegistrations(query) : null;
+      case 'attendance': return this.can('attendance', 'view') ? this.api.attendance(query) : null;
       default: return null;
     }
   }
@@ -1660,6 +2343,37 @@ export class AppComponent implements OnInit {
       if (this.filters.userRole) query.role = this.filters.userRole;
       if (this.filters.userStatus) query.status = this.filters.userStatus;
     }
+    if (key === 'invoices') {
+      if (this.filters.invoiceSearch) query.search = this.filters.invoiceSearch;
+      if (this.filters.invoiceStatus) query.status = this.filters.invoiceStatus;
+      if (this.filters.invoiceYear) query.academicYear = this.filters.invoiceYear;
+      if (this.filters.invoiceClass) query.classRoom = this.filters.invoiceClass;
+      if (this.filters.invoiceMonth) query.feeMonth = this.filters.invoiceMonth;
+    }
+    if (key === 'feeHistory') {
+      if (this.filters.feeHistorySearch) query.search = this.filters.feeHistorySearch;
+      if (this.filters.feeHistoryStatus) query.paymentStatus = this.filters.feeHistoryStatus;
+    }
+    if (key === 'payroll') {
+      if (this.filters.payrollSearch) query.search = this.filters.payrollSearch;
+      if (this.filters.payrollStatus) query.status = this.filters.payrollStatus;
+    }
+    if (key === 'busRoutes') {
+      if (this.filters.busRouteSearch) query.search = this.filters.busRouteSearch;
+      if (this.filters.busRouteStatus) query.status = this.filters.busRouteStatus;
+    }
+    if (key === 'busRegistrations') {
+      if (this.filters.busRegYear) query.academicYear = this.filters.busRegYear;
+      if (this.filters.busRegRoute) query.route = this.filters.busRegRoute;
+      if (this.filters.busRegStatus) query.status = this.filters.busRegStatus;
+      if (this.filters.busRegSearch) query.search = this.filters.busRegSearch;
+    }
+    if (key === 'attendance') {
+      if (this.filters.attendanceSearch) query.search = this.filters.attendanceSearch;
+      if (this.filters.attendanceStatus) query.status = this.filters.attendanceStatus;
+      if (this.filters.attendanceClass) query.classRoom = this.filters.attendanceClass;
+      if (this.filters.attendanceYear) query.academicYear = this.filters.attendanceYear;
+    }
     return query;
   }
 
@@ -1668,7 +2382,13 @@ export class AppComponent implements OnInit {
       students: { name: 'firstName', class: 'firstName' },
       teachers: { name: 'firstName' },
       classes: { class: 'name', academicYear: 'name', teacher: 'name' },
-      users: { status: 'createdAt' }
+      users: { status: 'createdAt' },
+      invoices: { studentName: 'dueDate', period: 'feeYear' },
+      feeHistory: { studentName: 'paymentDate', period: 'paymentDate' },
+      payroll: { teacherName: 'year', period: 'year' },
+      busRoutes: { route: 'routeName' },
+      busRegistrations: { studentName: 'updatedAt' },
+      attendance: { studentName: 'date', className: 'date' }
     };
     return maps[key]?.[field] || field;
   }
@@ -1802,41 +2522,340 @@ export class AppComponent implements OnInit {
   }
 
   onFeeClassChange(): void {
-    const classId = this.feeForm.get('classRoom')?.value;
-    const room = this.classes.find((c) => c._id === classId);
-    if (room) {
-      this.feeForm.patchValue({ amount: room.monthlyFee || 0 });
-    }
+    // retained for compatibility; fee structure is resolved server-side during demand generation
   }
 
-  saveFeeInvoice(): void {
-    const value = this.feeForm.getRawValue();
-    this.submit(
-      this.api.createInvoice({
-        student: value.student,
-        academicYear: value.academicYear,
-        classRoom: value.classRoom,
-        dueDate: value.dueDate,
-        discount: value.discount,
-        fine: value.fine,
-        items: [{ label: value.label, amount: value.amount }]
-      }),
-      'Fee invoice created',
-      this.feeForm
-    );
+  get selectedCollectionInvoice(): FeeInvoice | undefined {
+    const id = this.paymentForm.get('invoiceId')?.value;
+    return this.invoices.find((invoice) => invoice._id === id);
+  }
+
+  onPaymentInvoiceChange(): void {
+    const invoice = this.selectedCollectionInvoice;
+    if (!invoice) return;
+    this.paymentForm.patchValue({
+      amount: invoice.balanceAmount || 0,
+      discount: invoice.discount || 0,
+      fine: invoice.fine || 0,
+      otherCharges: invoice.otherCharges || 0
+    });
+  }
+
+  generateFeeDemands(): void {
+    if (!this.can('fees', 'create')) {
+      this.message = 'You do not have permission to generate fee demands';
+      return;
+    }
+    const value = this.feeDemandForm.getRawValue();
+    const payload: Record<string, unknown> = {
+      academicYear: value.academicYear,
+      month: value.month,
+      year: value.year
+    };
+    if (value.classRoom) payload['classRoom'] = value.classRoom;
+    this.submit(this.api.generateFeeDemands(payload), 'Monthly fee demands generated', undefined);
   }
 
   savePayment(): void {
+    if (!this.can('fees', 'edit')) {
+      this.message = 'You do not have permission to collect fees';
+      return;
+    }
     const value = this.paymentForm.getRawValue();
     this.submit(
       this.api.addPayment(value.invoiceId || '', {
         amount: value.amount,
         mode: value.mode,
-        referenceNumber: value.referenceNumber
+        referenceNumber: value.referenceNumber,
+        discount: value.discount,
+        fine: value.fine,
+        otherCharges: value.otherCharges
       }),
-      'Payment recorded',
+      'Payment recorded and receipt generated',
       this.paymentForm
     );
+  }
+
+  openReceiptPdf(invoiceId: string, paymentId: string): void {
+    this.openProtectedPdf(this.api.receiptPdfUrl(invoiceId, paymentId));
+  }
+
+  voidFeeReceipt(invoiceId: string, paymentId: string, receiptNumber?: string): void {
+    if (!this.can('fees', 'edit')) return;
+    void this.confirmAction({
+      title: 'Void receipt',
+      message: `Void receipt ${receiptNumber || ''}? This will restore the pending balance for the fee month.`,
+      danger: true,
+      confirmLabel: 'Void receipt'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.voidFeePayment(invoiceId, paymentId), 'Receipt voided');
+    });
+  }
+
+  unlockFeeReceipt(invoiceId: string, paymentId: string, receiptNumber?: string): void {
+    if (!this.isSuperAdmin) return;
+    void this.confirmAction({
+      title: 'Unlock receipt',
+      message: `Unlock finalized receipt ${receiptNumber || ''}? Only use this when a correction is required.`,
+      confirmLabel: 'Unlock'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.unlockFeePayment(invoiceId, paymentId), 'Receipt unlocked');
+    });
+  }
+
+  feePeriodLabel(month?: number, year?: number): string {
+    if (!month || !year) return '';
+    return `${this.getMonthName(month)} ${year}`;
+  }
+
+  collectableInvoices(): FeeInvoice[] {
+    if (this.collectableInvoiceOptions.length) return this.collectableInvoiceOptions;
+    return this.invoices.filter((invoice) => invoice.status !== 'paid' && invoice.status !== 'cancelled' && invoice.balanceAmount > 0);
+  }
+
+  addBusRouteStop(): void {
+    this.busRouteStops = [
+      ...this.busRouteStops,
+      { name: '', sequence: this.busRouteStops.length + 1, distance: 0, monthlyFee: 0 }
+    ];
+  }
+
+  removeBusRouteStop(index: number): void {
+    this.busRouteStops = this.busRouteStops.filter((_, i) => i !== index);
+  }
+
+  resetBusRouteForm(): void {
+    this.editingBusRouteId = '';
+    this.busRouteStops = [];
+    this.busRouteForm.reset({
+      capacity: 40,
+      feeType: 'stop_based',
+      fixedMonthlyFee: 0,
+      status: 'active'
+    });
+  }
+
+  saveBusRoute(): void {
+    if (!this.can('transport', 'create') && !this.can('transport', 'edit')) return;
+    const value = this.busRouteForm.getRawValue();
+    const payload = {
+      ...value,
+      stops: this.busRouteStops.map((stop, index) => ({
+        ...stop,
+        sequence: stop.sequence || index + 1
+      }))
+    };
+    const request = this.editingBusRouteId
+      ? this.api.updateBusRoute(this.editingBusRouteId, payload)
+      : this.api.createBusRoute(payload);
+    this.submit(request, this.editingBusRouteId ? 'Bus route updated' : 'Bus route created');
+  }
+
+  editBusRoute(route: BusRoute): void {
+    this.editingBusRouteId = route._id;
+    this.busRouteStops = route.stops?.map((stop) => ({ ...stop })) || [];
+    this.busRouteForm.patchValue({
+      routeName: route.routeName,
+      routeCode: route.routeCode,
+      vehicleNumber: route.vehicleNumber,
+      driverName: route.driverName,
+      driverMobile: route.driverMobile,
+      capacity: route.capacity,
+      feeType: route.feeType,
+      fixedMonthlyFee: route.fixedMonthlyFee,
+      status: route.status
+    });
+  }
+
+  toggleBusRouteStatus(id: string): void {
+    if (!this.can('transport', 'edit')) return;
+    this.submit(this.api.toggleBusRouteStatus(id), 'Route status updated');
+  }
+
+  resetBusRegistrationForm(): void {
+    this.editingBusRegistrationId = '';
+    this.busRegistrationForm.reset({
+      academicYear: this.activeAcademicYear?._id || '',
+      serviceStartDate: new Date().toISOString().slice(0, 10),
+      busService: true,
+      status: 'active',
+      monthlyFee: 0
+    });
+  }
+
+  activeBusRoutes(): BusRoute[] {
+    return this.busRoutes.filter((route) => route.status === 'active');
+  }
+
+  selectedBusRouteStops(): BusStop[] {
+    const routeId = this.busRegistrationForm.get('route')?.value;
+    const route = this.busRoutes.find((item) => item._id === routeId);
+    return route?.stops || [];
+  }
+
+  onBusRegRouteChange(): void {
+    this.busRegistrationForm.patchValue({ stopSequence: '', monthlyFee: 0 });
+  }
+
+  onBusRegStopChange(): void {
+    const routeId = this.busRegistrationForm.get('route')?.value;
+    const sequence = Number(this.busRegistrationForm.get('stopSequence')?.value);
+    const route = this.busRoutes.find((item) => item._id === routeId);
+    if (!route) return;
+    const stop = route.stops.find((item) => item.sequence === sequence);
+    const fee = route.feeType === 'fixed' ? route.fixedMonthlyFee : stop?.monthlyFee || 0;
+    this.busRegistrationForm.patchValue({ monthlyFee: fee });
+  }
+
+  onBusRegClassChange(): void {
+    this.busRegistrationForm.patchValue({ student: '' });
+  }
+
+  filteredActiveStudentsForBus(): Student[] {
+    const yearId = this.busRegistrationForm.get('academicYear')?.value || this.filters.busRegYear;
+    const classId = this.busRegistrationForm.get('classRoom')?.value;
+    return this.students.filter((student) => {
+      if (student.status !== 'active') return false;
+      const enrollment = student.enrollments?.find(
+        (item) =>
+          (typeof item.academicYear === 'string' ? item.academicYear : item.academicYear?._id) === yearId &&
+          item.status === 'studying'
+      );
+      if (!enrollment) return false;
+      if (!classId) return true;
+      const roomId = typeof enrollment.classRoom === 'string' ? enrollment.classRoom : enrollment.classRoom?._id;
+      return roomId === classId;
+    });
+  }
+
+  saveBusRegistration(): void {
+    if (!this.can('transport', 'create') && !this.can('transport', 'edit')) return;
+    const value = this.busRegistrationForm.getRawValue();
+    const route = this.busRoutes.find((item) => item._id === value.route);
+    const stop = route?.stops.find((item) => item.sequence === Number(value.stopSequence));
+    const payload: Record<string, unknown> = {
+      student: value.student,
+      academicYear: value.academicYear,
+      route: value.route,
+      stopName: stop?.name,
+      stopSequence: Number(value.stopSequence),
+      monthlyFee: value.monthlyFee,
+      busService: value.busService,
+      serviceStartDate: value.serviceStartDate,
+      serviceEndDate: value.serviceEndDate || undefined,
+      status: value.status
+    };
+    const request = this.editingBusRegistrationId
+      ? this.api.updateBusRegistration(this.editingBusRegistrationId, payload)
+      : this.api.createBusRegistration(payload);
+    this.submit(request, this.editingBusRegistrationId ? 'Bus registration updated' : 'Student registered for bus service');
+  }
+
+  editBusRegistration(reg: BusRegistration): void {
+    this.editingBusRegistrationId = reg._id;
+    const studentId = typeof reg.student === 'string' ? reg.student : reg.student?._id;
+    const yearId = typeof reg.academicYear === 'string' ? reg.academicYear : reg.academicYear?._id;
+    const routeId = typeof reg.route === 'string' ? reg.route : reg.route?._id;
+    this.busRegistrationForm.patchValue({
+      academicYear: yearId,
+      student: studentId,
+      route: routeId,
+      stopSequence: String(reg.stopSequence),
+      monthlyFee: reg.monthlyFee,
+      serviceStartDate: reg.serviceStartDate ? new Date(reg.serviceStartDate).toISOString().slice(0, 10) : '',
+      serviceEndDate: reg.serviceEndDate ? new Date(reg.serviceEndDate).toISOString().slice(0, 10) : '',
+      busService: reg.busService,
+      status: reg.status
+    });
+  }
+
+  deactivateBusRegistration(id: string): void {
+    if (!this.can('transport', 'edit')) return;
+    void this.confirmAction({
+      title: 'Deactivate bus service',
+      message: 'Deactivate this bus registration? Bus fee will be removed from open fee demands automatically.',
+      danger: true,
+      confirmLabel: 'Deactivate'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.deactivateBusRegistration(id), 'Bus service deactivated');
+    });
+  }
+
+  busRouteLabel(route: BusRoute | string | undefined): string {
+    if (!route) return '—';
+    if (typeof route === 'string') {
+      const found = this.busRoutes.find((item) => item._id === route);
+      return found ? `${found.routeCode} — ${found.routeName}` : route;
+    }
+    return `${route.routeCode} — ${route.routeName}`;
+  }
+
+  studentAdmission(student: Student | string | undefined): string {
+    if (!student || typeof student === 'string') return '';
+    return student.admissionNumber || '';
+  }
+
+  loadBusReport(): void {
+    if (!this.can('transport', 'view')) return;
+    const params: Record<string, string> = {};
+    if (this.filters.busReportYear) params['academicYear'] = this.filters.busReportYear;
+    this.api.busReport(this.transportReportType, params).subscribe({
+      next: (response) => { this.busReportRows = response.rows || []; },
+      error: () => { this.busReportRows = []; }
+    });
+  }
+
+  exportBusReportCsv(): void {
+    const rows = this.busReportRows;
+    if (this.transportReportType === 'fee-collection') {
+      exportRowsToCsv(`bus-fee-collection-${new Date().toISOString().slice(0, 10)}.csv`, ['Student', 'Month', 'Bus Fee', 'Paid', 'Receipt'], rows.map((row) => [
+        row.studentName || '',
+        row.feeMonth || '',
+        String(row.busFee || 0),
+        String(row.paidAmount || 0),
+        row.receiptNumber || ''
+      ]));
+      return;
+    }
+    exportRowsToCsv(`bus-report-${this.transportReportType}.csv`, ['Student', 'Class', 'Route', 'Stop', 'Fee', 'Status'], rows.map((row) => [
+      row.studentName || '',
+      row.className || '',
+      row.routeName || '',
+      row.stopName || '',
+      String(row.monthlyFee || 0),
+      row.busService && row.status === 'active' ? 'active' : 'inactive'
+    ]));
+  }
+
+  exportBusReportPdf(): void {
+    const rows = this.busReportRows;
+    if (this.transportReportType === 'fee-collection') {
+      exportRowsToPdf('Bus Fee Collection', ['Student', 'Month', 'Bus Fee', 'Paid', 'Receipt'], rows.map((row) => [
+        row.studentName || '',
+        row.feeMonth || '',
+        String(row.busFee || 0),
+        String(row.paidAmount || 0),
+        row.receiptNumber || '—'
+      ]));
+      return;
+    }
+    exportRowsToPdf(`Bus Report — ${this.transportReportType}`, ['Student', 'Class', 'Route', 'Stop', 'Fee', 'Status'], rows.map((row) => [
+      row.studentName || '',
+      row.className || '',
+      row.routeName || '',
+      row.stopName || '',
+      String(row.monthlyFee || 0),
+      row.busService && row.status === 'active' ? 'active' : 'inactive'
+    ]));
+  }
+
+  openBusReportServerPdf(): void {
+    const params: Record<string, string> = {};
+    if (this.filters.busReportYear) params['academicYear'] = this.filters.busReportYear;
+    this.openProtectedPdf(this.api.busReportPdfUrl(this.transportReportType, params));
   }
 
   savePayroll(): void {
@@ -2023,35 +3042,490 @@ export class AppComponent implements OnInit {
   }
 
   saveAttendance(): void {
+    this.saveAttendanceRegisterDraft();
+  }
+
+  loadAttendanceRegister(): void {
+    if (!this.can('attendance', 'view')) return;
     const value = this.attendanceForm.getRawValue();
-    const dateVal = value.date || '';
-    if (this.isSunday(dateVal)) { this.message = 'Cannot mark attendance on Sunday'; return; }
-    const hCheck = this.isHoliday(dateVal);
-    if (hCheck.is) { this.message = `Cannot mark attendance on holiday: ${hCheck.name}`; return; }
-    this.submit(
-      this.api.markAttendance({
-        records: [
-          {
-            student: value.student,
-            classRoom: value.classRoom,
-            academicYear: value.academicYear,
-            date: value.date,
-            status: value.status,
-            remarks: value.remarks
-          }
-        ]
-      }),
-      'Attendance saved',
-      this.attendanceForm
+    if (!value.academicYear || !value.classRoom || !value.date) return;
+    if (value.date > new Date().toISOString().slice(0, 10)) {
+      this.toast.error('Attendance cannot be entered for future dates');
+      return;
+    }
+    this.api.attendanceRegister({
+      academicYear: value.academicYear,
+      classRoom: value.classRoom,
+      date: value.date
+    }).subscribe({
+      next: (sheet) => {
+        this.attendanceRegisterWorkflow = sheet.register.workflowStatus || 'draft';
+        this.attendanceRegisterSummary = sheet.summary;
+        this.attendanceRegisterHoliday = sheet.holiday || null;
+        this.attendanceRegisterSunday = !!sheet.isSunday;
+        this.attendanceRegisterRows = sheet.rows.map((row) => ({
+          studentId: row.student._id,
+          studentName: this.studentName(row.student),
+          admissionNumber: row.student.admissionNumber,
+          status: row.status,
+          remarks: row.remarks || ''
+        }));
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Could not load attendance register'))
+    });
+  }
+
+  setAttendanceRegisterRowStatus(studentId: string, status: string): void {
+    const row = this.attendanceRegisterRows.find((item) => item.studentId === studentId);
+    if (row) row.status = status;
+  }
+
+  markAllAttendancePresent(): void {
+    const defaultStatus = this.attendanceRegisterHoliday ? ATTENDANCE_STATUS.HOLIDAY : ATTENDANCE_STATUS.PRESENT;
+    this.attendanceRegisterRows = this.attendanceRegisterRows.map((row) => ({ ...row, status: defaultStatus }));
+  }
+
+  get attendanceRegisterEditable(): boolean {
+    return this.attendanceRegisterWorkflow === 'draft';
+  }
+
+  private attendanceRegisterPayload(): Record<string, unknown> | null {
+    const value = this.attendanceForm.getRawValue();
+    if (!value.academicYear || !value.classRoom || !value.date) return null;
+    return {
+      academicYear: value.academicYear,
+      classRoom: value.classRoom,
+      date: value.date,
+      records: this.attendanceRegisterRows.map((row) => ({
+        student: row.studentId,
+        status: row.status,
+        remarks: row.remarks
+      }))
+    };
+  }
+
+  saveAttendanceRegisterDraft(): void {
+    if (!this.can('attendance', 'create')) return;
+    const payload = this.attendanceRegisterPayload();
+    if (!payload) return;
+    if (!this.attendanceRegisterEditable) {
+      this.toast.error('Attendance can only be edited while in draft status');
+      return;
+    }
+    this.submit(this.api.saveAttendanceRegister(payload), 'Attendance draft saved');
+  }
+
+  submitAttendanceRegister(): void {
+    if (!this.can('attendance', 'edit')) return;
+    const payload = this.attendanceRegisterPayload();
+    if (!payload) return;
+    void this.confirmAction({
+      title: 'Submit attendance',
+      message: 'Submit attendance for review? You will not be able to edit it afterwards unless an administrator unlocks it.',
+      confirmLabel: 'Submit'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.saveAttendanceRegister(payload).subscribe({
+        next: () => {
+          this.api.submitAttendanceRegister({
+            academicYear: payload['academicYear'],
+            classRoom: payload['classRoom'],
+            date: payload['date']
+          }).subscribe({
+            next: () => {
+              this.toast.success('Attendance submitted');
+              this.loadAttendanceRegister();
+              this.refresh();
+            },
+            error: (err) => this.toast.error(extractApiMessage(err, 'Submit failed'))
+          });
+        },
+        error: (err) => this.toast.error(extractApiMessage(err, 'Save failed'))
+      });
+    });
+  }
+
+  lockAttendanceRegister(): void {
+    if (!this.isAdmin) return;
+    const payload = this.attendanceRegisterPayload();
+    if (!payload) return;
+    this.submit(this.api.lockAttendanceRegister({
+      academicYear: payload['academicYear'],
+      classRoom: payload['classRoom'],
+      date: payload['date']
+    }), 'Attendance locked');
+  }
+
+  unlockAttendanceRegister(): void {
+    if (!this.isAdmin) return;
+    const payload = this.attendanceRegisterPayload();
+    if (!payload) return;
+    void this.confirmAction({
+      title: 'Unlock attendance',
+      message: 'Unlock this attendance register for editing?',
+      confirmLabel: 'Unlock'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.submit(this.api.unlockAttendanceRegister({
+        academicYear: payload['academicYear'],
+        classRoom: payload['classRoom'],
+        date: payload['date']
+      }), 'Attendance unlocked');
+    });
+  }
+
+  loadAttendanceReport(): void {
+    if (!this.can('attendance', 'view')) return;
+    const params: Record<string, string> = {};
+    if (this.filters.attendanceYear) params['academicYear'] = this.filters.attendanceYear;
+    if (this.filters.attendanceClass) params['classRoom'] = this.filters.attendanceClass;
+    if (this.attendanceReportType === 'daily' && this.attendanceForm.get('date')?.value) {
+      params['date'] = this.attendanceForm.get('date')?.value || '';
+    }
+    if (this.attendanceReportType === 'monthly') {
+      params['month'] = this.filters.attendanceReportMonth;
+      params['year'] = this.filters.attendanceReportYear;
+    }
+    this.api.attendanceReport(this.attendanceReportType, params).subscribe({
+      next: (response) => { this.attendanceReportRows = response.rows || []; },
+      error: () => { this.attendanceReportRows = []; }
+    });
+  }
+
+  exportAttendanceReportCsv(): void {
+    const rows = this.attendanceReportRows;
+    if (this.attendanceReportType === 'daily') {
+      exportRowsToCsv(`attendance-daily.csv`, ['Date', 'Student', 'Class', 'Status'], rows.map((row) => [
+        row.date ? new Date(row.date).toLocaleDateString() : '',
+        row.studentName || '',
+        row.className || '',
+        row.status || ''
+      ]));
+      return;
+    }
+    if (this.attendanceReportType === 'class-summary') {
+      exportRowsToCsv(`attendance-class-summary.csv`, ['Class', 'Students', 'Present', 'Absent', 'Leave', '%'], rows.map((row) => [
+        row.className || '',
+        String(row.studentCount || 0),
+        String(row.present || 0),
+        String(row.absent || 0),
+        String(row.leave || 0),
+        String(row.percentage || 0)
+      ]));
+      return;
+    }
+    exportRowsToCsv(`attendance-report.csv`, ['Student', 'Class', 'Month', 'Present', 'Absent', 'Leave', '%'], rows.map((row) => [
+      row.studentName || '',
+      row.className || '',
+      row.month || '',
+      String(row.present || 0),
+      String(row.absent || 0),
+      String(row.leave || 0),
+      String(row.percentage || 0)
+    ]));
+  }
+
+  exportAttendanceReportPdf(): void {
+    const rows = this.attendanceReportRows;
+    if (this.attendanceReportType === 'daily') {
+      exportRowsToPdf('Daily Attendance', ['Date', 'Student', 'Class', 'Status'], rows.map((row) => [
+        row.date ? new Date(row.date).toLocaleDateString() : '',
+        row.studentName || '',
+        row.className || '',
+        row.status || ''
+      ]));
+      return;
+    }
+    exportRowsToPdf(`Attendance Report`, ['Student', 'Class', 'Present', 'Absent', 'Leave', '%'], rows.map((row) => [
+      row.studentName || row.className || '',
+      row.className || '',
+      String(row.present || 0),
+      String(row.absent || 0),
+      String(row.leave || 0),
+      String(row.percentage || 0)
+    ]));
+  }
+
+  openAttendanceReportServerPdf(): void {
+    const params: Record<string, string> = {};
+    if (this.filters.attendanceYear) params['academicYear'] = this.filters.attendanceYear;
+    if (this.filters.attendanceClass) params['classRoom'] = this.filters.attendanceClass;
+    if (this.attendanceReportType === 'monthly') {
+      params['month'] = this.filters.attendanceReportMonth;
+      params['year'] = this.filters.attendanceReportYear;
+    }
+    this.openProtectedPdf(this.api.attendanceReportPdfUrl(this.attendanceReportType, params));
+  }
+
+  private readonly reportColumnMap: Record<ReportDomain, Record<string, Array<{ key: string; label: string }>>> = {
+    students: {
+      register: [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'className', label: 'Class' },
+        { key: 'section', label: 'Section' },
+        { key: 'status', label: 'Status' },
+        { key: 'admissionDate', label: 'Admission Date' }
+      ],
+      'admission-register': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'classSection', label: 'Class' },
+        { key: 'admissionDate', label: 'Admission Date' },
+        { key: 'status', label: 'Status' }
+      ],
+      'class-wise': [
+        { key: 'className', label: 'Class' },
+        { key: 'totalStudents', label: 'Total' },
+        { key: 'activeStudents', label: 'Active' },
+        { key: 'inactiveStudents', label: 'Inactive' }
+      ],
+      'section-wise': [
+        { key: 'classSection', label: 'Class-Section' },
+        { key: 'totalStudents', label: 'Total' },
+        { key: 'activeStudents', label: 'Active' }
+      ],
+      status: [
+        { key: 'status', label: 'Status' },
+        { key: 'totalStudents', label: 'Total Students' }
+      ]
+    },
+    fees: {
+      'monthly-collection': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'paidAmount', label: 'Paid' },
+        { key: 'receiptNumber', label: 'Receipt' },
+        { key: 'status', label: 'Status' }
+      ],
+      pending: [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'dueDate', label: 'Due Date' },
+        { key: 'pendingAmount', label: 'Pending' },
+        { key: 'status', label: 'Status' }
+      ],
+      'student-ledger': [
+        { key: 'date', label: 'Date' },
+        { key: 'studentName', label: 'Student' },
+        { key: 'entryType', label: 'Type' },
+        { key: 'description', label: 'Description' },
+        { key: 'debit', label: 'Debit' },
+        { key: 'credit', label: 'Credit' }
+      ],
+      'bus-fee-collection': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'busFee', label: 'Bus Fee' },
+        { key: 'paidAmount', label: 'Paid' },
+        { key: 'receiptNumber', label: 'Receipt' },
+        { key: 'paymentDate', label: 'Date' }
+      ]
+    },
+    attendance: {
+      daily: [
+        { key: 'date', label: 'Date' },
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'status', label: 'Status' },
+        { key: 'remarks', label: 'Remarks' }
+      ],
+      monthly: [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'month', label: 'Month' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'leave', label: 'Leave' },
+        { key: 'percentage', label: '%' }
+      ],
+      'student-summary': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'leave', label: 'Leave' },
+        { key: 'percentage', label: '%' }
+      ],
+      'class-summary': [
+        { key: 'className', label: 'Class' },
+        { key: 'studentCount', label: 'Students' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'leave', label: 'Leave' },
+        { key: 'percentage', label: '%' }
+      ]
+    },
+    payroll: {
+      summary: [
+        { key: 'payrollMonth', label: 'Month' },
+        { key: 'employeeCount', label: 'Employees' },
+        { key: 'paidCount', label: 'Paid' },
+        { key: 'pendingCount', label: 'Pending' },
+        { key: 'totalNet', label: 'Net Total' }
+      ],
+      'salary-summary': [
+        { key: 'teacherName', label: 'Employee' },
+        { key: 'designation', label: 'Designation' },
+        { key: 'basicSalary', label: 'Basic' },
+        { key: 'allowances', label: 'Allowances' },
+        { key: 'deductions', label: 'Deductions' },
+        { key: 'netSalary', label: 'Net' },
+        { key: 'status', label: 'Status' }
+      ],
+      'payment-status': [
+        { key: 'teacherName', label: 'Employee' },
+        { key: 'payrollMonth', label: 'Month' },
+        { key: 'netSalary', label: 'Net Salary' },
+        { key: 'status', label: 'Status' },
+        { key: 'paidAt', label: 'Paid On' }
+      ]
+    },
+    transport: {
+      'route-wise': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'routeName', label: 'Route' },
+        { key: 'stopName', label: 'Stop' },
+        { key: 'monthlyFee', label: 'Fee' },
+        { key: 'status', label: 'Status' }
+      ],
+      'stop-wise': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'routeName', label: 'Route' },
+        { key: 'stopName', label: 'Stop' },
+        { key: 'monthlyFee', label: 'Fee' },
+        { key: 'status', label: 'Status' }
+      ],
+      'bus-strength': [
+        { key: 'routeName', label: 'Route' },
+        { key: 'vehicleNumber', label: 'Vehicle' },
+        { key: 'capacity', label: 'Capacity' },
+        { key: 'activeStudents', label: 'Students' },
+        { key: 'availableSeats', label: 'Available' },
+        { key: 'occupancy', label: 'Occupancy %' }
+      ],
+      'fee-collection': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'busFee', label: 'Bus Fee' },
+        { key: 'paidAmount', label: 'Paid' },
+        { key: 'receiptNumber', label: 'Receipt' },
+        { key: 'paymentDate', label: 'Date' }
+      ]
+    }
+  };
+
+  setReportDomain(domain: ReportDomain): void {
+    this.reportDomain = domain;
+    const types = this.reportColumnMap[domain];
+    this.reportType = Object.keys(types)[0] || 'register';
+    this.loadReport();
+  }
+
+  setReportType(type: string): void {
+    this.reportType = type;
+    this.loadReport();
+  }
+
+  reportColumns(): Array<{ key: string; label: string }> {
+    return this.reportColumnMap[this.reportDomain]?.[this.reportType] || [];
+  }
+
+  reportCell(row: ReportRow, key: string): string {
+    const value = row[key];
+    if (value == null || value === '') return '—';
+    if (key === 'status' && typeof value === 'string') return this.studentStatusLabel(value) || value;
+    if (typeof value === 'number' && ['paidAmount', 'pendingAmount', 'totalAmount', 'debit', 'credit', 'busFee', 'basicSalary', 'allowances', 'deductions', 'netSalary', 'totalNet', 'monthlyFee', 'paidAmount'].includes(key)) {
+      return value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+    }
+    if (value instanceof Date || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value) && ['date', 'admissionDate', 'dueDate', 'paidAt', 'paymentDate'].includes(key))) {
+      return new Date(value as string).toLocaleDateString();
+    }
+    return String(value);
+  }
+
+  buildReportParams(): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (this.filters.reportYear) params['academicYear'] = this.filters.reportYear;
+    if (this.filters.reportClass) params['classRoom'] = this.filters.reportClass;
+    if (this.filters.reportSection) params['section'] = this.filters.reportSection;
+    if (this.filters.reportStatus) params['status'] = this.filters.reportStatus;
+    if (this.filters.reportAdmissionFrom) params['admissionFrom'] = this.filters.reportAdmissionFrom;
+    if (this.filters.reportAdmissionTo) params['admissionTo'] = this.filters.reportAdmissionTo;
+    if (this.filters.reportMonth) params['month'] = this.filters.reportMonth;
+    if (this.filters.reportYearNum) params['year'] = this.filters.reportYearNum;
+    if (this.filters.reportDate) params['date'] = this.filters.reportDate;
+    if (this.filters.reportPaymentStatus) params['paymentStatus'] = this.filters.reportPaymentStatus;
+    if (this.filters.reportStudent) params['student'] = this.filters.reportStudent;
+    if (this.filters.reportDepartment) params['department'] = this.filters.reportDepartment;
+    if (this.filters.reportDesignation) params['designation'] = this.filters.reportDesignation;
+    if (this.filters.reportPayrollStatus) params['payrollStatus'] = this.filters.reportPayrollStatus;
+    if (this.filters.reportRoute) params['route'] = this.filters.reportRoute;
+    if (this.filters.reportStop) params['stop'] = this.filters.reportStop;
+    if (this.filters.reportBusStatus) params['busServiceStatus'] = this.filters.reportBusStatus;
+    return params;
+  }
+
+  loadReport(): void {
+    if (!this.can('reports', 'view')) return;
+    this.reportLoading = true;
+    this.api.report(this.reportDomain, this.reportType, this.buildReportParams()).subscribe({
+      next: (response) => {
+        this.reportRows = response.rows || [];
+        this.reportLoading = false;
+      },
+      error: () => {
+        this.reportRows = [];
+        this.reportLoading = false;
+      }
+    });
+  }
+
+  exportReportCsv(): void {
+    const columns = this.reportColumns();
+    if (!columns.length || !this.reportRows.length) return;
+    exportRowsToCsv(
+      `${this.reportDomain}-${this.reportType}.csv`,
+      columns.map((col) => col.label),
+      this.reportRows.map((row) => columns.map((col) => this.reportCell(row, col.key)))
     );
   }
 
+  exportReportPdf(): void {
+    const columns = this.reportColumns();
+    if (!columns.length || !this.reportRows.length) return;
+    exportRowsToPdf(
+      `${this.reportDomain} ${this.reportType}`,
+      columns.map((col) => col.label),
+      this.reportRows.map((row) => columns.map((col) => this.reportCell(row, col.key)))
+    );
+  }
+
+  openReportServerPdf(): void {
+    this.openProtectedPdf(this.api.reportPdfUrl(this.reportDomain, this.reportType, this.buildReportParams()));
+  }
+
   loadSelfAttendanceStatus(): void {
-    if (!this.isStudent && !this.isTeacher) return;
+    if (!this.isTeacher) return;
     this.api.selfAttendanceStatus().subscribe({
       next: (res) => {
         this.selfAttendanceMarked = res.marked;
         this.selfAttendanceStatus = res.status;
+      },
+      error: () => {}
+    });
+  }
+
+  loadHolidays(): void {
+    if (!this.can('attendance', 'view') || this.holidaysLoaded) return;
+    this.api.holidays().subscribe({
+      next: (rows) => {
+        this.holidays = rows;
+        this.holidaysLoaded = true;
       },
       error: () => {}
     });
@@ -2308,6 +3782,18 @@ export class AppComponent implements OnInit {
     return this.className(latest.classRoom as ClassRoom);
   }
 
+  entityRefId(value?: string | { _id?: string }): string {
+    if (!value) return '';
+    return typeof value === 'string' ? value : value._id || '';
+  }
+
+  matchesPortalStudent(student?: Student | string | { _id?: string }): boolean {
+    if (!this.isPortalUser) return true;
+    const portalId = this.portalStudentId;
+    if (!portalId) return false;
+    return this.entityRefId(student) === portalId;
+  }
+
   studentName(student?: Student | string): string {
     if (!student || typeof student === 'string') return '';
     return `${student.firstName} ${student.lastName || ''}`.trim();
@@ -2444,9 +3930,230 @@ export class AppComponent implements OnInit {
     });
   }
 
+  get sortedInvoices(): FeeInvoice[] {
+    if (this.isServerPaged('invoices')) return (this.listingRows.invoices as FeeInvoice[]) || [];
+    return sortItems(this.filteredInvoices, this.listSort.invoices?.field, this.listSort.invoices?.dir, {
+      invoiceNumber: (invoice) => invoice.invoiceNumber,
+      studentName: (invoice) => this.studentName(invoice.student),
+      dueDate: (invoice) => invoice.dueDate,
+      status: (invoice) => invoice.status,
+      totalAmount: (invoice) => invoice.totalAmount
+    });
+  }
+
+  get sortedFeeHistory(): FeeHistoryRow[] {
+    if (this.isServerPaged('feeHistory')) return (this.listingRows.feeHistory as FeeHistoryRow[]) || [];
+    return sortItems(this.filteredFeeHistory, this.listSort.feeHistory?.field, this.listSort.feeHistory?.dir, {
+      paymentDate: (row) => row.paymentDate,
+      studentName: (row) => this.studentName(row.student),
+      receiptNumber: (row) => row.receiptNumber || '',
+      paidAmount: (row) => row.paidAmount
+    });
+  }
+
+  get sortedPayrolls(): PayrollRecord[] {
+    if (this.isServerPaged('payroll')) return (this.listingRows.payroll as PayrollRecord[]) || [];
+    return sortItems(this.filteredPayrolls, this.listSort.payroll?.field, this.listSort.payroll?.dir, {
+      teacherName: (payroll) => this.payrollTeacherName(payroll.teacher),
+      period: (payroll) => `${payroll.year}-${String(payroll.month).padStart(2, '0')}`,
+      netSalary: (payroll) => payroll.basicSalary + payroll.allowances - payroll.deductions,
+      status: (payroll) => payroll.status
+    });
+  }
+
+  get sortedBusRoutes(): BusRoute[] {
+    if (this.isServerPaged('busRoutes')) return (this.listingRows.busRoutes as BusRoute[]) || [];
+    return sortItems(this.filteredBusRoutes, this.listSort.busRoutes?.field, this.listSort.busRoutes?.dir, {
+      routeCode: (route) => route.routeCode,
+      routeName: (route) => route.routeName,
+      vehicleNumber: (route) => route.vehicleNumber,
+      status: (route) => route.status
+    });
+  }
+
+  get sortedBusRegistrations(): BusRegistration[] {
+    if (this.isServerPaged('busRegistrations')) return (this.listingRows.busRegistrations as BusRegistration[]) || [];
+    return sortItems(this.filteredBusRegistrations, this.listSort.busRegistrations?.field, this.listSort.busRegistrations?.dir, {
+      studentName: (reg) => this.studentName(reg.student),
+      routeName: (reg) => this.busRouteLabel(reg.route),
+      stopName: (reg) => reg.stopName,
+      status: (reg) => reg.status
+    });
+  }
+
+  get sortedAttendance(): AttendanceRecord[] {
+    if (this.isServerPaged('attendance')) return (this.listingRows.attendance as AttendanceRecord[]) || [];
+    return sortItems(this.filteredAttendance, this.listSort.attendance?.field, this.listSort.attendance?.dir, {
+      date: (row) => row.date,
+      studentName: (row) => this.studentName(row.student),
+      className: (row) => this.className(row.classRoom),
+      status: (row) => row.status
+    });
+  }
+
+  get sortedDashboardAttendance(): AttendanceRecord[] {
+    return sortItems(this.filteredAttendance, this.listSort.attendance?.field || 'date', this.listSort.attendance?.dir || 'desc', {
+      date: (row) => row.date,
+      studentName: (row) => this.studentName(row.student),
+      className: (row) => this.className(row.classRoom),
+      status: (row) => row.status
+    });
+  }
+
+  exportInvoicesCsv(): void {
+    this.withFilteredExportRows('invoices', this.sortedInvoices, (rows) => {
+      exportRowsToCsv('fee-demands.csv', ['Invoice', 'Student', 'Period', 'Total', 'Paid', 'Balance', 'Status'], rows.map((invoice) => [
+        invoice.invoiceNumber,
+        this.studentName(invoice.student),
+        this.feePeriodLabel(invoice.feeMonth, invoice.feeYear),
+        String(invoice.totalAmount),
+        String(invoice.paidAmount),
+        String(invoice.balanceAmount),
+        invoice.status
+      ]));
+    });
+  }
+
+  exportInvoicesPdf(): void {
+    this.withFilteredExportRows('invoices', this.sortedInvoices, (rows) => {
+      exportRowsToPdf('Fee Demands', ['Invoice', 'Student', 'Period', 'Total', 'Balance', 'Status'], rows.map((invoice) => [
+        invoice.invoiceNumber,
+        this.studentName(invoice.student),
+        this.feePeriodLabel(invoice.feeMonth, invoice.feeYear),
+        String(invoice.totalAmount),
+        String(invoice.balanceAmount),
+        invoice.status
+      ]));
+    });
+  }
+
+  exportFeeHistoryCsv(): void {
+    this.withFilteredExportRows('feeHistory', this.sortedFeeHistory, (rows) => {
+      exportRowsToCsv('fee-history.csv', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status'], rows.map((row) => [
+        this.feePeriodLabel(row.feeMonth, row.feeYear),
+        this.studentName(row.student),
+        row.receiptNumber || '—',
+        String(row.paidAmount),
+        String(row.pendingAmount),
+        row.paymentStatus
+      ]));
+    });
+  }
+
+  exportFeeHistoryPdf(): void {
+    this.withFilteredExportRows('feeHistory', this.sortedFeeHistory, (rows) => {
+      exportRowsToPdf('Fee Payment History', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status'], rows.map((row) => [
+        this.feePeriodLabel(row.feeMonth, row.feeYear),
+        this.studentName(row.student),
+        row.receiptNumber || '—',
+        String(row.paidAmount),
+        String(row.pendingAmount),
+        row.paymentStatus
+      ]));
+    });
+  }
+
+  exportPayrollsCsv(): void {
+    this.withFilteredExportRows('payroll', this.sortedPayrolls, (rows) => {
+      exportRowsToCsv('payroll.csv', ['Teacher', 'Period', 'Basic', 'Allowances', 'Deductions', 'Net', 'Status'], rows.map((payroll) => [
+        this.payrollTeacherName(payroll.teacher),
+        `${this.getMonthName(payroll.month)} ${payroll.year}`,
+        String(payroll.basicSalary),
+        String(payroll.allowances),
+        String(payroll.deductions),
+        String(payroll.basicSalary + payroll.allowances - payroll.deductions),
+        payroll.status
+      ]));
+    });
+  }
+
+  exportPayrollsPdf(): void {
+    this.withFilteredExportRows('payroll', this.sortedPayrolls, (rows) => {
+      exportRowsToPdf('Payroll Records', ['Teacher', 'Period', 'Net', 'Status'], rows.map((payroll) => [
+        this.payrollTeacherName(payroll.teacher),
+        `${this.getMonthName(payroll.month)} ${payroll.year}`,
+        String(payroll.basicSalary + payroll.allowances - payroll.deductions),
+        payroll.status
+      ]));
+    });
+  }
+
+  exportBusRoutesCsv(): void {
+    this.withFilteredExportRows('busRoutes', this.sortedBusRoutes, (rows) => {
+      exportRowsToCsv('bus-routes.csv', ['Code', 'Route', 'Vehicle', 'Driver', 'Stops', 'Assigned', 'Status'], rows.map((route) => [
+        route.routeCode,
+        route.routeName,
+        route.vehicleNumber,
+        route.driverName,
+        String(route.stops?.length || 0),
+        String(route.assignedCount || 0),
+        route.status
+      ]));
+    });
+  }
+
+  exportBusRoutesPdf(): void {
+    this.withFilteredExportRows('busRoutes', this.sortedBusRoutes, (rows) => {
+      exportRowsToPdf('Bus Routes', ['Code', 'Route', 'Vehicle', 'Stops', 'Status'], rows.map((route) => [
+        route.routeCode,
+        route.routeName,
+        route.vehicleNumber,
+        String(route.stops?.length || 0),
+        route.status
+      ]));
+    });
+  }
+
+  exportBusRegistrationsCsv(): void {
+    this.withFilteredExportRows('busRegistrations', this.sortedBusRegistrations, (rows) => {
+      exportRowsToCsv('bus-registrations.csv', ['Student', 'Route', 'Stop', 'Fee', 'Status'], rows.map((reg) => [
+        this.studentName(reg.student),
+        this.busRouteLabel(reg.route),
+        reg.stopName,
+        String(reg.monthlyFee),
+        reg.status
+      ]));
+    });
+  }
+
+  exportBusRegistrationsPdf(): void {
+    this.withFilteredExportRows('busRegistrations', this.sortedBusRegistrations, (rows) => {
+      exportRowsToPdf('Bus Registrations', ['Student', 'Route', 'Stop', 'Fee', 'Status'], rows.map((reg) => [
+        this.studentName(reg.student),
+        this.busRouteLabel(reg.route),
+        reg.stopName,
+        String(reg.monthlyFee),
+        reg.status
+      ]));
+    });
+  }
+
+  exportAttendanceListCsv(): void {
+    this.withFilteredExportRows('attendance', this.sortedAttendance, (rows) => {
+      exportRowsToCsv('attendance.csv', ['Date', 'Student', 'Class', 'Status'], rows.map((row) => [
+        row.date ? new Date(row.date).toLocaleDateString() : '',
+        this.studentName(row.student),
+        this.className(row.classRoom),
+        row.status
+      ]));
+    });
+  }
+
+  exportAttendanceListPdf(): void {
+    this.withFilteredExportRows('attendance', this.sortedAttendance, (rows) => {
+      exportRowsToPdf('Attendance Records', ['Date', 'Student', 'Class', 'Status'], rows.map((row) => [
+        row.date ? new Date(row.date).toLocaleDateString() : '',
+        this.studentName(row.student),
+        this.className(row.classRoom),
+        row.status
+      ]));
+    });
+  }
+
   get filteredInvoices(): FeeInvoice[] {
     const search = this.filters.invoiceSearch.toLowerCase().trim();
     return this.invoices.filter((invoice) => {
+      if (this.isPortalUser && !this.matchesPortalStudent(invoice.student)) return false;
       const matchesSearch = !search || `${invoice.invoiceNumber} ${this.studentName(invoice.student)}`.toLowerCase().includes(search);
       const matchesStatus = !this.filters.invoiceStatus || invoice.status === this.filters.invoiceStatus;
       const matchesYear = !this.filters.invoiceYear || (
@@ -2460,9 +4167,44 @@ export class AppComponent implements OnInit {
           : invoice.classRoom?._id === this.filters.invoiceClass
       );
       const matchesMonth = !this.filters.invoiceMonth || (
-        invoice.dueDate && (new Date(invoice.dueDate).getMonth() + 1) === Number(this.filters.invoiceMonth)
+        invoice.feeMonth
+          ? invoice.feeMonth === Number(this.filters.invoiceMonth)
+          : invoice.dueDate && (new Date(invoice.dueDate).getMonth() + 1) === Number(this.filters.invoiceMonth)
       );
       return matchesSearch && matchesStatus && matchesYear && matchesClass && matchesMonth;
+    });
+  }
+
+  get filteredFeeHistory(): FeeHistoryRow[] {
+    const search = this.filters.feeHistorySearch.toLowerCase().trim();
+    return this.feeHistory.filter((row) => {
+      if (this.isPortalUser && !this.matchesPortalStudent(row.student)) return false;
+      const studentLabel = this.studentName(row.student).toLowerCase();
+      const matchesSearch = !search || `${row.receiptNumber || ''} ${row.invoiceNumber} ${studentLabel}`.toLowerCase().includes(search);
+      const matchesStatus = !this.filters.feeHistoryStatus || row.paymentStatus === this.filters.feeHistoryStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  get filteredBusRoutes(): BusRoute[] {
+    const search = this.filters.busRouteSearch.toLowerCase().trim();
+    return this.busRoutes.filter((route) => {
+      const matchesSearch = !search || `${route.routeName} ${route.routeCode} ${route.vehicleNumber} ${route.driverName}`.toLowerCase().includes(search);
+      const matchesStatus = !this.filters.busRouteStatus || route.status === this.filters.busRouteStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  get filteredBusRegistrations(): BusRegistration[] {
+    const search = (this.filters.busRegSearch || '').toLowerCase().trim();
+    return this.busRegistrations.filter((reg) => {
+      const yearId = typeof reg.academicYear === 'string' ? reg.academicYear : reg.academicYear?._id;
+      const routeId = typeof reg.route === 'string' ? reg.route : reg.route?._id;
+      const matchesYear = !this.filters.busRegYear || yearId === this.filters.busRegYear;
+      const matchesRoute = !this.filters.busRegRoute || routeId === this.filters.busRegRoute;
+      const matchesStatus = !this.filters.busRegStatus || reg.status === this.filters.busRegStatus;
+      const matchesSearch = !search || `${this.studentName(reg.student)} ${this.busRouteLabel(reg.route)} ${reg.stopName}`.toLowerCase().includes(search);
+      return matchesYear && matchesRoute && matchesStatus && matchesSearch;
     });
   }
 
@@ -2478,11 +4220,13 @@ export class AppComponent implements OnInit {
   get filteredAttendance(): AttendanceRecord[] {
     const search = this.filters.attendanceSearch.toLowerCase().trim();
     return this.attendance.filter((row) => {
+      if (this.isPortalUser && !this.matchesPortalStudent(row.student)) return false;
       const matchesSearch = !search || `${this.studentName(row.student)} ${this.className(row.classRoom)} ${row.status}`.toLowerCase().includes(search);
       const matchesStatus = !this.filters.attendanceStatus || row.status === this.filters.attendanceStatus;
       const matchesClass = !this.filters.attendanceClass || (typeof row.classRoom === 'string' ? row.classRoom : row.classRoom?._id) === this.filters.attendanceClass;
-      const matchesStudent = !this.filters.attendanceStudent || (typeof row.student === 'string' ? row.student : (row.student as any)?._id) === this.filters.attendanceStudent;
-      return matchesSearch && matchesStatus && matchesClass && matchesStudent;
+      const matchesYear = !this.filters.attendanceYear || (typeof row.academicYear === 'string' ? row.academicYear : (row.academicYear as AcademicYear)?._id) === this.filters.attendanceYear;
+      const matchesStudent = !this.filters.attendanceStudent || (typeof row.student === 'string' ? row.student : (row.student as Student)?._id) === this.filters.attendanceStudent;
+      return matchesSearch && matchesStatus && matchesClass && matchesYear && matchesStudent;
     });
   }
 
@@ -2562,6 +4306,15 @@ export class AppComponent implements OnInit {
     );
   }
 
+  get sortedProfileExams(): StudentProfile['academics']['examResults'] {
+    return sortItems(this.filteredProfileExams, this.listSort.profileExams?.field, this.listSort.profileExams?.dir, {
+      title: (exam) => exam.title,
+      subject: (exam) => exam.subject,
+      submittedAt: (exam) => exam.submittedAt,
+      percentage: (exam) => exam.percentage
+    });
+  }
+
   get filteredProfileFees(): StudentProfile['fees']['invoices'] {
     if (!this.studentProfile) return [];
     const search = this.filters.profileFeeSearch.toLowerCase().trim();
@@ -2569,6 +4322,16 @@ export class AppComponent implements OnInit {
       const matchesSearch = !search || inv.invoiceNumber.toLowerCase().includes(search);
       const matchesStatus = !this.filters.profileFeeStatus || inv.status === this.filters.profileFeeStatus;
       return matchesSearch && matchesStatus;
+    });
+  }
+
+  get sortedProfileFees(): StudentProfile['fees']['invoices'] {
+    return sortItems(this.filteredProfileFees, this.listSort.profileFees?.field, this.listSort.profileFees?.dir, {
+      invoiceNumber: (inv) => inv.invoiceNumber,
+      dueDate: (inv) => inv.dueDate,
+      totalAmount: (inv) => inv.totalAmount,
+      balanceAmount: (inv) => inv.balanceAmount,
+      status: (inv) => inv.status
     });
   }
 
@@ -2613,6 +4376,8 @@ export class AppComponent implements OnInit {
     this.token = token;
     this.currentUser = user;
     this.permissionService.setPermissions(user.permissions);
+    this.loadedTabs.clear();
+    this.holidaysLoaded = false;
     if (user.role === 'parent') {
       this.parentSelectedChild = user.linkedStudents?.[0] || user.linkedStudent || '';
     }
@@ -2624,6 +4389,8 @@ export class AppComponent implements OnInit {
     this.token = null;
     this.currentUser = null;
     this.permissionService.clear();
+    this.loadedTabs.clear();
+    this.holidaysLoaded = false;
   }
 
   private openProtectedPdf(url: string): void {

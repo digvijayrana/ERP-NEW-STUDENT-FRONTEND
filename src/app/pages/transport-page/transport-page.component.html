@@ -1,0 +1,257 @@
+<section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.busRoutes.length">
+    <app-spinner [show]="true" label="Loading transport data..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.busRoutes.length">
+
+  <form *ngIf="vm.can('transport', 'create')" [formGroup]="vm.busRouteForm" (ngSubmit)="vm.saveBusRoute()" class="panel span-6">
+    <div class="section-head"><div><p class="eyebrow">Routes</p><h3>{{ vm.editingBusRouteId ? 'Update bus route' : 'New bus route' }}</h3></div></div>
+    <div class="form-grid compact">
+      <label>Route name<input formControlName="routeName" placeholder="City Center Route"></label>
+      <label>Route code<input formControlName="routeCode" placeholder="RT-01"></label>
+      <label>Vehicle number<input formControlName="vehicleNumber" placeholder="KA-01-AB-1234"></label>
+      <label>Driver name<input formControlName="driverName"></label>
+      <label>Driver mobile<input formControlName="driverMobile"></label>
+      <label>Capacity<input type="number" formControlName="capacity" min="1"></label>
+      <label>Fee type
+        <select formControlName="feeType">
+          <option value="stop_based">Stop based</option>
+          <option value="fixed">Fixed</option>
+        </select>
+      </label>
+      <label *ngIf="vm.busRouteForm.get('feeType')?.value === 'fixed'">Fixed monthly fee<input type="number" formControlName="fixedMonthlyFee" min="0"></label>
+      <label>Status
+        <select formControlName="status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="stops-editor">
+      <div class="section-head compact"><h4>Bus stops</h4><button type="button" class="ghost small" (click)="vm.addBusRouteStop()">Add stop</button></div>
+      <div class="table-wrap" *ngIf="vm.busRouteStops.length">
+        <table>
+          <thead><tr><th>Seq</th><th>Stop name</th><th>Distance (km)</th><th>Monthly fee</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let stop of vm.busRouteStops; let i = index">
+              <td><input type="number" [(ngModel)]="stop.sequence" [ngModelOptions]="{standalone: true}" min="1" class="inline-input"></td>
+              <td><input [(ngModel)]="stop.name" [ngModelOptions]="{standalone: true}" class="inline-input" placeholder="Stop name"></td>
+              <td><input type="number" [(ngModel)]="stop.distance" [ngModelOptions]="{standalone: true}" min="0" class="inline-input"></td>
+              <td><input type="number" [(ngModel)]="stop.monthlyFee" [ngModelOptions]="{standalone: true}" min="0" class="inline-input" [readonly]="vm.busRouteForm.get('feeType')?.value === 'fixed'"></td>
+              <td><button type="button" class="ghost small danger-text" (click)="vm.removeBusRouteStop(i)">Remove</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint-text" *ngIf="!vm.busRouteStops.length">Add at least one stop for this route.</p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.busRouteForm.invalid || vm.submitting || !vm.busRouteStops.length">{{ vm.saveButtonLabel(vm.editingBusRouteId ? 'Update route' : 'Create route') }}</button>
+      <button *ngIf="vm.editingBusRouteId" type="button" class="ghost" (click)="vm.resetBusRouteForm()">Cancel edit</button>
+    </div>
+  </form>
+
+  <section class="data-card span-6">
+    <div class="section-head"><div><p class="eyebrow">Master</p><h3>Bus routes</h3></div></div>
+    <app-listing-toolbar
+      searchPlaceholder="Search route name, code, vehicle, or driver..."
+      [searchValue]="vm.filters.busRouteSearch"
+      [loading]="vm.isListingLoading('busRoutes')"
+      (searchChange)="vm.updateListSearch('busRoutes', 'busRouteSearch', $event)"
+      (refresh)="vm.refreshListing('busRoutes')"
+      (exportCsv)="vm.exportBusRoutesCsv()"
+      (exportPdf)="vm.exportBusRoutesPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.busRouteStatus" (change)="vm.updateListFilter('busRoutes', 'busRouteStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('busRoutes')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('busRoutes') || vm.sortedBusRoutes.length">
+      <table>
+        <thead><tr>
+          <th class="sortable" (click)="vm.toggleListSort('busRoutes', 'routeCode')">Route{{ vm.listSortIndicator('busRoutes', 'routeCode') }}</th>
+          <th class="sortable" (click)="vm.toggleListSort('busRoutes', 'vehicleNumber')">Vehicle{{ vm.listSortIndicator('busRoutes', 'vehicleNumber') }}</th>
+          <th>Driver</th><th>Stops</th><th>Assigned</th>
+          <th class="sortable" (click)="vm.toggleListSort('busRoutes', 'status')">Status{{ vm.listSortIndicator('busRoutes', 'status') }}</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let route of vm.paged('busRoutes', vm.sortedBusRoutes)">
+            <td><strong>{{ route.routeCode }}</strong><br><span class="muted">{{ route.routeName }}</span></td>
+            <td>{{ route.vehicleNumber }}</td>
+            <td>{{ route.driverName }}<br><span class="muted">{{ route.driverMobile }}</span></td>
+            <td>{{ route.stops?.length || 0 }}</td>
+            <td>{{ route.assignedCount || 0 }} / {{ route.capacity }}</td>
+            <td><span class="status-badge" [ngClass]="route.status">{{ route.status }}</span></td>
+            <td>
+              <div class="table-actions">
+                <app-action-btn *ngIf="vm.can('transport', 'edit')" type="edit" (clicked)="vm.editBusRoute(route)"></app-action-btn>
+                <app-action-btn *ngIf="vm.can('transport', 'edit')" [type]="route.status === 'active' ? 'deactivate' : 'activate'" [label]="route.status === 'active' ? 'Deactivate' : 'Activate'" (clicked)="vm.toggleBusRouteStatus(route._id)"></app-action-btn>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.sortedBusRoutes.length && !vm.isListingLoading('busRoutes')">
+            <td colspan="7"><app-empty-state title="No bus routes" message="No bus routes configured yet. Create a route using the form."></app-empty-state></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-table-skeleton *ngIf="vm.isListingLoading('busRoutes') && !vm.sortedBusRoutes.length" [columns]="7" [rows]="5" [embedded]="true"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="busRoutes" [items]="vm.sortedBusRoutes"></app-pagination-bar>
+  </section>
+
+  <form *ngIf="vm.can('transport', 'create')" [formGroup]="vm.busRegistrationForm" (ngSubmit)="vm.saveBusRegistration()" class="panel span-6">
+    <div class="section-head"><div><p class="eyebrow">Registration</p><h3>{{ vm.editingBusRegistrationId ? 'Update bus registration' : 'Student bus registration' }}</h3></div></div>
+    <p class="hint-text">Only active students can be registered. Bus fee is applied automatically to fee demands.</p>
+    <div class="form-grid compact">
+      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Class<select formControlName="classRoom" (change)="vm.onBusRegClassChange()"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label>Student<select formControlName="student"><option value="">Select student</option><option *ngFor="let student of vm.filteredActiveStudentsForBus()" [value]="student._id">{{ student.admissionNumber }} — {{ vm.studentName(student) }}</option></select></label>
+      <label>Route<select formControlName="route" (change)="vm.onBusRegRouteChange()"><option value="">Select route</option><option *ngFor="let route of vm.activeBusRoutes()" [value]="route._id">{{ route.routeCode }} — {{ route.routeName }}</option></select></label>
+      <label>Stop<select formControlName="stopSequence" (change)="vm.onBusRegStopChange()"><option value="">Select stop</option><option *ngFor="let stop of vm.selectedBusRouteStops()" [value]="stop.sequence">{{ stop.sequence }}. {{ stop.name }}</option></select></label>
+      <label>Monthly fee<input type="number" formControlName="monthlyFee" min="0" readonly class="readonly-field"></label>
+      <label>Service start<input type="date" formControlName="serviceStartDate"></label>
+      <label>Service end<input type="date" formControlName="serviceEndDate"></label>
+      <label class="inline span-2"><input type="checkbox" formControlName="busService"> Bus service enabled</label>
+      <label>Status
+        <select formControlName="status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" [disabled]="vm.busRegistrationForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingBusRegistrationId ? 'Update registration' : 'Register student') }}</button>
+      <button *ngIf="vm.editingBusRegistrationId" type="button" class="ghost" (click)="vm.resetBusRegistrationForm()">Cancel edit</button>
+    </div>
+  </form>
+
+  <section class="data-card span-6">
+    <div class="section-head"><div><p class="eyebrow">Assignments</p><h3>Bus registrations</h3></div></div>
+    <app-listing-toolbar
+      searchPlaceholder="Search student, route, or stop..."
+      [searchValue]="vm.filters.busRegSearch || ''"
+      [loading]="vm.isListingLoading('busRegistrations')"
+      (searchChange)="vm.updateListSearch('busRegistrations', 'busRegSearch', $event)"
+      (refresh)="vm.refreshListing('busRegistrations')"
+      (exportCsv)="vm.exportBusRegistrationsCsv()"
+      (exportPdf)="vm.exportBusRegistrationsPdf()">
+      <div listing-filters class="listing-filters">
+        <select class="filter-select" [value]="vm.filters.busRegYear" (change)="vm.updateListFilter('busRegistrations', 'busRegYear', $any($event.target).value)">
+          <option value="">All years</option>
+          <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.busRegRoute" (change)="vm.updateListFilter('busRegistrations', 'busRegRoute', $any($event.target).value)">
+          <option value="">All routes</option>
+          <option *ngFor="let route of vm.busRoutes" [value]="route._id">{{ route.routeCode }}</option>
+        </select>
+        <select class="filter-select" [value]="vm.filters.busRegStatus" (change)="vm.updateListFilter('busRegistrations', 'busRegStatus', $any($event.target).value)">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </app-listing-toolbar>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('busRegistrations')">
+    <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('busRegistrations') || vm.sortedBusRegistrations.length">
+      <table>
+        <thead><tr>
+          <th class="sortable" (click)="vm.toggleListSort('busRegistrations', 'studentName')">Student{{ vm.listSortIndicator('busRegistrations', 'studentName') }}</th>
+          <th>Route</th><th>Stop</th><th>Fee</th><th>Service</th>
+          <th class="sortable" (click)="vm.toggleListSort('busRegistrations', 'status')">Status{{ vm.listSortIndicator('busRegistrations', 'status') }}</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let reg of vm.paged('busRegistrations', vm.sortedBusRegistrations)">
+            <td>{{ vm.studentName(reg.student) }}<br><span class="muted">{{ vm.studentAdmission(reg.student) }}</span></td>
+            <td>{{ vm.busRouteLabel(reg.route) }}</td>
+            <td>{{ reg.stopName }}</td>
+            <td>{{ reg.monthlyFee | currency: 'INR' }}</td>
+            <td>{{ reg.serviceStartDate | date: 'dd MMM yyyy' }}<span *ngIf="reg.serviceEndDate"> — {{ reg.serviceEndDate | date: 'dd MMM yyyy' }}</span></td>
+            <td><span class="status-badge" [ngClass]="reg.status">{{ reg.busService ? reg.status : 'inactive' }}</span></td>
+            <td>
+              <div class="table-actions">
+                <app-action-btn *ngIf="vm.can('transport', 'edit')" type="edit" (clicked)="vm.editBusRegistration(reg)"></app-action-btn>
+                <app-action-btn *ngIf="vm.can('transport', 'edit') && reg.status === 'active'" type="deactivate" label="Deactivate" (clicked)="vm.deactivateBusRegistration(reg._id)"></app-action-btn>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.sortedBusRegistrations.length && !vm.isListingLoading('busRegistrations')">
+            <td colspan="7"><app-empty-state title="No registrations" message="No bus registrations found for the selected filters."></app-empty-state></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-table-skeleton *ngIf="vm.isListingLoading('busRegistrations') && !vm.sortedBusRegistrations.length" [columns]="7" [rows]="5" [embedded]="true"></app-table-skeleton>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="busRegistrations" [items]="vm.sortedBusRegistrations"></app-pagination-bar>
+  </section>
+
+  <section class="data-card span-12">
+    <div class="section-head"><div><p class="eyebrow">Reports</p><h3>Bus reports</h3></div></div>
+    <div class="toolbar">
+      <select class="filter-select" [value]="vm.transportReportType" (change)="vm.transportReportType = $any($event.target).value; vm.loadBusReport()">
+        <option value="route-wise">Route-wise students</option>
+        <option value="stop-wise">Stop-wise students</option>
+        <option value="fee-collection">Bus fee collection</option>
+        <option value="active">Active bus students</option>
+        <option value="inactive">Inactive bus students</option>
+      </select>
+      <select class="filter-select" [value]="vm.filters.busReportYear" (change)="vm.filters.busReportYear = $any($event.target).value; vm.loadBusReport()">
+        <option value="">All academic years</option>
+        <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+      </select>
+      <button type="button" class="ghost small" (click)="vm.loadBusReport()">Refresh report</button>
+      <button *ngIf="vm.can('transport', 'export')" type="button" class="ghost small" (click)="vm.exportBusReportCsv()">Export Excel</button>
+      <button *ngIf="vm.can('transport', 'export')" type="button" class="ghost small" (click)="vm.exportBusReportPdf()">Export PDF</button>
+      <button *ngIf="vm.can('transport', 'export')" type="button" class="ghost small" (click)="vm.openBusReportServerPdf()">Download PDF</button>
+    </div>
+    <div class="table-wrap sticky-header">
+      <table>
+        <thead>
+          <tr>
+            <th *ngIf="vm.transportReportType !== 'fee-collection'">Student</th>
+            <th *ngIf="vm.transportReportType !== 'fee-collection'">Class</th>
+            <th *ngIf="vm.transportReportType !== 'fee-collection'">Route</th>
+            <th *ngIf="vm.transportReportType === 'stop-wise' || vm.transportReportType !== 'fee-collection'">Stop</th>
+            <th *ngIf="vm.transportReportType === 'fee-collection'">Student</th>
+            <th *ngIf="vm.transportReportType === 'fee-collection'">Month</th>
+            <th>Fee</th>
+            <th *ngIf="vm.transportReportType === 'fee-collection'">Paid</th>
+            <th *ngIf="vm.transportReportType === 'fee-collection'">Receipt</th>
+            <th *ngIf="vm.transportReportType !== 'fee-collection'">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of vm.busReportRows">
+            <ng-container *ngIf="vm.transportReportType !== 'fee-collection'">
+              <td>{{ row.studentName }}</td>
+              <td>{{ row.className || '—' }}</td>
+              <td>{{ row.routeName }}</td>
+              <td>{{ row.stopName }}</td>
+              <td>{{ row.monthlyFee | currency: 'INR' }}</td>
+              <td><span class="status-badge" [ngClass]="row.status">{{ row.busService && row.status === 'active' ? 'active' : 'inactive' }}</span></td>
+            </ng-container>
+            <ng-container *ngIf="vm.transportReportType === 'fee-collection'">
+              <td>{{ row.studentName }}</td>
+              <td>{{ row.feeMonth }}</td>
+              <td>{{ row.busFee | currency: 'INR' }}</td>
+              <td>{{ row.paidAmount | currency: 'INR' }}</td>
+              <td>{{ row.receiptNumber || '—' }}</td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <app-empty-state *ngIf="!vm.busReportRows.length" message="No report data for the selected filters."></app-empty-state>
+  </section>
+
+  </ng-container>
+</section>
