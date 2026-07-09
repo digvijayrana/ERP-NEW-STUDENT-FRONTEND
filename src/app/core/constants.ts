@@ -2,6 +2,8 @@ export const APP_CONSTANTS = {
   PAGE_SIZE: 10,
   LOCAL_STORAGE_TOKEN_KEY: 'erp_token',
   LOCAL_STORAGE_USER_KEY: 'erp_user',
+  SESSION_ACTIVITY_KEY: 'erp_last_activity',
+  DEFAULT_SESSION_IDLE_MINUTES: 30,
   FINANCE_RANGES: [
     { label: '7 days', value: 7 },
     { label: '30 days', value: 30 },
@@ -27,9 +29,12 @@ export const APP_CONSTANTS = {
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
+  PRINCIPAL: 'principal',
   TEACHER: 'teacher',
-  RECEPTION: 'reception',
   ACCOUNTANT: 'accountant',
+  TRANSPORT_MANAGER: 'transport_manager',
+  RECEPTION: 'reception',
+  RECEPTIONIST: 'receptionist',
   STUDENT: 'student',
   PARENT: 'parent'
 } as const;

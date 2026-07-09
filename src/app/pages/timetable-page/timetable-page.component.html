@@ -24,6 +24,8 @@
       <div class="search-box"><input placeholder="Search day, class, subject..." [value]="vm.filters.timetableSearch" (input)="vm.filters.timetableSearch = $any($event.target).value; vm.resetPage('timetable')"></div>
     </div>
 
+    <div class="listing-table-panel" [class.is-refreshing]="vm.listingLoading?.timetable">
+      <app-card-skeleton *ngIf="vm.listingLoading?.timetable && !vm.filteredTimetable.length" [cards]="3"></app-card-skeleton>
     <div *ngIf="vm.filteredTimetable.length" class="timetable-visual">
       <div *ngFor="let row of vm.paged('timetable', vm.filteredTimetable)" class="tt-day-card">
         <div class="tt-day-header">
@@ -46,8 +48,11 @@
         </div>
       </div>
     </div>
-    <div *ngIf="!vm.filteredTimetable.length" class="empty-state">
-      <p>No timetable configured yet</p>
+    <app-empty-state
+      *ngIf="!vm.listingLoading?.timetable && !vm.filteredTimetable.length"
+      title="No timetable configured"
+      message="Add periods for each class and day to build the weekly schedule."
+    ></app-empty-state>
     </div>
     <app-pagination-bar [vm]="vm" listKey="timetable" [items]="vm.filteredTimetable"></app-pagination-bar>
   </section>

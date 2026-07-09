@@ -11,7 +11,10 @@ import {
   AttendanceRegisterSheet,
   AttendanceReportRow,
   AuthResponse,
+  AuthUser,
+  AiTrendMetric,
   ClassRoom,
+  DashboardAiInsights,
   DashboardSummary,
   Exam,
   ExamClassReport,
@@ -23,6 +26,10 @@ import {
   BusRegistration,
   BusReportRow,
   PayrollRecord,
+  GlobalSearchResult,
+  WorkflowNotification,
+  SchoolConfiguration,
+  SystemHealthSummary,
   ReportDomain,
   ReportRow,
   Student,
@@ -41,12 +48,40 @@ export class ErpApiService {
     return this.http.post<AuthResponse>(`${this.baseUrl}/auth/login`, { email, password });
   }
 
+  logout(): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/auth/logout`, {}, this.options());
+  }
+
+  securityPolicy(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/auth/security-policy`);
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.baseUrl}/auth/change-password`, { currentPassword, newPassword }, this.options());
+  }
+
+  assignableRoles(): Observable<Array<{ slug: string; name: string }>> {
+    return this.http.get<Array<{ slug: string; name: string }>>(`${this.baseUrl}/auth/assignable-roles`, this.options());
+  }
+
   createUser(payload: Record<string, unknown>): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/auth/users`, payload, this.options());
   }
 
   dashboard(): Observable<DashboardSummary> {
     return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard`, this.options());
+  }
+
+  aiManagementInsights(): Observable<DashboardAiInsights> {
+    return this.http.get<DashboardAiInsights>(`${this.baseUrl}/ai-insights/management`, this.options());
+  }
+
+  aiStudentInsights(studentId: string): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/ai-insights/students/${studentId}`, this.options());
+  }
+
+  aiTrendAnalysis(): Observable<{ trends: AiTrendMetric[] }> {
+    return this.http.get<{ trends: AiTrendMetric[] }>(`${this.baseUrl}/ai-insights/trends`, this.options());
   }
 
   academicYears(params?: ListQueryParams): Observable<ApiSuccessResponse<AcademicYear[]>> {
@@ -195,8 +230,48 @@ export class ErpApiService {
     return this.http.delete(`${this.baseUrl}/students/${id}`, this.options());
   }
 
-  promote(payload: Record<string, unknown>): Observable<{ promoted: number }> {
-    return this.http.post<{ promoted: number }>(`${this.baseUrl}/students/promotions`, payload, this.options());
+  promote(payload: Record<string, unknown>): Observable<{ promoted: number; batchId?: string }> {
+    return this.http.post<{ promoted: number; batchId?: string }>(`${this.baseUrl}/students/promotions`, payload, this.options());
+  }
+
+  promotionEligible(params: Record<string, string>): Observable<{ rows: import('../core/models').PromotionEligibleRow[]; total: number }> {
+    let httpParams = new HttpParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value) httpParams = httpParams.set(key, value);
+    }
+    return this.http.get<{ rows: import('../core/models').PromotionEligibleRow[]; total: number }>(
+      `${this.baseUrl}/promotions/eligible`,
+      { ...this.options(), params: httpParams }
+    );
+  }
+
+  promotionPreview(payload: Record<string, unknown>): Observable<import('../core/models').PromotionPreview> {
+    return this.http.post<import('../core/models').PromotionPreview>(`${this.baseUrl}/promotions/preview`, payload, this.options());
+  }
+
+  promotionExecute(payload: Record<string, unknown>): Observable<import('../core/models').PromotionBatch> {
+    return this.http.post<import('../core/models').PromotionBatch>(`${this.baseUrl}/promotions/execute`, payload, this.options());
+  }
+
+  promotionRollback(batchId: string): Observable<import('../core/models').PromotionBatch> {
+    return this.http.post<import('../core/models').PromotionBatch>(`${this.baseUrl}/promotions/batches/${batchId}/rollback`, {}, this.options());
+  }
+
+  promotionFinalize(batchId: string): Observable<import('../core/models').PromotionBatch> {
+    return this.http.post<import('../core/models').PromotionBatch>(`${this.baseUrl}/promotions/batches/${batchId}/finalize`, {}, this.options());
+  }
+
+  promotionReport(type: string, params?: Record<string, string>): Observable<{ type: string; rows: ReportRow[]; total: number }> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<{ type: string; rows: ReportRow[]; total: number }>(
+      `${this.baseUrl}/promotions/reports/${type}`,
+      { ...this.options(), params: httpParams }
+    );
   }
 
   invoices(params?: ListQueryParams): Observable<ApiSuccessResponse<FeeInvoice[]>> {
@@ -334,8 +409,8 @@ export class ErpApiService {
     return this.http.post<TimetableRow>(`${this.baseUrl}/timetable`, payload, this.options());
   }
 
-  exams(): Observable<Exam[]> {
-    return this.http.get<Exam[]>(`${this.baseUrl}/exams`, this.options());
+  exams(params?: ListQueryParams): Observable<ApiSuccessResponse<Exam[]>> {
+    return this.http.get<ApiSuccessResponse<Exam[]>>(`${this.baseUrl}/exams`, this.listOptions(params));
   }
 
   examDetails(id: string): Observable<Exam> {
@@ -389,6 +464,14 @@ export class ErpApiService {
 
   deactivateUser(id: string): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/auth/users/${id}/deactivate`, {}, this.options());
+  }
+
+  issueTemporaryPassword(id: string): Observable<{ temporaryPassword: string; user: AuthUser }> {
+    return this.http.post<{ temporaryPassword: string; user: AuthUser }>(`${this.baseUrl}/auth/users/${id}/temporary-password`, {}, this.options());
+  }
+
+  unlockUserAccount(id: string): Observable<AuthUser> {
+    return this.http.post<AuthUser>(`${this.baseUrl}/auth/users/${id}/unlock`, {}, this.options());
   }
 
   deleteUser(id: string): Observable<unknown> {
@@ -495,6 +578,71 @@ export class ErpApiService {
   reportPdfUrl(domain: ReportDomain | string, type: string, params?: Record<string, string>): string {
     const query = new URLSearchParams(params || {}).toString();
     return `${this.baseUrl}/reports/${domain}/${type}/pdf${query ? `?${query}` : ''}`;
+  }
+
+  workflowNotifications(): Observable<{ items: WorkflowNotification[]; total: number }> {
+    return this.http.get<{ items: WorkflowNotification[]; total: number }>(`${this.baseUrl}/workflow/notifications`, this.options());
+  }
+
+  dismissWorkflowNotification(key: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/workflow/notifications/dismiss`, { key }, this.options());
+  }
+
+  globalSearch(query: string): Observable<{ results: GlobalSearchResult[]; query: string }> {
+    const params = new HttpParams().set('q', query);
+    return this.http.get<{ results: GlobalSearchResult[]; query: string }>(`${this.baseUrl}/workflow/search`, { ...this.options(), params });
+  }
+
+  workflowBulk(operation: string, payload: Record<string, unknown>): Observable<{ operation: string; result: Record<string, unknown> }> {
+    return this.http.post<{ operation: string; result: Record<string, unknown> }>(
+      `${this.baseUrl}/workflow/bulk`,
+      { operation, payload, confirmed: true },
+      this.options()
+    );
+  }
+
+  unlockPayroll(id: string): Observable<PayrollRecord> {
+    return this.http.post<PayrollRecord>(`${this.baseUrl}/payroll/${id}/unlock`, {}, this.options());
+  }
+
+  workflowDefaults(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/workflow/defaults`, this.options());
+  }
+
+  governanceConfiguration(): Observable<SchoolConfiguration> {
+    return this.http.get<SchoolConfiguration>(`${this.baseUrl}/governance/configuration`, this.options());
+  }
+
+  updateGovernanceConfiguration(section: string, data: Record<string, unknown>): Observable<SchoolConfiguration> {
+    return this.http.put<SchoolConfiguration>(`${this.baseUrl}/governance/configuration`, { section, data }, this.options());
+  }
+
+  governanceHealth(): Observable<SystemHealthSummary> {
+    return this.http.get<SystemHealthSummary>(`${this.baseUrl}/governance/health`, this.options());
+  }
+
+  governanceDataQuality(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/governance/data-quality`, this.options());
+  }
+
+  complianceStatus(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/compliance/status`, this.options());
+  }
+
+  complianceBackups(): Observable<{ backups: Array<Record<string, unknown>> }> {
+    return this.http.get<{ backups: Array<Record<string, unknown>> }>(`${this.baseUrl}/compliance/backups`, this.options());
+  }
+
+  runComplianceBackup(): Observable<{ jobId: string; status: string }> {
+    return this.http.post<{ jobId: string; status: string }>(`${this.baseUrl}/compliance/backups`, {}, this.options());
+  }
+
+  complianceExceptions(limit = 20): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/compliance/exceptions?limit=${limit}`, this.options());
+  }
+
+  businessRulesCatalog(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/business-rules/catalog`, this.options());
   }
 
   private listOptions(params?: ListQueryParams): { headers: HttpHeaders; params?: HttpParams } {

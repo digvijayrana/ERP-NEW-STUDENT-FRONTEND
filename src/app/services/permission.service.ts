@@ -1,6 +1,15 @@
 import { Injectable } from '@angular/core';
 
-export type PermissionAction = 'view' | 'create' | 'edit' | 'deactivate' | 'export' | 'approve';
+export type PermissionAction =
+  | 'view'
+  | 'create'
+  | 'edit'
+  | 'delete'
+  | 'deactivate'
+  | 'export'
+  | 'print'
+  | 'approve'
+  | 'unlock';
 
 export type ErpModule =
   | 'dashboard'
@@ -16,15 +25,19 @@ export type ErpModule =
   | 'timetable'
   | 'exams'
   | 'reports'
-  | 'transport';
+  | 'transport'
+  | 'governance';
 
 export interface ModulePermissions {
   view?: boolean;
   create?: boolean;
   edit?: boolean;
+  delete?: boolean;
   deactivate?: boolean;
   export?: boolean;
+  print?: boolean;
   approve?: boolean;
+  unlock?: boolean;
 }
 
 export type PermissionMatrix = Record<string, ModulePermissions>;
@@ -75,5 +88,10 @@ export class PermissionService {
     const allowlist = role ? ROLE_TAB_ALLOWLIST[role] : undefined;
     if (allowlist && !allowlist.includes(tabKey)) return false;
     return this.can(module, 'view', role);
+  }
+
+  canViewSensitivePii(module: ErpModule | string, role?: string): boolean {
+    if (role === 'super_admin' || role === 'admin' || role === 'principal') return true;
+    return this.can(module, 'edit', role);
   }
 }

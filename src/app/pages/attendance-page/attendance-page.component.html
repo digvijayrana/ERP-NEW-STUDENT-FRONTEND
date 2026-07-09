@@ -83,7 +83,7 @@
       <button type="button" (click)="vm.saveAttendanceRegisterDraft()" [disabled]="!vm.attendanceRegisterEditable || vm.submitting">Save draft</button>
       <button type="button" class="ghost" (click)="vm.submitAttendanceRegister()" [disabled]="!vm.attendanceRegisterEditable || vm.submitting">Submit</button>
       <button *ngIf="vm.isAdmin" type="button" class="ghost" (click)="vm.lockAttendanceRegister()" [disabled]="vm.attendanceRegisterWorkflow === 'locked' || vm.submitting">Lock</button>
-      <button *ngIf="vm.isAdmin" type="button" class="ghost danger-text" (click)="vm.unlockAttendanceRegister()" [disabled]="vm.attendanceRegisterWorkflow === 'draft' || vm.submitting">Unlock</button>
+      <button *ngIf="vm.can('attendance', 'unlock')" type="button" class="ghost danger-text" (click)="vm.unlockAttendanceRegister()" [disabled]="vm.attendanceRegisterWorkflow === 'draft' || vm.submitting">Unlock</button>
     </div>
   </section>
 

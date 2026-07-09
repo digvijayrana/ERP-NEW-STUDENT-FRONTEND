@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
-export type ActionBtnType = 'view' | 'edit' | 'deactivate' | 'delete' | 'activate' | 'profile' | 'docs' | 'close';
+export type ActionBtnType = 'view' | 'edit' | 'deactivate' | 'delete' | 'activate' | 'profile' | 'docs' | 'close' | 'unlock';
 
 const ACTION_META: Record<ActionBtnType, { label: string; icon: string; variant: string }> = {
   view: { label: 'View', icon: '👁', variant: 'ghost' },
@@ -11,7 +11,8 @@ const ACTION_META: Record<ActionBtnType, { label: string; icon: string; variant:
   deactivate: { label: 'Deactivate', icon: '⊘', variant: 'danger-btn' },
   delete: { label: 'Delete', icon: '🗑', variant: 'danger-btn' },
   activate: { label: 'Activate', icon: '✓', variant: 'ghost success-btn' },
-  close: { label: 'Close', icon: '🔒', variant: 'ghost' }
+  close: { label: 'Close', icon: '🔒', variant: 'ghost' },
+  unlock: { label: 'Unlock', icon: '🔓', variant: 'ghost' }
 };
 
 @Component({

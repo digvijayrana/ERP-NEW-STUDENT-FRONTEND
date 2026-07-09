@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, PayrollRecord, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, SchoolConfiguration, Student, StudentProfile, SystemHealthSummary, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -25,6 +25,7 @@ import { ToastContainerComponent } from './shared/toast-container.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
 import { ErpApiService } from './services/erp-api.service';
 import { ListingStateService } from './services/listing-state.service';
+import { SessionContextService } from './services/session-context.service';
 import { PermissionAction, PermissionService } from './services/permission.service';
 import { ToastService } from './services/toast.service';
 import { ConfirmDialogService } from './services/confirm-dialog.service';
@@ -108,6 +109,7 @@ interface AdminRefreshRequests {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     DashboardPageComponent,
     StudentsPageComponent,
@@ -136,17 +138,63 @@ export class AppComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly permissionService = inject(PermissionService);
   private readonly listingState = inject(ListingStateService);
+  private readonly sessionContext = inject(SessionContextService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   activeTab: TabKey = 'dashboard';
   loading = false;
   submitting = false;
-  message = '';
+  private loginMessage = '';
+
+  get message(): string {
+    return this.loginMessage;
+  }
+
+  set message(value: string) {
+    this.loginMessage = value;
+    if (!value || !this.currentUser) return;
+    const lower = value.toLowerCase();
+    if (lower.includes('fail') || lower.includes('could not') || lower.includes('unable') || lower.includes('error')) {
+      this.toast.error(value);
+      return;
+    }
+    if (lower.includes('permission') || lower.includes('cannot') || lower.includes('read-only') || lower.includes('enter or generate')) {
+      this.toast.warning(value);
+      return;
+    }
+    if (lower.includes('editing') || lower.includes('found existing') || lower.includes('no existing')) {
+      this.toast.info(value);
+      return;
+    }
+    this.toast.success(value);
+  }
+
   token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY);
   currentUser: AuthUser | null = this.readStoredUser();
   pageVm = this;
   isProfileMenuOpen = false;
+  isNotificationMenuOpen = false;
+  workflowNotifications: WorkflowNotification[] = [];
+  workflowNotificationsLoading = false;
+  globalSearchQuery = '';
+  globalSearchResults: GlobalSearchResult[] = [];
+  globalSearchOpen = false;
+  globalSearchLoading = false;
+  globalSearchActiveIndex = -1;
+  private globalSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  bulkStatusTarget = '';
+  bulkClassTarget = '';
+  bulkBusRouteTarget = '';
+  bulkBusStopSequence = '';
+  bulkNotificationMessage = '';
+  governanceConfiguration: SchoolConfiguration | null = null;
+  governanceConfigSection = 'school';
+  governanceConfigDraft: Record<string, unknown> = {};
+  governanceConfigLoading = false;
+  complianceStatus: Record<string, unknown> | null = null;
+  businessRulesCatalog: Record<string, unknown> | null = null;
+  showGovernanceConfigPanel = false;
   isSidebarCollapsed = false;
   summary?: DashboardSummary;
   years: AcademicYear[] = [];
@@ -207,6 +255,19 @@ export class AppComponent implements OnInit {
   parentSelectedChild = '';
   parentLinkedStudentIds = new Set<string>();
   selectedStudentIds = new Set<string>();
+  promotionWizardStep = 1;
+  promotionEligibleRows: PromotionEligibleRow[] = [];
+  promotionPreview: PromotionPreview | null = null;
+  promotionBatch: PromotionBatch | null = null;
+  promotionExcludedIds = new Set<string>();
+  promotionSelectedIds = new Set<string>();
+  promotionRollMode: 'auto' | 'manual' = 'auto';
+  promotionRollAssignments: Record<string, string> = {};
+  promotionWarningsAcknowledged = false;
+  promotionLoading = false;
+  promotionReportType = 'promoted';
+  promotionReportRows: ReportRow[] = [];
+  promotionReportLoading = false;
   selectedStudentId = '';
   selectedStudentDocuments: Array<{ _id?: string; type: string; title: string; fileUrl: string; storageKey?: string; storageProvider: 'local' | 's3'; mimeType?: string; uploadedAt?: string; status?: string; rejectReason?: string }> = [];
   files: Record<string, File | FileList | null> = {};
@@ -231,7 +292,7 @@ export class AppComponent implements OnInit {
   pageSizes: Partial<Record<ListKey, number>> = {};
   listSort: Partial<Record<ListKey, { field: string; dir: SortDirection }>> = {};
   readonly serverPagedKeys: ListKey[] = ['students', 'classes', 'years', 'teachers', 'users'];
-  readonly operationalPagedKeys: ListKey[] = ['invoices', 'feeHistory', 'payroll', 'busRoutes', 'busRegistrations', 'attendance'];
+  readonly operationalPagedKeys: ListKey[] = ['invoices', 'feeHistory', 'payroll', 'busRoutes', 'busRegistrations', 'attendance', 'exams'];
   collectableInvoiceOptions: FeeInvoice[] = [];
   listingRows: Partial<Record<ListKey, unknown[]>> = {};
   listingTotals: Partial<Record<ListKey, number>> = {};
@@ -304,7 +365,9 @@ export class AppComponent implements OnInit {
     reportPayrollStatus: '',
     reportRoute: '',
     reportStop: '',
-    reportBusStatus: ''
+    reportBusStatus: '',
+    reportPerformanceCategory: '',
+    reportTeacher: ''
   };
   pages: Record<ListKey, number> = {
     dashboardStudents: 1,
@@ -368,8 +431,20 @@ export class AppComponent implements OnInit {
     teacher: [''],
     student: [''],
     linkedStudent: [''],
-    linkedStudents: [[]]
+    linkedStudents: [[]],
+    useTemporaryPassword: [false]
   });
+
+  changePasswordForm = this.fb.group({
+    currentPassword: ['', Validators.required],
+    newPassword: ['', Validators.required],
+    confirmPassword: ['', Validators.required]
+  });
+
+  showChangePasswordPanel = false;
+  private lastActivityAt = Date.now();
+  private sessionIdleMinutes = APP_CONSTANTS.DEFAULT_SESSION_IDLE_MINUTES;
+  private sessionWatchHandle?: ReturnType<typeof setInterval>;
 
   academicYearForm = this.fb.group({
     name: ['', Validators.required],
@@ -490,6 +565,7 @@ export class AppComponent implements OnInit {
   promotionForm = this.fb.group({
     fromAcademicYear: ['', Validators.required],
     toAcademicYear: ['', Validators.required],
+    fromClassRoom: ['', Validators.required],
     toClassRoom: ['', Validators.required]
   });
 
@@ -526,20 +602,42 @@ export class AppComponent implements OnInit {
   examAttemptForm = this.fb.group({});
 
   ngOnInit(): void {
-    applyDefaultListSort(this.listSort, [...this.serverPagedKeys, ...this.operationalPagedKeys, 'profileExams', 'profileFees']);
+    applyDefaultListSort(this.listSort, [
+      ...this.serverPagedKeys,
+      ...this.operationalPagedKeys,
+      'timetable',
+      'examResults',
+      'dashboardStudents',
+      'dashboardAttendance',
+      'dashboardTeachers',
+      'dashboardPayroll',
+      'dashboardTimetable',
+      'profileExams',
+      'profileFees'
+    ]);
     if (this.currentUser) {
       this.permissionService.setPermissions(this.currentUser.permissions);
       this.activeTab = 'dashboard';
+      if (this.token) {
+        this.startSessionWatch();
+        if (this.currentUser.mustChangePassword) {
+          this.showChangePasswordPanel = true;
+        }
+      }
       if (this.currentUser.role === 'parent') {
         this.parentSelectedChild = this.currentUser.linkedStudents?.[0] || this.currentUser.linkedStudent || '';
       }
       this.refresh();
+      this.restoreWorkspaceContext();
       this.restoreAllListingStates();
       this.api.me().subscribe({
         next: (user) => {
           this.currentUser = user;
           this.permissionService.setPermissions(user.permissions);
           localStorage.setItem(APP_CONSTANTS.LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+          if (user.mustChangePassword) {
+            this.showChangePasswordPanel = true;
+          }
         }
       });
     }
@@ -549,7 +647,6 @@ export class AppComponent implements OnInit {
     if (!this.currentUser) return [];
     const role = this.currentUser.role;
     return this.allTabs
-      .filter((tab) => tab.roles.includes(role))
       .filter((tab) => this.permissionService.canViewTab(tab.key, role))
       .map(({ key, label, icon }) => ({ key, label, icon }));
   }
@@ -569,7 +666,8 @@ export class AppComponent implements OnInit {
   }
 
   get showOperationalDashboard(): boolean {
-    return this.isAdmin || this.currentUser?.role === 'accountant';
+    const role = this.currentUser?.role;
+    return role === 'admin' || role === 'super_admin' || role === 'accountant' || role === 'principal';
   }
 
   get isSuperAdmin(): boolean {
@@ -616,6 +714,11 @@ export class AppComponent implements OnInit {
     if (!this.filters.busReportYear) this.filters.busReportYear = active._id;
     if (!this.filters.attendanceYear) this.filters.attendanceYear = active._id;
     if (!this.filters.reportYear) this.filters.reportYear = active._id;
+    if (!this.filters.invoiceYear) this.filters.invoiceYear = active._id;
+    if (!this.filters.invoiceMonth) this.filters.invoiceMonth = String(new Date().getMonth() + 1);
+    if (!this.promotionForm.get('fromAcademicYear')?.value) {
+      this.promotionForm.patchValue({ fromAcademicYear: active._id });
+    }
     if (!this.attendanceForm.get('academicYear')?.value) {
       this.attendanceForm.patchValue({ academicYear: active._id });
     }
@@ -704,25 +807,130 @@ export class AppComponent implements OnInit {
     const { email, password } = this.loginForm.getRawValue();
     this.api.login(email || '', password || '').subscribe({
       next: ({ token, user }) => {
-        const roleMatches = user.role === this.selectedLoginRole
-          || (this.selectedLoginRole === 'admin' && user.role === 'super_admin');
-        if (!roleMatches) {
+        if (!this.isLoginRoleCompatible(user.role, this.selectedLoginRole)) {
           this.message = `This account is registered as ${this.roleLabelFor(user.role)}. Please select the correct role and try again.`;
           return;
         }
         this.persistSession(token, user);
         this.activeTab = 'dashboard';
         this.message = '';
+        if (user.mustChangePassword || user.passwordExpired) {
+          this.showChangePasswordPanel = true;
+          this.toast.warning('You must change your password before continuing.');
+        }
         this.refresh();
       },
       error: (error) => (this.message = error.error?.message || 'Login failed. Check email and password.')
     });
   }
 
-  logout(): void {
+  logout(options: { force?: boolean } = {}): void {
+    if (!options.force && this.currentUser) {
+      void this.confirmLogout();
+      return;
+    }
+    this.performLogout();
+  }
+
+  async confirmLogout(): Promise<void> {
+    const confirmed = await this.confirmAction({
+      title: 'Logout',
+      message: 'Are you sure you want to sign out of CampusFlow ERP?',
+      confirmLabel: 'Logout',
+      danger: true
+    });
+    if (!confirmed) return;
+    this.performLogout();
+  }
+
+  private performLogout(): void {
+    if (this.token) {
+      this.api.logout().subscribe({ error: () => undefined });
+    }
+    this.stopSessionWatch();
     this.clearSession();
     this.isProfileMenuOpen = false;
+    this.showChangePasswordPanel = false;
     this.message = '';
+    this.sessionContext.clear();
+    this.listingState.clearAll(Object.keys(LIST_FILTER_KEYS));
+  }
+
+  private isLoginRoleCompatible(actual: string, selected: UserRole): boolean {
+    if (actual === selected) return true;
+    if (selected === 'admin') {
+      return ['super_admin', 'admin', 'principal', 'accountant', 'reception', 'receptionist', 'transport_manager'].includes(actual);
+    }
+    return false;
+  }
+
+  changePassword(): void {
+    const { currentPassword, newPassword, confirmPassword } = this.changePasswordForm.getRawValue();
+    if (newPassword !== confirmPassword) {
+      this.toast.error('New passwords do not match');
+      return;
+    }
+    this.api.changePassword(currentPassword || '', newPassword || '').subscribe({
+      next: (response) => {
+        this.persistSession(response.token, response.user);
+        this.showChangePasswordPanel = false;
+        this.toast.success('Password updated');
+        this.changePasswordForm.reset();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Password change failed'))
+    });
+  }
+
+  issueTemporaryPassword(userId: string): void {
+    if (!this.can('users', 'edit')) return;
+    this.api.issueTemporaryPassword(userId).subscribe({
+      next: (result) => {
+        this.toast.success(`Temporary password issued: ${result.temporaryPassword}`);
+        this.refresh();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Failed to issue temporary password'))
+    });
+  }
+
+  unlockUserAccount(userId: string): void {
+    if (!this.can('users', 'unlock')) return;
+    this.api.unlockUserAccount(userId).subscribe({
+      next: () => {
+        this.toast.success('User account unlocked');
+        this.refresh();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Failed to unlock account'))
+    });
+  }
+
+  @HostListener('document:mousemove')
+  @HostListener('document:keydown')
+  @HostListener('document:click')
+  onUserActivity(): void {
+    if (!this.currentUser) return;
+    this.lastActivityAt = Date.now();
+    sessionStorage.setItem(APP_CONSTANTS.SESSION_ACTIVITY_KEY, String(this.lastActivityAt));
+  }
+
+  private startSessionWatch(): void {
+    this.stopSessionWatch();
+    const stored = Number(sessionStorage.getItem(APP_CONSTANTS.SESSION_ACTIVITY_KEY) || Date.now());
+    this.lastActivityAt = stored;
+    this.sessionWatchHandle = setInterval(() => {
+      const idleMs = Date.now() - this.lastActivityAt;
+      if (idleMs > this.sessionIdleMinutes * 60 * 1000) {
+        this.toast.warning('Session expired due to inactivity');
+        this.logout({ force: true });
+      }
+    }, 60_000);
+  }
+
+  private stopSessionWatch(): void {
+    if (this.sessionWatchHandle) {
+      clearInterval(this.sessionWatchHandle);
+      this.sessionWatchHandle = undefined;
+    }
+    sessionStorage.removeItem(APP_CONSTANTS.SESSION_ACTIVITY_KEY);
   }
 
   toggleSidebar(): void {
@@ -743,10 +951,53 @@ export class AppComponent implements OnInit {
     if (this.isProfileMenuOpen && !target.closest('.profile-menu-wrap')) {
       this.isProfileMenuOpen = false;
     }
+    if (this.isNotificationMenuOpen && !target.closest('.notification-menu-wrap')) {
+      this.isNotificationMenuOpen = false;
+    }
+    if (this.globalSearchOpen && !target.closest('.global-search-wrap')) {
+      this.globalSearchOpen = false;
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onGlobalSearchShortcut(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      const input = document.querySelector<HTMLInputElement>('.global-search-input');
+      input?.focus();
+      return;
+    }
+    if (!this.globalSearchOpen || !this.globalSearchResults.length) {
+      if (event.key === 'Escape' && this.globalSearchOpen) {
+        this.clearGlobalSearch();
+      }
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.globalSearchActiveIndex = Math.min(this.globalSearchActiveIndex + 1, this.globalSearchResults.length - 1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.globalSearchActiveIndex = Math.max(this.globalSearchActiveIndex - 1, 0);
+      return;
+    }
+    if (event.key === 'Enter' && this.globalSearchActiveIndex >= 0) {
+      event.preventDefault();
+      const result = this.globalSearchResults[this.globalSearchActiveIndex];
+      if (result) this.openGlobalSearchResult(result);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.clearGlobalSearch();
+    }
   }
 
   refresh(): void {
     if (!this.currentUser) return;
+    this.loadWorkflowNotifications();
     if (this.isPortalUser) {
       this.loadPortalShell();
       if (this.activeTab !== 'dashboard') this.ensurePortalTabData(this.activeTab, true);
@@ -860,7 +1111,7 @@ export class AppComponent implements OnInit {
       case 'exams':
         this.loading = true;
         forkJoin({
-          exams: this.safeRefresh(this.api.exams(), [] as Exam[]),
+          exams: this.safeRefresh(this.api.exams({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as Exam[]),
           examResults: this.safeRefresh(this.api.examResults(), [] as ExamSubmission[])
         }).subscribe({
           next: (data) => {
@@ -954,7 +1205,7 @@ export class AppComponent implements OnInit {
       case 'exams':
         this.loading = true;
         forkJoin({
-          exams: this.safeRefresh(this.api.exams(), [] as Exam[]),
+          exams: this.safeRefresh(this.api.exams({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as Exam[]),
           examResults: this.safeRefresh(this.api.examResults(), [] as ExamSubmission[])
         }).subscribe({
           next: (data) => {
@@ -1009,8 +1260,11 @@ export class AppComponent implements OnInit {
         }
         this.loading = false;
         this.submitting = false;
+        this.loadReferenceData();
         this.loadServerListings();
         this.loadSelfAttendanceStatus();
+        this.loadWorkflowNotifications();
+        this.loadGovernanceConfiguration();
         if (this.can('transport', 'view')) this.loadBusReport();
         if (this.can('attendance', 'view')) this.loadAttendanceReport();
       },
@@ -1064,37 +1318,25 @@ export class AppComponent implements OnInit {
     };
 
     if (this.can('academic_year', 'view')) {
-      requests.years = this.safeRefresh(
-        this.api.academicYears({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
-        empty.years
-      );
+      requests.years = of(empty.years);
     } else {
       requests.years = of(empty.years);
     }
 
     if (this.can('classes', 'view')) {
-      requests.classes = this.safeRefresh(
-        this.api.classes({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-        empty.classes
-      );
+      requests.classes = of(empty.classes);
     } else {
       requests.classes = of(empty.classes);
     }
 
     if (this.can('teachers', 'view')) {
-      requests.teachers = this.safeRefresh(
-        this.api.teachers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-        empty.teachers
-      );
+      requests.teachers = of(empty.teachers);
     } else {
       requests.teachers = of(empty.teachers);
     }
 
     if (this.can('students', 'view')) {
-      requests.students = this.safeRefresh(
-        this.api.students({ page: 1, pageSize: 500 }).pipe(map((r) => r.data)),
-        empty.students
-      );
+      requests.students = of(empty.students);
     } else {
       requests.students = of(empty.students);
     }
@@ -1108,10 +1350,7 @@ export class AppComponent implements OnInit {
     }
 
     if (this.can('transport', 'view')) {
-      requests.busRoutes = this.safeRefresh(
-        this.api.busRoutes({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)),
-        empty.busRoutes
-      );
+      requests.busRoutes = of(empty.busRoutes);
       requests.busRegistrations = of(empty.busRegistrations);
     } else {
       requests.busRoutes = of(empty.busRoutes);
@@ -1139,7 +1378,7 @@ export class AppComponent implements OnInit {
     }
 
     if (this.can('exams', 'view')) {
-      requests.exams = this.safeRefresh(this.api.exams(), empty.exams);
+      requests.exams = of(empty.exams);
       requests.examResults = this.safeRefresh(this.api.examResults(), empty.examResults);
     } else {
       requests.exams = of(empty.exams);
@@ -1147,10 +1386,7 @@ export class AppComponent implements OnInit {
     }
 
     if (this.can('users', 'view')) {
-      requests.users = this.safeRefresh(
-        this.api.listUsers({ page: 1, pageSize: 500 }).pipe(map((r) => r.data as AppUser[])),
-        empty.users
-      );
+      requests.users = of(empty.users);
     } else {
       requests.users = of(empty.users);
     }
@@ -1164,6 +1400,30 @@ export class AppComponent implements OnInit {
     }
 
     return requests;
+  }
+
+  private loadReferenceData(): void {
+    if (this.can('academic_year', 'view')) {
+      this.safeRefresh(this.api.academicYears({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as AcademicYear[]).subscribe((rows) => {
+        this.years = rows.length ? rows : (this.summary?.activeYear ? [this.summary.activeYear] : []);
+        this.applyActiveYearDefaults();
+      });
+    }
+    if (this.can('classes', 'view')) {
+      this.safeRefresh(this.api.classes({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as ClassRoom[]).subscribe((rows) => {
+        this.classes = rows;
+      });
+    }
+    if (this.can('teachers', 'view')) {
+      this.safeRefresh(this.api.teachers({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as Teacher[]).subscribe((rows) => {
+        this.teachers = rows;
+      });
+    }
+    if (this.can('transport', 'view')) {
+      this.safeRefresh(this.api.busRoutes({ page: 1, pageSize: 100 }).pipe(map((r) => r.data)), [] as BusRoute[]).subscribe((rows) => {
+        if (!this.isServerPaged('busRoutes')) this.busRoutes = rows;
+      });
+    }
   }
 
   setTab(tab: TabKey): void {
@@ -1207,6 +1467,9 @@ export class AppComponent implements OnInit {
       else this.ensurePortalTabData('attendance');
       if (!this.holidaysLoaded) this.loadHolidays();
       if (!this.isPortalUser) this.loadAttendanceReport();
+    }
+    if (tab === 'exams' && this.can('exams', 'view') && !this.isPortalUser) {
+      this.loadListing('exams');
     }
     if (tab === 'profile') {
       if (this.isStudent && this.currentUser?.student) this.loadStudentProfile(this.currentUser.student);
@@ -1275,6 +1538,21 @@ export class AppComponent implements OnInit {
       student_status_change: 'Status change'
     };
     return labels[type] || type;
+  }
+
+  aiTrendLabel(trend: string): string {
+    const labels: Record<string, string> = {
+      improved: 'Improved',
+      declined: 'Declined',
+      stable: 'Stable'
+    };
+    return labels[trend] || trend;
+  }
+
+  aiRiskClass(level?: string): string {
+    if (level === 'high') return 'risk-high';
+    if (level === 'medium') return 'risk-medium';
+    return 'risk-low';
   }
 
   loadStudentDocuments(studentId: string): void {
@@ -2209,7 +2487,8 @@ export class AppComponent implements OnInit {
       payroll: ['payroll', 'view'],
       busRoutes: ['transport', 'view'],
       busRegistrations: ['transport', 'view'],
-      attendance: ['attendance', 'view']
+      attendance: ['attendance', 'view'],
+      exams: ['exams', 'view']
     };
     const entry = map[key];
     return entry ? this.can(entry[0], entry[1] as PermissionAction) : false;
@@ -2279,6 +2558,7 @@ export class AppComponent implements OnInit {
         if (key === 'busRoutes') this.busRoutes = response.data as BusRoute[];
         if (key === 'busRegistrations') this.busRegistrations = response.data as BusRegistration[];
         if (key === 'attendance') this.attendance = response.data as AttendanceRecord[];
+        if (key === 'exams') this.exams = response.data as Exam[];
         this.listingLoading[key] = false;
       },
       error: (error) => {
@@ -2301,6 +2581,7 @@ export class AppComponent implements OnInit {
       case 'busRoutes': return this.can('transport', 'view') ? this.api.busRoutes(query) : null;
       case 'busRegistrations': return this.can('transport', 'view') ? this.api.busRegistrations(query) : null;
       case 'attendance': return this.can('attendance', 'view') ? this.api.attendance(query) : null;
+      case 'exams': return this.can('exams', 'view') ? this.api.exams(query) : null;
       default: return null;
     }
   }
@@ -2374,6 +2655,10 @@ export class AppComponent implements OnInit {
       if (this.filters.attendanceClass) query.classRoom = this.filters.attendanceClass;
       if (this.filters.attendanceYear) query.academicYear = this.filters.attendanceYear;
     }
+    if (key === 'exams') {
+      if (this.filters.examSearch) query.search = this.filters.examSearch;
+      if (this.filters.examStatus) query.status = this.filters.examStatus;
+    }
     return query;
   }
 
@@ -2388,7 +2673,8 @@ export class AppComponent implements OnInit {
       payroll: { teacherName: 'year', period: 'year' },
       busRoutes: { route: 'routeName' },
       busRegistrations: { studentName: 'updatedAt' },
-      attendance: { studentName: 'date', className: 'date' }
+      attendance: { studentName: 'date', className: 'date' },
+      exams: { title: 'title', subject: 'subject', status: 'status' }
     };
     return maps[key]?.[field] || field;
   }
@@ -2453,6 +2739,53 @@ export class AppComponent implements OnInit {
       sortDir: this.listSort[key]?.dir,
       filters
     });
+    this.persistWorkspaceContext();
+  }
+
+  private persistWorkspaceContext(): void {
+    this.sessionContext.patch({
+      academicYearId: this.filters.studentYear || this.filters.attendanceYear || this.filters.invoiceYear || this.filters.busRegYear || undefined,
+      classId: this.filters.studentClass || this.filters.attendanceClass || undefined,
+      section: this.filters.studentSection || undefined,
+      promotionWizardStep: this.promotionWizardStep,
+      promotionFromYear: this.promotionForm.get('fromAcademicYear')?.value || undefined,
+      promotionToYear: this.promotionForm.get('toAcademicYear')?.value || undefined,
+      promotionFromClass: this.promotionForm.get('fromClassRoom')?.value || undefined,
+      promotionToClass: this.promotionForm.get('toClassRoom')?.value || undefined,
+      promotionRollMode: this.promotionRollMode
+    });
+  }
+
+  private restoreWorkspaceContext(): void {
+    const ctx = this.sessionContext.load();
+    const yearId = ctx.academicYearId;
+    if (yearId) {
+      if (!this.filters.studentYear) this.filters.studentYear = yearId;
+      if (!this.filters.attendanceYear) this.filters.attendanceYear = yearId;
+      if (!this.filters.invoiceYear) this.filters.invoiceYear = yearId;
+      if (!this.filters.busRegYear) this.filters.busRegYear = yearId;
+      if (!this.filters.reportYear) this.filters.reportYear = yearId;
+    }
+    if (ctx.classId) {
+      if (!this.filters.studentClass) this.filters.studentClass = ctx.classId;
+      if (!this.filters.attendanceClass) this.filters.attendanceClass = ctx.classId;
+    }
+    if (ctx.section && !this.filters.studentSection) {
+      this.filters.studentSection = ctx.section;
+    }
+    if (ctx.promotionWizardStep) this.promotionWizardStep = ctx.promotionWizardStep;
+    if (ctx.promotionRollMode) this.promotionRollMode = ctx.promotionRollMode as typeof this.promotionRollMode;
+    const promotionPatch: {
+      fromAcademicYear?: string;
+      toAcademicYear?: string;
+      fromClassRoom?: string;
+      toClassRoom?: string;
+    } = {};
+    if (ctx.promotionFromYear) promotionPatch.fromAcademicYear = ctx.promotionFromYear;
+    if (ctx.promotionToYear) promotionPatch.toAcademicYear = ctx.promotionToYear;
+    if (ctx.promotionFromClass) promotionPatch.fromClassRoom = ctx.promotionFromClass;
+    if (ctx.promotionToClass) promotionPatch.toClassRoom = ctx.promotionToClass;
+    if (Object.keys(promotionPatch).length) this.promotionForm.patchValue(promotionPatch);
   }
 
   private restoreAllListingStates(): void {
@@ -2594,7 +2927,7 @@ export class AppComponent implements OnInit {
   }
 
   unlockFeeReceipt(invoiceId: string, paymentId: string, receiptNumber?: string): void {
-    if (!this.isSuperAdmin) return;
+    if (!this.can('fees', 'unlock')) return;
     void this.confirmAction({
       title: 'Unlock receipt',
       message: `Unlock finalized receipt ${receiptNumber || ''}? Only use this when a correction is required.`,
@@ -2916,12 +3249,27 @@ export class AppComponent implements OnInit {
       return;
     }
     const payload = { ...this.userForm.getRawValue() } as Record<string, unknown>;
+    if (payload['useTemporaryPassword']) {
+      delete payload['password'];
+    }
     if (payload['role'] === 'parent' && this.parentLinkedStudentIds.size) {
       payload['linkedStudents'] = [...this.parentLinkedStudentIds];
       if (!payload['linkedStudent']) payload['linkedStudent'] = [...this.parentLinkedStudentIds][0];
     }
-    this.submit(this.api.createUser(payload), 'User account created', this.userForm);
-    this.parentLinkedStudentIds.clear();
+    this.api.createUser(payload).subscribe({
+      next: (response) => {
+        const result = response as Record<string, unknown>;
+        if (result['temporaryPassword']) {
+          this.toast.success(`Temporary password: ${result['temporaryPassword']}`);
+        } else {
+          this.toast.success('User account created');
+        }
+        this.userForm.reset({ role: 'teacher', useTemporaryPassword: false });
+        this.parentLinkedStudentIds.clear();
+        this.refresh();
+      },
+      error: (err) => this.toast.error(extractApiMessage(err, 'Could not create user'))
+    });
   }
 
   deactivateUserAccount(id: string): void {
@@ -2962,13 +3310,16 @@ export class AppComponent implements OnInit {
     const labels: Record<string, string> = {
       super_admin: 'Super Admin',
       admin: 'Admin',
+      principal: 'Principal',
       teacher: 'Teacher',
       reception: 'Reception',
+      receptionist: 'Receptionist',
       accountant: 'Accountant',
+      transport_manager: 'Transport Manager',
       parent: 'Parent',
       student: 'Student'
     };
-    return labels[role] || role;
+    return labels[role] || this.roles.find((item) => item.slug === role)?.name || role;
   }
 
   selectRoleForEdit(slug: string): void {
@@ -3157,7 +3508,7 @@ export class AppComponent implements OnInit {
   }
 
   unlockAttendanceRegister(): void {
-    if (!this.isAdmin) return;
+    if (!this.can('attendance', 'unlock')) return;
     const payload = this.attendanceRegisterPayload();
     if (!payload) return;
     void this.confirmAction({
@@ -3288,6 +3639,52 @@ export class AppComponent implements OnInit {
       status: [
         { key: 'status', label: 'Status' },
         { key: 'totalStudents', label: 'Total Students' }
+      ],
+      'class-register': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'classSection', label: 'Class' },
+        { key: 'rollNumber', label: 'Roll' },
+        { key: 'status', label: 'Status' }
+      ],
+      'inactive-students': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'classSection', label: 'Class' },
+        { key: 'status', label: 'Status' },
+        { key: 'admissionDate', label: 'Admission Date' }
+      ]
+    },
+    academic: {
+      'student-progress': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'attempts', label: 'Attempts' },
+        { key: 'averageScore', label: 'Average' },
+        { key: 'latestScore', label: 'Latest Score' },
+        { key: 'latestSubject', label: 'Latest Subject' }
+      ],
+      'performance-summary': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'performanceScore', label: 'Score' },
+        { key: 'performanceCategory', label: 'Band' },
+        { key: 'riskLevel', label: 'Risk' },
+        { key: 'attendancePercentage', label: 'Attendance %' },
+        { key: 'examAverage', label: 'Exam Avg' }
+      ],
+      'top-performers': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'performanceScore', label: 'Score' },
+        { key: 'performanceCategory', label: 'Band' }
+      ],
+      'weak-students': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'performanceScore', label: 'Score' },
+        { key: 'riskLevel', label: 'Risk' },
+        { key: 'examAverage', label: 'Exam Avg' }
       ]
     },
     fees: {
@@ -3322,6 +3719,27 @@ export class AppComponent implements OnInit {
         { key: 'paidAmount', label: 'Paid' },
         { key: 'receiptNumber', label: 'Receipt' },
         { key: 'paymentDate', label: 'Date' }
+      ],
+      outstanding: [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'pendingAmount', label: 'Outstanding' },
+        { key: 'status', label: 'Status' }
+      ],
+      'discount-report': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'discountAmount', label: 'Discount' },
+        { key: 'totalAmount', label: 'Total' }
+      ],
+      'fine-collection': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'feeMonth', label: 'Month' },
+        { key: 'fineAmount', label: 'Fine' },
+        { key: 'totalAmount', label: 'Total' }
       ]
     },
     attendance: {
@@ -3355,6 +3773,21 @@ export class AppComponent implements OnInit {
         { key: 'present', label: 'Present' },
         { key: 'absent', label: 'Absent' },
         { key: 'leave', label: 'Leave' },
+        { key: 'percentage', label: '%' }
+      ],
+      yearly: [
+        { key: 'month', label: 'Month' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
+        { key: 'leave', label: 'Leave' },
+        { key: 'percentage', label: '%' }
+      ],
+      'teacher-wise': [
+        { key: 'teacherName', label: 'Teacher' },
+        { key: 'employeeCode', label: 'Code' },
+        { key: 'classes', label: 'Classes' },
+        { key: 'present', label: 'Present' },
+        { key: 'absent', label: 'Absent' },
         { key: 'percentage', label: '%' }
       ]
     },
@@ -3416,6 +3849,92 @@ export class AppComponent implements OnInit {
         { key: 'receiptNumber', label: 'Receipt' },
         { key: 'paymentDate', label: 'Date' }
       ]
+    },
+    promotions: {
+      'promotion-report': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'fromYear', label: 'From Year' },
+        { key: 'toYear', label: 'To Year' },
+        { key: 'fromClass', label: 'From Class' },
+        { key: 'toClass', label: 'To Class' }
+      ],
+      promoted: [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'fromYear', label: 'From Year' },
+        { key: 'toYear', label: 'To Year' },
+        { key: 'fromClass', label: 'From Class' },
+        { key: 'toClass', label: 'To Class' },
+        { key: 'rollNumber', label: 'Roll No' },
+        { key: 'monthlyFee', label: 'Fee' }
+      ],
+      detained: [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'classSection', label: 'Class' },
+        { key: 'rollNumber', label: 'Roll No' },
+        { key: 'status', label: 'Status' }
+      ],
+      'left-school': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'status', label: 'Status' },
+        { key: 'admissionDate', label: 'Admission Date' }
+      ],
+      'tc-issued': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'status', label: 'Status' },
+        { key: 'admissionDate', label: 'Admission Date' }
+      ],
+      'class-strength-comparison': [
+        { key: 'classSection', label: 'Class' },
+        { key: 'fromYearCount', label: 'From Year' },
+        { key: 'toYearCount', label: 'To Year' },
+        { key: 'difference', label: 'Difference' }
+      ]
+    },
+    operations: {
+      'teacher-register': [
+        { key: 'employeeCode', label: 'Code' },
+        { key: 'teacherName', label: 'Name' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'designation', label: 'Designation' },
+        { key: 'status', label: 'Status' }
+      ],
+      'bus-allocation': [
+        { key: 'studentName', label: 'Student' },
+        { key: 'className', label: 'Class' },
+        { key: 'routeName', label: 'Route' },
+        { key: 'stopName', label: 'Stop' },
+        { key: 'status', label: 'Status' }
+      ],
+      'route-strength': [
+        { key: 'routeName', label: 'Route' },
+        { key: 'vehicleNumber', label: 'Vehicle' },
+        { key: 'capacity', label: 'Capacity' },
+        { key: 'activeStudents', label: 'Students' },
+        { key: 'occupancy', label: 'Occupancy %' }
+      ],
+      'inactive-students': [
+        { key: 'admissionNumber', label: 'Adm No' },
+        { key: 'studentName', label: 'Name' },
+        { key: 'classSection', label: 'Class' },
+        { key: 'status', label: 'Status' }
+      ],
+      'user-activity': [
+        { key: 'performedAt', label: 'When' },
+        { key: 'module', label: 'Module' },
+        { key: 'action', label: 'Action' },
+        { key: 'description', label: 'Description' },
+        { key: 'performedBy', label: 'User' }
+      ],
+      'audit-summary': [
+        { key: 'module', label: 'Module' },
+        { key: 'action', label: 'Action' },
+        { key: 'count', label: 'Count' }
+      ]
     }
   };
 
@@ -3467,6 +3986,8 @@ export class AppComponent implements OnInit {
     if (this.filters.reportRoute) params['route'] = this.filters.reportRoute;
     if (this.filters.reportStop) params['stop'] = this.filters.reportStop;
     if (this.filters.reportBusStatus) params['busServiceStatus'] = this.filters.reportBusStatus;
+    if (this.filters.reportPerformanceCategory) params['performanceCategory'] = this.filters.reportPerformanceCategory;
+    if (this.filters.reportTeacher) params['teacher'] = this.filters.reportTeacher;
     return params;
   }
 
@@ -3503,6 +4024,11 @@ export class AppComponent implements OnInit {
       columns.map((col) => col.label),
       this.reportRows.map((row) => columns.map((col) => this.reportCell(row, col.key)))
     );
+  }
+
+  printReport(): void {
+    if (!this.can('reports', 'print')) return;
+    this.exportReportPdf();
   }
 
   openReportServerPdf(): void {
@@ -3744,19 +4270,594 @@ export class AppComponent implements OnInit {
     else this.selectedStudentIds.delete(studentId);
   }
 
-  promoteStudents(): void {
-    const value = this.promotionForm.getRawValue();
-    this.submit(
-      this.api.promote({
-        studentIds: Array.from(this.selectedStudentIds),
-        fromAcademicYear: value.fromAcademicYear,
-        toAcademicYear: value.toAcademicYear,
-        toClassRoom: value.toClassRoom
-      }),
-      'Students promoted',
-      this.promotionForm
-    );
+  get selectedStudentCount(): number {
+    return this.selectedStudentIds.size;
+  }
+
+  allStudentsSelectedOnPage(): boolean {
+    const page = this.paged('students', this.sortedStudents);
+    return page.length > 0 && page.every((student) => this.selectedStudentIds.has(student._id));
+  }
+
+  toggleAllStudentsOnPage(checked: boolean): void {
+    const page = this.paged('students', this.sortedStudents);
+    page.forEach((student) => this.toggleStudent(student._id, checked));
+  }
+
+  clearStudentSelection(): void {
     this.selectedStudentIds.clear();
+  }
+
+  bulkBusStops(): BusStop[] {
+    const route = this.busRoutes.find((entry) => entry._id === this.bulkBusRouteTarget);
+    return route?.stops || [];
+  }
+
+  loadWorkflowNotifications(): void {
+    if (!this.currentUser || !this.can('dashboard', 'view')) return;
+    this.workflowNotificationsLoading = true;
+    this.api.workflowNotifications().subscribe({
+      next: (response) => {
+        this.workflowNotifications = response.items || [];
+        this.workflowNotificationsLoading = false;
+      },
+      error: () => {
+        this.workflowNotifications = [];
+        this.workflowNotificationsLoading = false;
+      }
+    });
+  }
+
+  get workflowNotificationCount(): number {
+    return this.workflowNotifications.length;
+  }
+
+  get systemHealth(): SystemHealthSummary | null {
+    return this.summary?.systemHealth || null;
+  }
+
+  get showGovernanceDashboard(): boolean {
+    return this.can('governance', 'view') && !!this.systemHealth;
+  }
+
+  readonly governanceConfigSections = [
+    { key: 'school', label: 'School information' },
+    { key: 'academicCalendar', label: 'Academic calendar' },
+    { key: 'feePolicies', label: 'Fee policies' },
+    { key: 'attendanceRules', label: 'Attendance rules' },
+    { key: 'promotionRules', label: 'Promotion rules' },
+    { key: 'busRules', label: 'Bus rules' },
+    { key: 'payrollPolicies', label: 'Payroll policies' },
+    { key: 'softDeletePolicy', label: 'Soft delete policy' }
+  ];
+
+  loadGovernanceConfiguration(): void {
+    if (!this.can('governance', 'view')) return;
+    this.governanceConfigLoading = true;
+    this.api.governanceConfiguration().subscribe({
+      next: (configuration) => {
+        this.governanceConfiguration = configuration;
+        this.governanceConfigDraft = { ...(configuration[this.governanceConfigSection as keyof SchoolConfiguration] as Record<string, unknown> || {}) };
+        this.governanceConfigLoading = false;
+      },
+      error: () => {
+        this.governanceConfigLoading = false;
+      }
+    });
+    this.api.complianceStatus().subscribe({
+      next: (status) => { this.complianceStatus = status; },
+      error: () => { this.complianceStatus = null; }
+    });
+    this.api.businessRulesCatalog().subscribe({
+      next: (catalog) => { this.businessRulesCatalog = catalog; },
+      error: () => { this.businessRulesCatalog = null; }
+    });
+  }
+
+  runComplianceBackup(): void {
+    if (!this.can('governance', 'edit')) return;
+    this.api.runComplianceBackup().subscribe({
+      next: () => this.toast.success('Backup job queued'),
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  canViewSensitivePii(module: 'students' | 'teachers'): boolean {
+    return this.permissionService.canViewSensitivePii(module, this.currentUser?.role);
+  }
+
+  selectGovernanceConfigSection(section: string): void {
+    this.governanceConfigSection = section;
+    if (this.governanceConfiguration) {
+      this.governanceConfigDraft = { ...(this.governanceConfiguration[section as keyof SchoolConfiguration] as Record<string, unknown> || {}) };
+    }
+  }
+
+  get governanceConfigJson(): string {
+    return JSON.stringify(this.governanceConfigDraft, null, 2);
+  }
+
+  setGovernanceConfigJson(value: string): void {
+    try {
+      this.governanceConfigDraft = JSON.parse(value) as Record<string, unknown>;
+    } catch {
+      // keep last valid draft until JSON is valid
+    }
+  }
+
+  saveGovernanceConfiguration(): void {
+    if (!this.can('governance', 'edit')) return;
+    this.api.updateGovernanceConfiguration(this.governanceConfigSection, this.governanceConfigDraft).subscribe({
+      next: (configuration) => {
+        this.governanceConfiguration = configuration;
+        this.toast.success('Governance configuration updated');
+        this.refresh();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error, 'Could not save configuration'))
+    });
+  }
+
+  toggleGovernanceConfigPanel(): void {
+    this.showGovernanceConfigPanel = !this.showGovernanceConfigPanel;
+    if (this.showGovernanceConfigPanel && !this.governanceConfiguration) {
+      this.loadGovernanceConfiguration();
+    }
+  }
+
+  toggleNotificationMenu(): void {
+    this.isNotificationMenuOpen = !this.isNotificationMenuOpen;
+    if (this.isNotificationMenuOpen) {
+      this.globalSearchOpen = false;
+      this.loadWorkflowNotifications();
+    }
+  }
+
+  closeNotificationMenu(): void {
+    this.isNotificationMenuOpen = false;
+  }
+
+  dismissWorkflowNotification(key: string, event?: Event): void {
+    event?.stopPropagation();
+    this.api.dismissWorkflowNotification(key).subscribe({
+      next: () => {
+        this.workflowNotifications = this.workflowNotifications.filter((entry) => entry.key !== key);
+      }
+    });
+  }
+
+  openWorkflowNotification(notification: WorkflowNotification): void {
+    this.isNotificationMenuOpen = false;
+    const tab = notification.tab as TabKey;
+    if (this.tabs.some((item) => item.key === tab)) {
+      this.setTab(tab);
+    }
+  }
+
+  onGlobalSearchInput(): void {
+    if (this.globalSearchTimer) clearTimeout(this.globalSearchTimer);
+    const query = this.globalSearchQuery.trim();
+    this.globalSearchActiveIndex = -1;
+    if (query.length < 2) {
+      this.globalSearchResults = [];
+      this.globalSearchOpen = false;
+      this.globalSearchLoading = false;
+      return;
+    }
+    this.globalSearchOpen = true;
+    this.globalSearchLoading = true;
+    this.globalSearchTimer = setTimeout(() => {
+      this.api.globalSearch(query).subscribe({
+        next: (response) => {
+          this.globalSearchResults = response.results || [];
+          this.globalSearchLoading = false;
+          this.globalSearchActiveIndex = this.globalSearchResults.length ? 0 : -1;
+        },
+        error: () => {
+          this.globalSearchResults = [];
+          this.globalSearchLoading = false;
+          this.globalSearchActiveIndex = -1;
+        }
+      });
+    }, 300);
+  }
+
+  openGlobalSearchResult(result: GlobalSearchResult): void {
+    this.globalSearchOpen = false;
+    this.globalSearchQuery = '';
+    this.globalSearchResults = [];
+    const tab = result.tab as TabKey;
+    if (this.tabs.some((item) => item.key === tab)) {
+      this.setTab(tab);
+    }
+    if (result.type === 'student') {
+      this.openStudentProfile(result.id);
+      return;
+    }
+    if (result.type === 'receipt') {
+      this.filters.invoiceSearch = result.label;
+      this.updateListSearch('invoices', 'invoiceSearch', result.label);
+      return;
+    }
+    if (result.type === 'teacher') {
+      this.filters.teacherSearch = result.subtitle || result.label;
+      this.updateListSearch('teachers', 'teacherSearch', this.filters.teacherSearch);
+      return;
+    }
+    if (result.type === 'payroll') {
+      this.filters.payrollSearch = result.subtitle || result.label;
+      this.updateListSearch('payroll', 'payrollSearch', this.filters.payrollSearch);
+      return;
+    }
+    if (result.type === 'route') {
+      this.filters.busRouteSearch = result.label;
+      this.updateListSearch('busRoutes', 'busRouteSearch', result.label);
+      return;
+    }
+    if (result.type === 'user') {
+      this.filters.userSearch = result.label;
+      this.updateListSearch('users', 'userSearch', result.label);
+    }
+  }
+
+  clearGlobalSearch(): void {
+    this.globalSearchQuery = '';
+    this.globalSearchResults = [];
+    this.globalSearchOpen = false;
+    this.globalSearchActiveIndex = -1;
+  }
+
+  async executeBulkStatusUpdate(): Promise<void> {
+    if (!this.can('students', 'edit') || !this.bulkStatusTarget || !this.selectedStudentIds.size) return;
+    const confirmed = await this.confirmAction({
+      title: 'Bulk status update',
+      message: `Update status to "${this.bulkStatusTarget}" for ${this.selectedStudentIds.size} selected student(s)?`,
+      confirmLabel: 'Update'
+    });
+    if (!confirmed) return;
+    this.api.workflowBulk('status-update', {
+      entity: 'students',
+      ids: [...this.selectedStudentIds],
+      status: this.bulkStatusTarget
+    }).subscribe({
+      next: () => {
+        this.toast.success('Student statuses updated');
+        this.clearStudentSelection();
+        this.refresh();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error, 'Bulk status update failed'))
+    });
+  }
+
+  async executeBulkClassAssignment(): Promise<void> {
+    const activeYear = this.activeAcademicYear?._id;
+    if (!this.can('students', 'edit') || !this.bulkClassTarget || !activeYear || !this.selectedStudentIds.size) return;
+    const confirmed = await this.confirmAction({
+      title: 'Bulk class assignment',
+      message: `Assign ${this.selectedStudentIds.size} student(s) to the selected class?`,
+      confirmLabel: 'Assign'
+    });
+    if (!confirmed) return;
+    this.api.workflowBulk('student-assignment', {
+      studentIds: [...this.selectedStudentIds],
+      classRoomId: this.bulkClassTarget,
+      academicYearId: activeYear
+    }).subscribe({
+      next: () => {
+        this.toast.success('Students assigned to class');
+        this.clearStudentSelection();
+        this.refresh();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error, 'Bulk class assignment failed'))
+    });
+  }
+
+  async executeBulkBusAssignment(): Promise<void> {
+    const activeYear = this.activeAcademicYear?._id;
+    const route = this.busRoutes.find((entry) => entry._id === this.bulkBusRouteTarget);
+    const stop = route?.stops?.find((entry) => String(entry.sequence) === this.bulkBusStopSequence);
+    if (!this.can('transport', 'edit') || !route || !stop || !activeYear || !this.selectedStudentIds.size) return;
+    const confirmed = await this.confirmAction({
+      title: 'Bulk bus assignment',
+      message: `Assign ${this.selectedStudentIds.size} student(s) to ${route.routeName} · ${stop.name}?`,
+      confirmLabel: 'Assign'
+    });
+    if (!confirmed) return;
+    this.api.workflowBulk('bus-assignment', {
+      studentIds: [...this.selectedStudentIds],
+      routeId: route._id,
+      stopName: stop.name,
+      stopSequence: stop.sequence,
+      academicYearId: activeYear,
+      monthlyFee: stop.monthlyFee
+    }).subscribe({
+      next: () => {
+        this.toast.success('Bus assignments updated');
+        this.clearStudentSelection();
+        this.refresh();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error, 'Bulk bus assignment failed'))
+    });
+  }
+
+  async executeBulkNotification(): Promise<void> {
+    if (!this.can('students', 'edit') || !this.bulkNotificationMessage.trim() || !this.selectedStudentIds.size) return;
+    const confirmed = await this.confirmAction({
+      title: 'Bulk notification',
+      message: `Queue notification for ${this.selectedStudentIds.size} selected student(s)?`,
+      confirmLabel: 'Send'
+    });
+    if (!confirmed) return;
+    this.api.workflowBulk('notifications', {
+      studentIds: [...this.selectedStudentIds],
+      message: this.bulkNotificationMessage.trim(),
+      channel: 'in_app'
+    }).subscribe({
+      next: () => {
+        this.toast.success('Bulk notification queued');
+        this.bulkNotificationMessage = '';
+        this.clearStudentSelection();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error, 'Bulk notification failed'))
+    });
+  }
+
+  unlockPayroll(id: string): void {
+    if (!this.can('payroll', 'unlock')) return;
+    this.api.unlockPayroll(id).subscribe({
+      next: () => {
+        this.message = 'Payroll record unlocked';
+        this.refresh();
+      },
+      error: (err) => { this.message = err.error?.message || 'Could not unlock payroll'; }
+    });
+  }
+
+  promotionClassesForYear(yearId: string): ClassRoom[] {
+    if (!yearId) return this.classes;
+    return this.classes.filter((room) => {
+      const roomYear = typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id;
+      return roomYear === yearId;
+    });
+  }
+
+  get promotionEligibleSelectedRows(): PromotionEligibleRow[] {
+    return this.promotionEligibleRows.filter((row) => row.eligible && !this.promotionExcludedIds.has(row.studentId));
+  }
+
+  canPromotionStepContinue(step = this.promotionWizardStep): boolean {
+    const value = this.promotionForm.getRawValue();
+    if (step === 1) return !!(value.fromAcademicYear && value.toAcademicYear && value.fromAcademicYear !== value.toAcademicYear);
+    if (step === 2) return !!value.fromClassRoom;
+    if (step === 3) return !!value.toClassRoom;
+    if (step === 4) return this.promotionEligibleSelectedRows.length > 0;
+    return true;
+  }
+
+  nextPromotionStep(): void {
+    if (!this.canPromotionStepContinue()) return;
+    if (this.promotionWizardStep === 3) {
+      this.loadPromotionEligible();
+    }
+    if (this.promotionWizardStep === 4) {
+      this.loadPromotionPreview();
+      this.promotionWizardStep = 5;
+      return;
+    }
+    this.promotionWizardStep = Math.min(this.promotionWizardStep + 1, 5);
+  }
+
+  prevPromotionStep(): void {
+    this.promotionWizardStep = Math.max(this.promotionWizardStep - 1, 1);
+  }
+
+  resetPromotionWizard(): void {
+    this.promotionWizardStep = 1;
+    this.promotionEligibleRows = [];
+    this.promotionPreview = null;
+    this.promotionBatch = null;
+    this.promotionExcludedIds.clear();
+    this.promotionSelectedIds.clear();
+    this.promotionRollAssignments = {};
+    this.promotionWarningsAcknowledged = false;
+    this.promotionForm.reset();
+  }
+
+  loadPromotionEligible(): void {
+    const value = this.promotionForm.getRawValue();
+    this.promotionLoading = true;
+    this.api.promotionEligible({
+      fromAcademicYear: value.fromAcademicYear || '',
+      toAcademicYear: value.toAcademicYear || '',
+      fromClassRoom: value.fromClassRoom || ''
+    }).subscribe({
+      next: (response) => {
+        this.promotionEligibleRows = response.rows;
+        this.promotionSelectedIds = new Set(response.rows.filter((row) => row.eligible).map((row) => row.studentId));
+        this.promotionExcludedIds.clear();
+        this.promotionLoading = false;
+      },
+      error: (error) => {
+        this.promotionLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  togglePromotionExclude(studentId: string, excluded: boolean): void {
+    if (excluded) this.promotionExcludedIds.add(studentId);
+    else this.promotionExcludedIds.delete(studentId);
+  }
+
+  togglePromotionStudent(studentId: string, checked: boolean): void {
+    if (checked) {
+      this.promotionSelectedIds.add(studentId);
+      this.promotionExcludedIds.delete(studentId);
+    } else {
+      this.promotionSelectedIds.delete(studentId);
+      this.promotionExcludedIds.add(studentId);
+    }
+  }
+
+  selectAllPromotionStudents(checked: boolean): void {
+    const eligibleIds = this.promotionEligibleRows.filter((row) => row.eligible).map((row) => row.studentId);
+    if (checked) {
+      eligibleIds.forEach((id) => this.promotionSelectedIds.add(id));
+      this.promotionExcludedIds.clear();
+    } else {
+      eligibleIds.forEach((id) => {
+        this.promotionSelectedIds.delete(id);
+        this.promotionExcludedIds.add(id);
+      });
+    }
+  }
+
+  isPromotionStudentSelected(studentId: string): boolean {
+    return this.promotionSelectedIds.has(studentId) && !this.promotionExcludedIds.has(studentId);
+  }
+
+  promotionWarningSummary(row: PromotionEligibleRow | PromotionPreviewRow): string {
+    return row.warnings?.map((warning) => warning.message).join('; ') || '';
+  }
+
+  loadPromotionPreview(): void {
+    const value = this.promotionForm.getRawValue();
+    const studentIds = this.promotionEligibleRows
+      .filter((row) => row.eligible && this.isPromotionStudentSelected(row.studentId))
+      .map((row) => row.studentId);
+    const excludedStudentIds = [...this.promotionExcludedIds];
+
+    this.promotionLoading = true;
+    this.api.promotionPreview({
+      ...value,
+      studentIds,
+      excludedStudentIds,
+      rollMode: this.promotionRollMode,
+      rollAssignments: this.promotionRollAssignments
+    }).subscribe({
+      next: (preview) => {
+        this.promotionPreview = preview;
+        this.promotionLoading = false;
+      },
+      error: (error) => {
+        this.promotionLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  executePromotionBatch(): void {
+    if (!this.promotionPreview) {
+      this.loadPromotionPreview();
+      return;
+    }
+    const value = this.promotionForm.getRawValue();
+    const studentIds = this.promotionPreview.rows
+      .filter((row) => row.included && row.eligible)
+      .map((row) => row.studentId);
+
+    this.submitting = true;
+    this.api.promotionExecute({
+      ...value,
+      studentIds,
+      excludedStudentIds: [...this.promotionExcludedIds],
+      rollMode: this.promotionRollMode,
+      rollAssignments: this.promotionRollAssignments,
+      warningsAcknowledged: this.promotionWarningsAcknowledged
+    }).subscribe({
+      next: (batch) => {
+        this.promotionBatch = batch;
+        this.submitting = false;
+        this.toast.success(`Promotion draft created for ${batch.promotedCount} student(s). Review and finalize or rollback.`);
+        this.refresh();
+      },
+      error: (error) => {
+        this.submitting = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  rollbackPromotionBatch(): void {
+    if (!this.promotionBatch?._id) return;
+    this.submitting = true;
+    this.api.promotionRollback(this.promotionBatch._id).subscribe({
+      next: (batch) => {
+        this.promotionBatch = batch;
+        this.submitting = false;
+        this.toast.warning('Promotion rolled back. Enrollment history restored.');
+        this.refresh();
+      },
+      error: (error) => {
+        this.submitting = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  finalizePromotionBatch(): void {
+    if (!this.can('students', 'approve')) {
+      this.toast.warning('You do not have permission to finalize promotions');
+      return;
+    }
+    if (!this.promotionBatch?._id) return;
+    this.submitting = true;
+    this.api.promotionFinalize(this.promotionBatch._id).subscribe({
+      next: (batch) => {
+        this.promotionBatch = batch;
+        this.submitting = false;
+        this.toast.success(`Promotion finalized and locked (${batch.promotedCount} student(s)).`);
+        this.refresh();
+      },
+      error: (error) => {
+        this.submitting = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  loadPromotionReport(): void {
+    const value = this.promotionForm.getRawValue();
+    this.promotionReportLoading = true;
+    this.api.promotionReport(this.promotionReportType, {
+      fromAcademicYear: value.fromAcademicYear || '',
+      toAcademicYear: value.toAcademicYear || '',
+      classRoom: value.fromClassRoom || ''
+    }).subscribe({
+      next: (response) => {
+        this.promotionReportRows = response.rows;
+        this.promotionReportLoading = false;
+      },
+      error: (error) => {
+        this.promotionReportLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  exportPromotionReportCsv(): void {
+    const rows = this.promotionReportRows;
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0] as object);
+    exportRowsToCsv(
+      `promotion-${this.promotionReportType}.csv`,
+      headers,
+      rows.map((row) => headers.map((key) => String((row as Record<string, unknown>)[key] ?? '')))
+    );
+  }
+
+  exportPromotionReportPdf(): void {
+    const rows = this.promotionReportRows;
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0] as object);
+    exportRowsToPdf(
+      `Promotion Report — ${this.promotionReportType}`,
+      headers,
+      rows.map((row) => headers.map((key) => String((row as Record<string, unknown>)[key] ?? '')))
+    );
+  }
+
+  promoteStudents(): void {
+    this.executePromotionBatch();
   }
 
   teacherName(teacher?: Teacher | string): string {
@@ -4246,11 +5347,22 @@ export class AppComponent implements OnInit {
   }
 
   get filteredExams(): Exam[] {
+    if (this.isServerPaged('exams')) return (this.listingRows.exams as Exam[]) || [];
     const search = this.filters.examSearch.toLowerCase().trim();
     return this.exams.filter((exam) => {
       const matchesSearch = !search || `${exam.title} ${exam.subject} ${exam.chapter}`.toLowerCase().includes(search);
       const matchesStatus = !this.filters.examStatus || exam.status === this.filters.examStatus;
       return matchesSearch && matchesStatus;
+    });
+  }
+
+  get sortedExams(): Exam[] {
+    if (this.isServerPaged('exams')) return this.filteredExams;
+    return sortItems(this.filteredExams, this.listSort.exams?.field, this.listSort.exams?.dir, {
+      title: (exam) => exam.title,
+      subject: (exam) => exam.subject,
+      status: (exam) => exam.status,
+      createdAt: (exam) => exam.createdAt || ''
     });
   }
 
@@ -4359,6 +5471,7 @@ export class AppComponent implements OnInit {
   resetPage(key: ListKey): void {
     this.pages[key] = 1;
     this.persistListState(key);
+    if (this.isServerPaged(key)) this.reloadListing(key);
   }
 
   private readStoredUser(): AuthUser | null {
@@ -4376,8 +5489,12 @@ export class AppComponent implements OnInit {
     this.token = token;
     this.currentUser = user;
     this.permissionService.setPermissions(user.permissions);
+    this.sessionIdleMinutes = user.securityPolicy?.session?.idleTimeoutMinutes || APP_CONSTANTS.DEFAULT_SESSION_IDLE_MINUTES;
     this.loadedTabs.clear();
     this.holidaysLoaded = false;
+    this.lastActivityAt = Date.now();
+    sessionStorage.setItem(APP_CONSTANTS.SESSION_ACTIVITY_KEY, String(this.lastActivityAt));
+    this.startSessionWatch();
     if (user.role === 'parent') {
       this.parentSelectedChild = user.linkedStudents?.[0] || user.linkedStudent || '';
     }
@@ -4391,6 +5508,7 @@ export class AppComponent implements OnInit {
     this.permissionService.clear();
     this.loadedTabs.clear();
     this.holidaysLoaded = false;
+    this.stopSessionWatch();
   }
 
   private openProtectedPdf(url: string): void {

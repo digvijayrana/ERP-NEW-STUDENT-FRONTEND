@@ -16,17 +16,17 @@
         <option *ngFor="let type of reportTypes()" [value]="type.id">{{ type.label }}</option>
       </select>
 
-      <select *ngIf="['students','fees','attendance','transport'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportYear" (change)="vm.filters.reportYear = $any($event.target).value; vm.loadReport()">
+      <select *ngIf="['students','fees','attendance','transport','academic','promotions','operations'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportYear" (change)="vm.filters.reportYear = $any($event.target).value; vm.loadReport()">
         <option value="">All academic years</option>
         <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
       </select>
 
-      <select *ngIf="['students','fees','attendance'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportClass" (change)="vm.filters.reportClass = $any($event.target).value; vm.loadReport()">
+      <select *ngIf="['students','fees','attendance','academic'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportClass" (change)="vm.filters.reportClass = $any($event.target).value; vm.loadReport()">
         <option value="">All classes</option>
         <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
       </select>
 
-      <select *ngIf="vm.reportDomain === 'students'" class="filter-select" [value]="vm.filters.reportSection" (change)="vm.filters.reportSection = $any($event.target).value; vm.loadReport()">
+      <select *ngIf="['students','fees','attendance'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportSection" (change)="vm.filters.reportSection = $any($event.target).value; vm.loadReport()">
         <option value="">All sections</option>
         <option *ngFor="let room of vm.classes" [value]="room.section">{{ room.name }}-{{ room.section }}</option>
       </select>
@@ -44,11 +44,28 @@
       <input *ngIf="vm.reportDomain === 'students'" type="date" class="filter-select" [value]="vm.filters.reportAdmissionFrom" (change)="vm.filters.reportAdmissionFrom = $any($event.target).value; vm.loadReport()">
       <input *ngIf="vm.reportDomain === 'students'" type="date" class="filter-select" [value]="vm.filters.reportAdmissionTo" (change)="vm.filters.reportAdmissionTo = $any($event.target).value; vm.loadReport()">
 
-      <select *ngIf="['fees','payroll'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportMonth" (change)="vm.filters.reportMonth = $any($event.target).value; vm.loadReport()">
+      <select *ngIf="['fees','payroll','attendance','operations'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportMonth" (change)="vm.filters.reportMonth = $any($event.target).value; vm.loadReport()">
         <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option>
       </select>
 
+      <input *ngIf="['fees','payroll','attendance'].includes(vm.reportDomain)" class="filter-select" type="number" min="2020" max="2100" placeholder="Calendar year" [value]="vm.filters.reportYearNum" (change)="vm.filters.reportYearNum = $any($event.target).value; vm.loadReport()">
+
       <input *ngIf="vm.reportDomain === 'attendance' && vm.reportType === 'daily'" type="date" class="filter-select" [value]="vm.filters.reportDate" (change)="vm.filters.reportDate = $any($event.target).value; vm.loadReport()">
+
+      <select *ngIf="vm.reportDomain === 'attendance' && vm.reportType === 'teacher-wise'" class="filter-select" [value]="vm.filters.reportTeacher" (change)="vm.filters.reportTeacher = $any($event.target).value; vm.loadReport()">
+        <option value="">All teachers</option>
+        <option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option>
+      </select>
+
+      <select *ngIf="vm.reportDomain === 'academic'" class="filter-select" [value]="vm.filters.reportPerformanceCategory" (change)="vm.filters.reportPerformanceCategory = $any($event.target).value; vm.loadReport()">
+        <option value="">All performance bands</option>
+        <option value="excellent">Excellent</option>
+        <option value="good">Good</option>
+        <option value="average">Average</option>
+        <option value="needs_attention">Needs Attention</option>
+      </select>
+
+      <input *ngIf="vm.reportDomain === 'operations' && vm.reportType === 'user-activity'" type="date" class="filter-select" [value]="vm.filters.reportDate" (change)="vm.filters.reportDate = $any($event.target).value; vm.loadReport()">
 
       <select *ngIf="vm.reportDomain === 'fees'" class="filter-select" [value]="vm.filters.reportPaymentStatus" (change)="vm.filters.reportPaymentStatus = $any($event.target).value; vm.loadReport()">
         <option value="">All payment status</option>
@@ -91,6 +108,7 @@
       <button type="button" class="ghost small" (click)="vm.loadReport()" [disabled]="vm.reportLoading">Refresh</button>
       <button *ngIf="vm.can('reports', 'export')" type="button" class="ghost small" (click)="vm.exportReportCsv()">Export Excel</button>
       <button *ngIf="vm.can('reports', 'export')" type="button" class="ghost small" (click)="vm.exportReportPdf()">Export PDF</button>
+      <button *ngIf="vm.can('reports', 'print')" type="button" class="ghost small" (click)="vm.printReport()">Print</button>
       <button *ngIf="vm.can('reports', 'export')" type="button" class="ghost small" (click)="vm.openReportServerPdf()">Download PDF</button>
     </div>
 

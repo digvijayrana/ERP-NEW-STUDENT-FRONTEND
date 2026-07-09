@@ -49,7 +49,8 @@
       <div class="ai-rating-card" [attr.data-rating]="p.aiInsights.performanceRating">
         <span class="eyebrow">AI performance rating</span>
         <strong class="ai-score">{{ p.aiInsights.ratingScore }}<small>/100</small></strong>
-        <span class="rating-label">{{ p.aiInsights.performanceRating | titlecase }}</span>
+        <span class="rating-label">{{ p.aiInsights.performanceBand?.label || (p.aiInsights.performanceRating | titlecase) }}</span>
+        <span class="risk-badge" *ngIf="p.aiInsights.riskLevel" [ngClass]="vm.aiRiskClass(p.aiInsights.riskLevel.key)">{{ p.aiInsights.riskLevel.label }}</span>
       </div>
     </section>
 
@@ -111,6 +112,10 @@
         </article>
       </div>
       <p class="parent-advice"><strong>Parent advice:</strong> {{ p.aiInsights.parentAdvice }}</p>
+      <div class="risk-factors" *ngIf="p.aiInsights.riskFactors?.length">
+        <strong>Risk factors:</strong>
+        <span class="meta-chip" *ngFor="let factor of p.aiInsights.riskFactors">{{ factor }}</span>
+      </div>
     </section>
 
     <section class="panel span-5">

@@ -48,8 +48,10 @@
         <option value="closed">Closed</option>
       </select>
     </div>
-    <div class="exam-cards">
-      <article *ngFor="let exam of vm.paged('exams', vm.filteredExams)" class="exam-card" [attr.data-status]="exam.status">
+    <div class="listing-table-panel" [class.is-refreshing]="vm.listingLoading?.exams">
+      <app-card-skeleton *ngIf="vm.listingLoading?.exams && !vm.sortedExams.length" [cards]="4"></app-card-skeleton>
+      <div class="exam-cards" *ngIf="vm.sortedExams.length">
+      <article *ngFor="let exam of vm.paged('exams', vm.sortedExams)" class="exam-card" [attr.data-status]="exam.status">
         <div class="exam-card-header">
           <h4 class="exam-card-title">{{ exam.title }}</h4>
           <span class="status-badge" [ngClass]="exam.status">{{ exam.status }}</span>
@@ -83,8 +85,13 @@
         </div>
       </article>
     </div>
-    <div *ngIf="!vm.filteredExams.length" class="empty-state"><p>No exams found</p></div>
-    <app-pagination-bar [vm]="vm" listKey="exams" [items]="vm.filteredExams"></app-pagination-bar>
+    <app-empty-state
+      *ngIf="!vm.listingLoading?.exams && !vm.sortedExams.length"
+      title="No exams found"
+      message="Try adjusting your search or status filter, or generate a new AI unit test."
+    ></app-empty-state>
+    </div>
+    <app-pagination-bar [vm]="vm" listKey="exams" [items]="vm.sortedExams"></app-pagination-bar>
   </section>
 
   <section class="panel span-12 live-exam-card" *ngIf="vm.activeExamAttempt">
@@ -137,10 +144,10 @@
       </article>
     </div>
     <ng-template #noResults>
-      <div class="premium-empty">
-        <strong>No exam results yet</strong>
-        <span>Publish a unit test and have students attempt it to see scores here.</span>
-      </div>
+      <app-empty-state
+        title="No exam results yet"
+        message="Publish a unit test and have students attempt it to see scores here."
+      ></app-empty-state>
     </ng-template>
     <app-pagination-bar [vm]="vm" listKey="examResults" [items]="vm.filteredExamResults"></app-pagination-bar>
   </section>

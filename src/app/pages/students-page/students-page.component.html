@@ -114,10 +114,42 @@
         <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionTo" (change)="vm.updateListFilter('students', 'studentAdmissionTo', $any($event.target).value)" title="Admission to">
       </div>
     </app-listing-toolbar>
+    <div class="bulk-actions-bar" *ngIf="vm.selectedStudentCount > 0 && (vm.can('students', 'edit') || vm.can('transport', 'edit'))">
+      <span>{{ vm.selectedStudentCount }} selected</span>
+      <select class="filter-select" [(ngModel)]="vm.bulkStatusTarget" *ngIf="vm.can('students', 'edit')">
+        <option value="">Bulk status...</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="left_school">Left school</option>
+        <option value="passed_out">Passed out</option>
+        <option value="tc_issued">TC issued</option>
+      </select>
+      <button type="button" class="ghost small" *ngIf="vm.can('students', 'edit') && vm.bulkStatusTarget" (click)="vm.executeBulkStatusUpdate()">Update status</button>
+      <select class="filter-select" [(ngModel)]="vm.bulkClassTarget" *ngIf="vm.can('students', 'edit')">
+        <option value="">Assign class...</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+      <button type="button" class="ghost small" *ngIf="vm.can('students', 'edit') && vm.bulkClassTarget" (click)="vm.executeBulkClassAssignment()">Assign class</button>
+      <select class="filter-select" [(ngModel)]="vm.bulkBusRouteTarget" *ngIf="vm.can('transport', 'edit')">
+        <option value="">Assign bus route...</option>
+        <option *ngFor="let route of vm.busRoutes" [value]="route._id">{{ route.routeName }} ({{ route.routeCode }})</option>
+      </select>
+      <select class="filter-select" [(ngModel)]="vm.bulkBusStopSequence" *ngIf="vm.can('transport', 'edit') && vm.bulkBusRouteTarget">
+        <option value="">Stop...</option>
+        <option *ngFor="let stop of vm.bulkBusStops()" [value]="stop.sequence">{{ stop.name }}</option>
+      </select>
+      <button type="button" class="ghost small" *ngIf="vm.can('transport', 'edit') && vm.bulkBusRouteTarget && vm.bulkBusStopSequence" (click)="vm.executeBulkBusAssignment()">Assign bus</button>
+      <input type="text" class="filter-select" placeholder="Bulk notification message" [(ngModel)]="vm.bulkNotificationMessage" *ngIf="vm.can('students', 'edit')">
+      <button type="button" class="ghost small" *ngIf="vm.can('students', 'edit') && vm.bulkNotificationMessage" (click)="vm.executeBulkNotification()">Notify</button>
+      <button type="button" class="ghost small" (click)="vm.clearStudentSelection()">Clear</button>
+    </div>
     <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('students')">
     <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('students') || vm.sortedStudents.length">
       <table>
         <thead><tr>
+          <th *ngIf="vm.can('students', 'edit') || vm.can('transport', 'edit')">
+            <input type="checkbox" [checked]="vm.allStudentsSelectedOnPage()" (change)="vm.toggleAllStudentsOnPage($any($event.target).checked)">
+          </th>
           <th>Photo</th>
           <th class="sortable" (click)="vm.toggleListSort('students', 'admissionNumber')">Adm no{{ vm.listSortIndicator('students', 'admissionNumber') }}</th>
           <th class="sortable" (click)="vm.toggleListSort('students', 'name')">Name{{ vm.listSortIndicator('students', 'name') }}</th>
@@ -129,6 +161,9 @@
         </tr></thead>
         <tbody>
           <tr *ngFor="let student of vm.paged('students', vm.sortedStudents)">
+            <td *ngIf="vm.can('students', 'edit') || vm.can('transport', 'edit')">
+              <input type="checkbox" [checked]="vm.selectedStudentIds.has(student._id)" (change)="vm.toggleStudent(student._id, $any($event.target).checked)">
+            </td>
             <td>
               <div class="table-photo" [class.has-photo]="vm.studentPhotoUrl(student)">
                 <img *ngIf="vm.studentPhotoUrl(student) as photoUrl" [src]="photoUrl" alt="">
@@ -151,7 +186,7 @@
             </td>
           </tr>
           <tr *ngIf="!vm.sortedStudents.length && !vm.isListingLoading('students')">
-            <td colspan="8">
+            <td [attr.colspan]="(vm.can('students', 'edit') || vm.can('transport', 'edit')) ? 9 : 8">
               <app-empty-state
                 title="No students found"
                 message="Adjust filters or register a new admission using the form above.">

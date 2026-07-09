@@ -81,6 +81,53 @@
       </div>
 
       <div class="actions">
+        <div class="global-search-wrap" *ngIf="can('dashboard', 'view')">
+          <input
+            type="search"
+            class="global-search-input"
+            placeholder="Search students, teachers, receipts... (Ctrl+K)"
+            aria-label="Global search"
+            autocomplete="off"
+            [(ngModel)]="globalSearchQuery"
+            (input)="onGlobalSearchInput()"
+            (focus)="globalSearchOpen = globalSearchQuery.trim().length >= 2">
+          <div class="global-search-results" *ngIf="globalSearchOpen">
+            <div class="search-loading" *ngIf="globalSearchLoading">Searching...</div>
+            <button type="button" class="search-result" *ngFor="let result of globalSearchResults; let i = index" [class.active]="i === globalSearchActiveIndex" (click)="openGlobalSearchResult(result)">
+              <span class="search-result-type">{{ result.type }}</span>
+              <strong>{{ result.label }}</strong>
+              <small>{{ result.subtitle }}</small>
+            </button>
+            <div class="search-empty" *ngIf="!globalSearchLoading && !globalSearchResults.length && globalSearchQuery.trim().length >= 2">
+              No matches found
+            </div>
+          </div>
+        </div>
+        <div class="notification-menu-wrap" [class.open]="isNotificationMenuOpen" *ngIf="can('dashboard', 'view')">
+          <button type="button" class="ghost action-button notification-button" (click)="toggleNotificationMenu()" aria-label="Notifications">
+            <span class="button-icon" data-icon="bell" aria-hidden="true"></span>
+            <span class="notification-badge" *ngIf="workflowNotificationCount">{{ workflowNotificationCount }}</span>
+          </button>
+          <div class="notification-menu" *ngIf="isNotificationMenuOpen">
+            <div class="notification-menu-header">
+              <strong>Action required</strong>
+              <span class="notification-count">{{ workflowNotificationCount }} alert(s)</span>
+            </div>
+            <div class="notification-loading" *ngIf="workflowNotificationsLoading">Loading notifications...</div>
+            <button type="button" class="notification-item" *ngFor="let item of workflowNotifications" (click)="openWorkflowNotification(item)">
+              <div class="notification-item-head">
+                <strong>{{ item.title }}</strong>
+                <span class="status-badge" [ngClass]="item.severity">{{ item.count }}</span>
+              </div>
+              <p>{{ item.message }}</p>
+              <span class="notification-action">{{ item.action }}</span>
+              <button type="button" class="ghost small notification-dismiss" (click)="dismissWorkflowNotification(item.key, $event)">Dismiss</button>
+            </button>
+            <div class="notification-empty" *ngIf="!workflowNotificationsLoading && !workflowNotifications.length">
+              No pending actions right now.
+            </div>
+          </div>
+        </div>
         <button type="button" class="ghost action-button refresh-button" (click)="refresh()" [disabled]="loading">
           <span *ngIf="!loading" class="button-icon" data-icon="refresh" aria-hidden="true"></span>
           <span *ngIf="loading" class="btn-spinner"><span class="spinner-ring"></span></span>
@@ -98,13 +145,28 @@
               <span class="role-pill small" [attr.data-role]="currentUser.role">{{ roleLabel }}</span>
             </div>
             <button type="button" class="menu-item" (click)="openMyProfile(); closeProfileMenu()">My profile</button>
-            <button type="button" class="menu-item danger" (click)="logout()">Logout</button>
+            <button type="button" class="menu-item" (click)="showChangePasswordPanel = true; closeProfileMenu()">Change password</button>
+            <button type="button" class="menu-item danger" (click)="confirmLogout()">Logout</button>
           </div>
         </div>
       </div>
     </header>
 
-    <div class="toast success" *ngIf="message && currentUser">{{ message }}</div>
+    <div class="password-change-overlay" *ngIf="showChangePasswordPanel && currentUser">
+      <form class="panel password-change-panel" [formGroup]="changePasswordForm" (ngSubmit)="changePassword()">
+        <div class="section-head">
+          <div><p class="eyebrow">Security</p><h3>Change password</h3></div>
+        </div>
+        <p class="dash-sub" *ngIf="currentUser.mustChangePassword">You must set a new password before continuing.</p>
+        <label>Current password<input type="password" formControlName="currentPassword"></label>
+        <label>New password<input type="password" formControlName="newPassword"></label>
+        <label>Confirm password<input type="password" formControlName="confirmPassword"></label>
+        <div class="form-actions">
+          <button type="submit" [disabled]="changePasswordForm.invalid">Update password</button>
+          <button type="button" class="ghost" *ngIf="!currentUser.mustChangePassword" (click)="showChangePasswordPanel = false">Cancel</button>
+        </div>
+      </form>
+    </div>
     <app-toast-container></app-toast-container>
     <app-confirm-dialog></app-confirm-dialog>
 

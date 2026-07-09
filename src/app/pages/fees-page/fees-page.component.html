@@ -111,7 +111,7 @@
             <span class="status-badge small" [ngClass]="payment.status || 'active'">{{ payment.status || 'active' }}</span>
             <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="vm.openReceiptPdf(invoice._id, payment._id!)">Receipt PDF</button>
             <button *ngIf="vm.can('fees', 'edit') && payment._id && payment.status !== 'void' && !payment.locked" type="button" class="ghost small danger-text" (click)="vm.voidFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Void</button>
-            <button *ngIf="vm.isSuperAdmin && payment._id && payment.locked" type="button" class="ghost small" (click)="vm.unlockFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Unlock</button>
+            <button *ngIf="vm.can('fees', 'unlock') && payment._id && payment.locked" type="button" class="ghost small" (click)="vm.unlockFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Unlock</button>
           </div>
         </div>
         <div class="inv-footer">

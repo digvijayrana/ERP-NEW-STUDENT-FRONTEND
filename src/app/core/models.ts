@@ -228,6 +228,73 @@ export interface DashboardOperationalAnalytics {
   }>;
 }
 
+export interface AiTrendMetric {
+  metric: string;
+  label: string;
+  currentValue: number;
+  previousValue: number;
+  trend: 'improved' | 'declined' | 'stable';
+}
+
+export interface AiStudentInsightRow {
+  studentId: string;
+  admissionNumber: string;
+  studentName: string;
+  performanceScore: number;
+  performanceBand: { key: string; label: string };
+  riskScore: number;
+  riskLevel: { key: string; label: string };
+  riskFactors?: string[];
+}
+
+export interface AiTeacherRecommendation {
+  code: string;
+  message: string;
+  studentName: string;
+  admissionNumber: string;
+  subjects?: string[];
+}
+
+export interface DashboardAiInsights {
+  generatedAt?: string;
+  studentsAtRisk: AiStudentInsightRow[];
+  topPerformers: AiStudentInsightRow[];
+  teacherRecommendations?: AiTeacherRecommendation[];
+  trends: AiTrendMetric[];
+  summary: {
+    totalAnalyzed: number;
+    atRiskCount: number;
+    excellentCount: number;
+    promotionSuccessRate: number;
+  };
+  attendanceTrend?: AiTrendMetric;
+  feeRecoveryTrend?: AiTrendMetric;
+  promotionSuccessRate?: number;
+}
+
+export interface DashboardTrendPoint {
+  label: string;
+  value: number;
+}
+
+export interface DashboardTrendSeries {
+  metric: string;
+  points: DashboardTrendPoint[];
+  currentValue: number;
+  previousValue: number;
+  trend: 'improved' | 'declined' | 'stable';
+}
+
+export interface DashboardTrends {
+  generatedAt?: string;
+  admissions?: DashboardTrendSeries;
+  attendance?: DashboardTrendSeries;
+  feeCollection?: DashboardTrendSeries;
+  payroll?: DashboardTrendSeries;
+  promotions?: DashboardTrendSeries;
+  busUtilization?: DashboardTrendSeries;
+}
+
 export interface DashboardSummary {
   activeYear?: AcademicYear;
   totalStudents?: number;
@@ -240,23 +307,139 @@ export interface DashboardSummary {
   pendingDocuments?: number;
   recentActivities?: DashboardActivity[];
   operational?: DashboardOperationalAnalytics;
+  aiInsights?: DashboardAiInsights;
+  trends?: DashboardTrends;
+  systemHealth?: SystemHealthSummary;
   /** Scoped count for non-admin roles */
   students?: number;
   teachers?: number;
 }
 
-export type ReportDomain = 'students' | 'fees' | 'attendance' | 'payroll' | 'transport';
+export interface SystemHealthSummary {
+  status: 'healthy' | 'attention';
+  pendingActivities: { count: number; items: WorkflowNotification[] };
+  incompleteProfiles: { students: number; teachers: number; total: number };
+  failedOperations: { count: number; recent: Array<{ action: string; description: string; performedAt?: string; module?: string; entityLabel?: string }> };
+  lockedTransactions: { feeReceipts: number; payroll: number; attendance: number; promotions: number; total: number };
+  dataQuality: {
+    summary: {
+      orphanRecords: number;
+      brokenReferences: number;
+      inactiveMappings: number;
+      duplicateTeacherCodes: number;
+      duplicateClasses: number;
+      totalWarnings: number;
+    };
+    warnings: Array<Record<string, unknown>>;
+  };
+  generatedAt?: string;
+}
+
+export interface SchoolConfiguration {
+  key?: string;
+  version?: number;
+  school: Record<string, unknown>;
+  academicCalendar: Record<string, unknown>;
+  feePolicies: Record<string, unknown>;
+  attendanceRules: Record<string, unknown>;
+  promotionRules: Record<string, unknown>;
+  busRules: Record<string, unknown>;
+  payrollPolicies: Record<string, unknown>;
+  softDeletePolicy: Record<string, unknown>;
+}
+
+export type ReportDomain = 'students' | 'academic' | 'fees' | 'attendance' | 'payroll' | 'transport' | 'promotions' | 'operations';
+
+export interface PromotionWarning {
+  code: string;
+  message: string;
+}
+
+export interface PromotionEligibleRow {
+  studentId: string;
+  admissionNumber: string;
+  studentName: string;
+  eligible: boolean;
+  ineligibleReason?: string;
+  warnings: PromotionWarning[];
+  currentRollNumber?: string;
+  currentClass?: string;
+}
+
+export interface PromotionPreviewRow {
+  studentId: string;
+  admissionNumber: string;
+  studentName: string;
+  included: boolean;
+  eligible: boolean;
+  ineligibleReason?: string;
+  warnings: PromotionWarning[];
+  current: {
+    academicYear: string;
+    classSection: string;
+    rollNumber: string;
+    monthlyFee: number;
+    busAssignment: string;
+  };
+  proposed: {
+    academicYear: string;
+    classSection: string;
+    rollNumber: string;
+    monthlyFee: number;
+    busAssignment: string;
+  } | null;
+}
+
+export interface PromotionPreview {
+  fromAcademicYear: string;
+  toAcademicYear: string;
+  fromClassRoom: string;
+  toClassRoom: string;
+  rollMode: 'auto' | 'manual';
+  rows: PromotionPreviewRow[];
+  promotableCount: number;
+  warningCount: number;
+}
+
+export interface PromotionBatch {
+  _id: string;
+  status: 'draft' | 'finalized' | 'rolled_back';
+  locked: boolean;
+  promotedCount: number;
+  excludedCount: number;
+  rollMode: 'auto' | 'manual';
+  fromAcademicYear?: AcademicYear | string;
+  toAcademicYear?: AcademicYear | string;
+  fromClassRoom?: ClassRoom | string;
+  toClassRoom?: ClassRoom | string;
+  finalizedAt?: string;
+  rolledBackAt?: string;
+}
 export type ReportRow = Record<string, unknown>;
 
-export type UserRole = 'super_admin' | 'admin' | 'teacher' | 'reception' | 'accountant' | 'student' | 'parent';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'principal'
+  | 'teacher'
+  | 'accountant'
+  | 'transport_manager'
+  | 'reception'
+  | 'receptionist'
+  | 'student'
+  | 'parent'
+  | (string & {});
 
 export interface ModulePermissions {
   view?: boolean;
   create?: boolean;
   edit?: boolean;
+  delete?: boolean;
   deactivate?: boolean;
   export?: boolean;
+  print?: boolean;
   approve?: boolean;
+  unlock?: boolean;
 }
 
 export interface ErpRole {
@@ -279,6 +462,15 @@ export interface AuthUser {
   linkedStudents?: string[];
   isActive?: boolean;
   permissions?: Record<string, ModulePermissions>;
+  mustChangePassword?: boolean;
+  isTemporaryPassword?: boolean;
+  passwordExpiresAt?: string;
+  lockedUntil?: string;
+  passwordExpired?: boolean;
+  securityPolicy?: {
+    session?: { idleTimeoutMinutes?: number };
+    password?: { minLength?: number };
+  };
 }
 
 export interface AuthResponse {
@@ -365,6 +557,26 @@ export interface PayrollRecord {
   netSalary: number;
   status: 'pending' | 'paid';
   paidAt?: string;
+  locked?: boolean;
+}
+
+export interface WorkflowNotification {
+  key: string;
+  title: string;
+  message: string;
+  count: number;
+  severity: 'info' | 'warning' | 'danger';
+  tab: string;
+  action?: string;
+}
+
+export interface GlobalSearchResult {
+  type: 'student' | 'teacher' | 'receipt' | 'payroll' | 'route' | 'user';
+  id: string;
+  label: string;
+  subtitle: string;
+  tab: string;
+  meta?: Record<string, string>;
 }
 
 export interface ExamQuestion {
@@ -432,6 +644,12 @@ export interface ExamClassReport {
   submissions: ExamSubmission[];
 }
 
+export interface StudentAiRecommendation {
+  code: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
 export interface StudentAiInsights {
   performanceRating: string;
   ratingScore: number;
@@ -442,6 +660,13 @@ export interface StudentAiInsights {
   focusSubjects: string[];
   parentAdvice: string;
   provider?: string;
+  performanceBand?: { key: string; label: string };
+  riskScore?: number;
+  riskLevel?: { key: string; label: string };
+  riskFactors?: string[];
+  scoreComponents?: Record<string, number>;
+  studentRecommendations?: StudentAiRecommendation[];
+  teacherRecommendations?: AiTeacherRecommendation[];
 }
 
 export interface StudentProfile {

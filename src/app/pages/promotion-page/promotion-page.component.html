@@ -1,37 +1,199 @@
 <section class="workspace">
-  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.students.length">
-    <app-spinner [show]="true" label="Loading students..."></app-spinner>
+  <div class="page-spinner-wrap" *ngIf="vm.promotionLoading && !vm.promotionEligibleRows.length && !vm.promotionPreview">
+    <app-spinner [show]="true" label="Loading promotion data..."></app-spinner>
   </div>
-  <ng-container *ngIf="!vm.loading || vm.students.length">
-  <form [formGroup]="vm.promotionForm" (ngSubmit)="vm.promoteStudents()" class="panel span-4">
-    <div class="section-head"><div><p class="eyebrow">Promotion</p><h3>Promote students</h3></div></div>
-    <label>From year<select formControlName="fromAcademicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-    <label>To year<select formControlName="toAcademicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-    <label>To class<select formControlName="toClassRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
-    <button type="submit" [disabled]="vm.promotionForm.invalid || vm.selectedStudentIds.size === 0">Promote selected ({{ vm.selectedStudentIds.size }})</button>
-  </form>
 
-  <section class="data-card span-8">
-    <div class="section-head"><div><p class="eyebrow">Selection</p><h3>Select students</h3></div></div>
-    <div class="toolbar">
-      <div class="search-box"><input placeholder="Search students" [value]="vm.filters.studentSearch" (input)="vm.filters.studentSearch = $any($event.target).value; vm.resetPage('promotion')"></div>
-      <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.filters.studentClass = $any($event.target).value; vm.resetPage('promotion')"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th></th><th>Admission</th><th>Name</th><th>Class</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let student of vm.paged('promotion', vm.filteredStudents)">
-            <td><input type="checkbox" (change)="vm.toggleStudent(student._id, $any($event.target).checked)"></td>
-            <td>{{ student.admissionNumber }}</td>
-            <td>{{ vm.studentName(student) }}</td>
-            <td>{{ vm.enrollmentClassName(student) }}</td>
-          </tr>
-          <tr *ngIf="!vm.filteredStudents.length"><td colspan="4" class="empty-cell">No students found</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <app-pagination-bar [vm]="vm" listKey="promotion" [items]="vm.filteredStudents"></app-pagination-bar>
-  </section>
+  <ng-container *ngIf="!vm.promotionLoading || vm.promotionEligibleRows.length || vm.promotionPreview">
+    <section class="panel span-12">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Academic progression</p>
+          <h3>Promotion wizard</h3>
+        </div>
+        <button type="button" class="ghost small" (click)="vm.resetPromotionWizard()">Reset wizard</button>
+      </div>
+
+      <div class="wizard-steps">
+        <span class="wizard-step" [class.active]="vm.promotionWizardStep === 1" [class.done]="vm.promotionWizardStep > 1">1. Academic years</span>
+        <span class="wizard-step" [class.active]="vm.promotionWizardStep === 2" [class.done]="vm.promotionWizardStep > 2">2. Current class</span>
+        <span class="wizard-step" [class.active]="vm.promotionWizardStep === 3" [class.done]="vm.promotionWizardStep > 3">3. Target class</span>
+        <span class="wizard-step" [class.active]="vm.promotionWizardStep === 4" [class.done]="vm.promotionWizardStep > 4">4. Students</span>
+        <span class="wizard-step" [class.active]="vm.promotionWizardStep === 5">5. Preview</span>
+      </div>
+
+      <form [formGroup]="vm.promotionForm" class="promotion-wizard-form">
+        <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 1">
+          <label>From academic year
+            <select formControlName="fromAcademicYear">
+              <option value="">Select year</option>
+              <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+            </select>
+          </label>
+          <label>To academic year
+            <select formControlName="toAcademicYear">
+              <option value="">Select year</option>
+              <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 2">
+          <label>From class &amp; section
+            <select formControlName="fromClassRoom">
+              <option value="">Select class</option>
+              <option *ngFor="let room of vm.promotionClassesForYear(vm.promotionForm.value.fromAcademicYear)" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 3">
+          <label>To class &amp; section
+            <select formControlName="toClassRoom">
+              <option value="">Select class</option>
+              <option *ngFor="let room of vm.promotionClassesForYear(vm.promotionForm.value.toAcademicYear)" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 4">
+          <div class="toolbar">
+            <label class="inline-check"><input type="checkbox" (change)="vm.selectAllPromotionStudents($any($event.target).checked)"> Select all eligible</label>
+            <select class="filter-select" [value]="vm.promotionRollMode" (change)="vm.promotionRollMode = $any($event.target).value">
+              <option value="auto">Auto roll numbers</option>
+              <option value="manual">Manual roll numbers</option>
+            </select>
+          </div>
+          <div class="table-wrap sticky-header">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Admission</th>
+                  <th>Name</th>
+                  <th>Roll</th>
+                  <th>Status</th>
+                  <th>Warnings</th>
+                  <th *ngIf="vm.promotionRollMode === 'manual'">New roll</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of vm.promotionEligibleRows" [class.ineligible]="!row.eligible">
+                  <td>
+                    <input type="checkbox" [checked]="vm.isPromotionStudentSelected(row.studentId)" [disabled]="!row.eligible" (change)="vm.togglePromotionStudent(row.studentId, $any($event.target).checked)">
+                  </td>
+                  <td>{{ row.admissionNumber }}</td>
+                  <td>{{ row.studentName }}</td>
+                  <td>{{ row.currentRollNumber || '—' }}</td>
+                  <td>
+                    <span class="status-badge" [ngClass]="row.eligible ? 'active' : 'inactive'">{{ row.eligible ? 'Eligible' : 'Ineligible' }}</span>
+                    <small *ngIf="!row.eligible">{{ row.ineligibleReason }}</small>
+                  </td>
+                  <td>
+                    <span *ngIf="row.warnings.length" class="warning-chip">{{ vm.promotionWarningSummary(row) }}</span>
+                    <span *ngIf="!row.warnings.length">—</span>
+                  </td>
+                  <td *ngIf="vm.promotionRollMode === 'manual'">
+                    <input *ngIf="row.eligible" type="text" class="filter-select" [value]="vm.promotionRollAssignments[row.studentId] || ''" (input)="vm.promotionRollAssignments[row.studentId] = $any($event.target).value">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <app-empty-state *ngIf="!vm.promotionEligibleRows.length" title="No students found" message="No eligible students for the selected class and academic year."></app-empty-state>
+        </div>
+
+        <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 5 && vm.promotionPreview as preview">
+          <p class="ai-summary">Review {{ preview.promotableCount }} promotion(s). {{ preview.warningCount }} warning(s) require acknowledgement before execution.</p>
+          <label class="inline-check" *ngIf="preview.warningCount">
+            <input type="checkbox" [checked]="vm.promotionWarningsAcknowledged" (change)="vm.promotionWarningsAcknowledged = $any($event.target).checked">
+            I acknowledge promotion warnings and wish to continue
+          </label>
+          <div class="table-wrap sticky-header">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Current year</th>
+                  <th>Current class</th>
+                  <th>Current roll</th>
+                  <th>Current fee</th>
+                  <th>New year</th>
+                  <th>New class</th>
+                  <th>New roll</th>
+                  <th>New fee</th>
+                  <th>Bus</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of preview.rows" [class.ineligible]="!row.eligible || !row.included">
+                  <td>{{ row.studentName }}<br><small>{{ row.admissionNumber }}</small></td>
+                  <td>{{ row.current.academicYear }}</td>
+                  <td>{{ row.current.classSection }}</td>
+                  <td>{{ row.current.rollNumber }}</td>
+                  <td>{{ row.current.monthlyFee | currency:'INR' }}</td>
+                  <td>{{ row.proposed?.academicYear || '—' }}</td>
+                  <td>{{ row.proposed?.classSection || '—' }}</td>
+                  <td>{{ row.proposed?.rollNumber || '—' }}</td>
+                  <td>{{ row.proposed ? (row.proposed.monthlyFee | currency:'INR') : '—' }}</td>
+                  <td>{{ row.current.busAssignment }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="wizard-actions" *ngIf="!vm.promotionBatch">
+            <button type="button" class="ghost" (click)="vm.loadPromotionPreview()" [disabled]="vm.promotionLoading">Refresh preview</button>
+            <button type="button" (click)="vm.executePromotionBatch()" [disabled]="vm.submitting || preview.promotableCount === 0 || (preview.warningCount > 0 && !vm.promotionWarningsAcknowledged)">
+              Execute promotion (draft)
+            </button>
+          </div>
+
+          <div class="wizard-actions" *ngIf="vm.promotionBatch as batch">
+            <p class="meta-chip">Batch status: <strong>{{ batch.status }}</strong> · Promoted: {{ batch.promotedCount }}</p>
+            <button type="button" class="ghost" (click)="vm.rollbackPromotionBatch()" [disabled]="vm.submitting || batch.locked || batch.status !== 'draft'">Rollback</button>
+            <button type="button" *ngIf="vm.can('students', 'approve')" (click)="vm.finalizePromotionBatch()" [disabled]="vm.submitting || batch.locked || batch.status !== 'draft'">Finalize &amp; lock</button>
+          </div>
+        </div>
+
+        <div class="wizard-nav">
+          <button type="button" class="ghost" (click)="vm.prevPromotionStep()" [disabled]="vm.promotionWizardStep === 1">Back</button>
+          <button type="button" *ngIf="vm.promotionWizardStep < 5" (click)="vm.nextPromotionStep()" [disabled]="!vm.canPromotionStepContinue()">Next</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="data-card span-12">
+      <div class="section-head">
+        <div><p class="eyebrow">Reports</p><h3>Promotion reports</h3></div>
+      </div>
+      <div class="toolbar">
+        <select class="filter-select" [value]="vm.promotionReportType" (change)="vm.promotionReportType = $any($event.target).value; vm.loadPromotionReport()">
+          <option value="promoted">Promoted students</option>
+          <option value="detained">Detained students</option>
+          <option value="left-school">Left school</option>
+          <option value="tc-issued">TC issued</option>
+          <option value="class-strength-comparison">Class strength comparison</option>
+        </select>
+        <button type="button" class="ghost small" (click)="vm.loadPromotionReport()" [disabled]="vm.promotionReportLoading">Refresh</button>
+        <button type="button" class="ghost small" (click)="vm.exportPromotionReportCsv()" [disabled]="!vm.promotionReportRows.length">Export Excel</button>
+        <button type="button" class="ghost small" (click)="vm.exportPromotionReportPdf()" [disabled]="!vm.promotionReportRows.length">Export PDF</button>
+      </div>
+      <app-table-skeleton *ngIf="vm.promotionReportLoading" [columns]="6" [rows]="5" [embedded]="true"></app-table-skeleton>
+      <div class="table-wrap sticky-header" *ngIf="!vm.promotionReportLoading && vm.promotionReportRows.length">
+        <table>
+          <thead>
+            <tr>
+              <th *ngFor="let key of (vm.promotionReportRows[0] | keyvalue)">{{ key.key }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of vm.promotionReportRows">
+              <td *ngFor="let key of (row | keyvalue)">{{ key.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <app-empty-state *ngIf="!vm.promotionReportLoading && !vm.promotionReportRows.length" title="No report data" message="Select filters in the wizard and refresh the report."></app-empty-state>
+    </section>
   </ng-container>
 </section>

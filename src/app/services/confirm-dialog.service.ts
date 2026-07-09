@@ -37,4 +37,8 @@ export class ConfirmDialogService {
     this.stateSubject.next(null);
     state.resolve(confirmed);
   }
+
+  isOpen(): boolean {
+    return this.stateSubject.value !== null;
+  }
 }

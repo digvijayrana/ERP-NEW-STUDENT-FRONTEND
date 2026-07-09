@@ -23,7 +23,15 @@ export const LIST_FILTER_KEYS: Record<string, string[]> = {
   busRegistrations: ['busRegYear', 'busRegRoute', 'busRegStatus', 'busRegSearch'],
   profileExams: ['profileExamSearch'],
   profileFees: ['profileFeeSearch', 'profileFeeStatus'],
-  attendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear']
+  attendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear'],
+  exams: ['examSearch', 'examStatus'],
+  examResults: ['examResultSearch', 'examResultGrade'],
+  timetable: ['timetableSearch'],
+  dashboardStudents: ['studentSearch', 'studentClass', 'studentYear', 'studentSection'],
+  dashboardAttendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear'],
+  dashboardTeachers: ['teacherSearch', 'teacherStatus'],
+  dashboardPayroll: ['payrollSearch', 'payrollStatus'],
+  dashboardTimetable: ['timetableSearch']
 };
 
 export const DEFAULT_LIST_SORT: Record<string, { field: string; dir: SortDirection }> = {
@@ -39,7 +47,15 @@ export const DEFAULT_LIST_SORT: Record<string, { field: string; dir: SortDirecti
   busRegistrations: { field: 'studentName', dir: 'asc' },
   attendance: { field: 'date', dir: 'desc' },
   profileExams: { field: 'submittedAt', dir: 'desc' },
-  profileFees: { field: 'dueDate', dir: 'desc' }
+  profileFees: { field: 'dueDate', dir: 'desc' },
+  exams: { field: 'title', dir: 'asc' },
+  examResults: { field: 'percentage', dir: 'desc' },
+  timetable: { field: 'dayOfWeek', dir: 'asc' },
+  dashboardStudents: { field: 'admissionNumber', dir: 'asc' },
+  dashboardAttendance: { field: 'date', dir: 'desc' },
+  dashboardTeachers: { field: 'firstName', dir: 'asc' },
+  dashboardPayroll: { field: 'period', dir: 'desc' },
+  dashboardTimetable: { field: 'dayOfWeek', dir: 'asc' }
 };
 
 export function applyDefaultListSort(

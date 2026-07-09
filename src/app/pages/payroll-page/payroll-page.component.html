@@ -76,6 +76,7 @@
           <button type="button" class="ghost small" (click)="vm.openPayrollPdf(payroll._id)">Download Slip</button>
           <button *ngIf="payroll.status === 'pending'" type="button" class="ghost small" (click)="vm.editPayroll(payroll)">Edit</button>
           <button *ngIf="payroll.status === 'pending'" type="button" class="danger-btn small" (click)="vm.deletePayroll(payroll._id)">Delete</button>
+          <button *ngIf="payroll.status === 'paid' && payroll.locked && vm.can('payroll', 'unlock')" type="button" class="ghost small" (click)="vm.unlockPayroll(payroll._id)">Unlock</button>
         </div>
       </div>
     </div>
