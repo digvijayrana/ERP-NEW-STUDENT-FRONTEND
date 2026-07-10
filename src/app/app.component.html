@@ -104,25 +104,28 @@
           </div>
         </div>
         <div class="notification-menu-wrap" [class.open]="isNotificationMenuOpen" *ngIf="can('dashboard', 'view')">
-          <button type="button" class="ghost action-button notification-button" (click)="toggleNotificationMenu()" aria-label="Notifications">
+          <div class="notification-backdrop" *ngIf="isNotificationMenuOpen" (click)="closeNotificationMenu()" aria-hidden="true"></div>
+          <button type="button" class="ghost action-button notification-button" (click)="toggleNotificationMenu()" aria-label="Notifications" [attr.aria-expanded]="isNotificationMenuOpen">
             <span class="button-icon" data-icon="bell" aria-hidden="true"></span>
             <span class="notification-badge" *ngIf="workflowNotificationCount">{{ workflowNotificationCount }}</span>
           </button>
-          <div class="notification-menu" *ngIf="isNotificationMenuOpen">
+          <div class="notification-menu" *ngIf="isNotificationMenuOpen" role="dialog" aria-label="Action required notifications">
             <div class="notification-menu-header">
               <strong>Action required</strong>
               <span class="notification-count">{{ workflowNotificationCount }} alert(s)</span>
             </div>
             <div class="notification-loading" *ngIf="workflowNotificationsLoading">Loading notifications...</div>
-            <button type="button" class="notification-item" *ngFor="let item of workflowNotifications" (click)="openWorkflowNotification(item)">
-              <div class="notification-item-head">
-                <strong>{{ item.title }}</strong>
-                <span class="status-badge" [ngClass]="item.severity">{{ item.count }}</span>
-              </div>
-              <p>{{ item.message }}</p>
-              <span class="notification-action">{{ item.action }}</span>
+            <article class="notification-item" *ngFor="let item of workflowNotifications">
+              <button type="button" class="notification-item-main" (click)="openWorkflowNotification(item)">
+                <div class="notification-item-head">
+                  <strong>{{ item.title }}</strong>
+                  <span class="status-badge" [ngClass]="item.severity">{{ item.count }}</span>
+                </div>
+                <p>{{ item.message }}</p>
+                <span class="notification-action">{{ item.action }}</span>
+              </button>
               <button type="button" class="ghost small notification-dismiss" (click)="dismissWorkflowNotification(item.key, $event)">Dismiss</button>
-            </button>
+            </article>
             <div class="notification-empty" *ngIf="!workflowNotificationsLoading && !workflowNotifications.length">
               No pending actions right now.
             </div>
@@ -131,7 +134,7 @@
         <button type="button" class="ghost action-button refresh-button" (click)="refresh()" [disabled]="loading">
           <span *ngIf="!loading" class="button-icon" data-icon="refresh" aria-hidden="true"></span>
           <span *ngIf="loading" class="btn-spinner"><span class="spinner-ring"></span></span>
-          <span>{{ loading ? 'Syncing...' : 'Refresh' }}</span>
+          <span class="button-label">{{ loading ? 'Syncing...' : 'Refresh' }}</span>
         </button>
         <div class="profile-menu-wrap" [class.open]="isProfileMenuOpen">
           <button type="button" class="profile-trigger" (click)="toggleProfileMenu()">

@@ -48,8 +48,8 @@
         <option value="closed">Closed</option>
       </select>
     </div>
-    <div class="listing-table-panel" [class.is-refreshing]="vm.listingLoading?.exams">
-      <app-card-skeleton *ngIf="vm.listingLoading?.exams && !vm.sortedExams.length" [cards]="4"></app-card-skeleton>
+    <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('exams') || (vm.loading && !vm.sortedExams.length)">
+      <app-card-skeleton *ngIf="(vm.isListingLoading('exams') || vm.loading) && !vm.sortedExams.length" [cards]="4"></app-card-skeleton>
       <div class="exam-cards" *ngIf="vm.sortedExams.length">
       <article *ngFor="let exam of vm.paged('exams', vm.sortedExams)" class="exam-card" [attr.data-status]="exam.status">
         <div class="exam-card-header">
@@ -86,7 +86,7 @@
       </article>
     </div>
     <app-empty-state
-      *ngIf="!vm.listingLoading?.exams && !vm.sortedExams.length"
+      *ngIf="!vm.isListingLoading('exams') && !vm.loading && !vm.sortedExams.length"
       title="No exams found"
       message="Try adjusting your search or status filter, or generate a new AI unit test."
     ></app-empty-state>

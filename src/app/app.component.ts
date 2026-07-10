@@ -5343,7 +5343,7 @@ export class AppComponent implements OnInit {
 
   get filteredTimetable(): TimetableRow[] {
     const search = this.filters.timetableSearch.toLowerCase().trim();
-    return this.timetable.filter((row) => !search || `${row.dayOfWeek} ${this.className(row.classRoom)} ${row.periods.map((period) => period.subject).join(' ')}`.toLowerCase().includes(search));
+    return this.timetable.filter((row) => !search || `${row.dayOfWeek} ${this.className(row.classRoom)} ${(row.periods ?? []).map((period) => period.subject).join(' ')}`.toLowerCase().includes(search));
   }
 
   get filteredExams(): Exam[] {
