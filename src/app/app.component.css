@@ -402,40 +402,14 @@ button:disabled {
   padding: 4px 10px;
 }
 
-.risk-badge {
-  border-radius: 999px;
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 800;
-  margin-top: 6px;
-  padding: 4px 10px;
-}
-
-.risk-badge.risk-low { background: rgba(16, 185, 129, 0.2); color: #d1fae5; }
-.risk-badge.risk-medium { background: rgba(245, 158, 11, 0.25); color: #fef3c7; }
-.risk-badge.risk-high { background: rgba(239, 68, 68, 0.25); color: #fee2e2; }
-
-.risk-factors {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.ai-dashboard-section {
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
-}
-
-.ai-insight-stats .dash-stat-card { min-height: 110px; }
-
-.ai-trend-grid {
+.trend-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin: 16px 0;
 }
 
-.ai-trend-card {
+.trend-card {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -456,27 +430,6 @@ button:disabled {
 .trend-pill.improved { background: #dcfce7; color: #166534; }
 .trend-pill.declined { background: #fee2e2; color: #991b1b; }
 .trend-pill.stable { background: #e2e8f0; color: #475569; }
-
-.ai-insight-panels {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-
-.ai-rec-list {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ai-rec-list li {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
 
 .password-change-overlay {
   align-items: center;
@@ -512,57 +465,26 @@ button:disabled {
 .metric-card.accent-orange::before { background: linear-gradient(180deg, #ea580c, #fdba74); }
 .metric-card.accent-green::before { background: linear-gradient(180deg, #059669, #6ee7b7); }
 
-.ai-panel {
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
-}
-
-.ai-summary {
+.summary-note {
   color: var(--text-soft);
   line-height: 1.6;
   margin-bottom: var(--space-4);
 }
 
-.insight-grid {
+.password-change-overlay {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.45);
   display: grid;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  inset: 0;
+  justify-items: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 1200;
 }
 
-.insight-card {
-  background: var(--surface-soft);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-
-.insight-card h4 {
-  font-size: 14px;
-  margin: 0 0 var(--space-2);
-}
-
-.insight-card ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.insight-card li {
-  color: var(--text-soft);
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-.insight-card.strength { border-left: 4px solid #059669; }
-.insight-card.focus { border-left: 4px solid #ea580c; }
-.insight-card.recommend { border-left: 4px solid #2563eb; }
-
-.parent-advice {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-radius: var(--radius);
-  color: #9a3412;
-  font-size: 13px;
-  margin-top: var(--space-4);
-  padding: var(--space-3);
+.password-change-panel {
+  max-width: 420px;
+  width: 100%;
 }
 
 .guardian-card {
@@ -5030,40 +4952,4 @@ tr.ineligible {
   align-items: center;
   display: flex;
   gap: 8px;
-}
-
-.governance-health .section-actions {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-}
-
-.governance-config-layout {
-  display: grid;
-  gap: 16px;
-}
-
-.governance-config-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.governance-config-nav .active {
-  background: #eff6ff;
-  border-color: var(--primary-strong);
-  color: var(--primary-strong);
-}
-
-.governance-json-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  min-height: 280px;
-  width: 100%;
-}
-
-.governance-warning-list {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin-top: 12px;
 }

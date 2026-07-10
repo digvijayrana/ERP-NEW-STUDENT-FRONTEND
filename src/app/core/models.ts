@@ -228,50 +228,6 @@ export interface DashboardOperationalAnalytics {
   }>;
 }
 
-export interface AiTrendMetric {
-  metric: string;
-  label: string;
-  currentValue: number;
-  previousValue: number;
-  trend: 'improved' | 'declined' | 'stable';
-}
-
-export interface AiStudentInsightRow {
-  studentId: string;
-  admissionNumber: string;
-  studentName: string;
-  performanceScore: number;
-  performanceBand: { key: string; label: string };
-  riskScore: number;
-  riskLevel: { key: string; label: string };
-  riskFactors?: string[];
-}
-
-export interface AiTeacherRecommendation {
-  code: string;
-  message: string;
-  studentName: string;
-  admissionNumber: string;
-  subjects?: string[];
-}
-
-export interface DashboardAiInsights {
-  generatedAt?: string;
-  studentsAtRisk: AiStudentInsightRow[];
-  topPerformers: AiStudentInsightRow[];
-  teacherRecommendations?: AiTeacherRecommendation[];
-  trends: AiTrendMetric[];
-  summary: {
-    totalAnalyzed: number;
-    atRiskCount: number;
-    excellentCount: number;
-    promotionSuccessRate: number;
-  };
-  attendanceTrend?: AiTrendMetric;
-  feeRecoveryTrend?: AiTrendMetric;
-  promotionSuccessRate?: number;
-}
-
 export interface DashboardTrendPoint {
   label: string;
   value: number;
@@ -307,45 +263,10 @@ export interface DashboardSummary {
   pendingDocuments?: number;
   recentActivities?: DashboardActivity[];
   operational?: DashboardOperationalAnalytics;
-  aiInsights?: DashboardAiInsights;
   trends?: DashboardTrends;
-  systemHealth?: SystemHealthSummary;
   /** Scoped count for non-admin roles */
   students?: number;
   teachers?: number;
-}
-
-export interface SystemHealthSummary {
-  status: 'healthy' | 'attention';
-  pendingActivities: { count: number; items: WorkflowNotification[] };
-  incompleteProfiles: { students: number; teachers: number; total: number };
-  failedOperations: { count: number; recent: Array<{ action: string; description: string; performedAt?: string; module?: string; entityLabel?: string }> };
-  lockedTransactions: { feeReceipts: number; payroll: number; attendance: number; promotions: number; total: number };
-  dataQuality: {
-    summary: {
-      orphanRecords: number;
-      brokenReferences: number;
-      inactiveMappings: number;
-      duplicateTeacherCodes: number;
-      duplicateClasses: number;
-      totalWarnings: number;
-    };
-    warnings: Array<Record<string, unknown>>;
-  };
-  generatedAt?: string;
-}
-
-export interface SchoolConfiguration {
-  key?: string;
-  version?: number;
-  school: Record<string, unknown>;
-  academicCalendar: Record<string, unknown>;
-  feePolicies: Record<string, unknown>;
-  attendanceRules: Record<string, unknown>;
-  promotionRules: Record<string, unknown>;
-  busRules: Record<string, unknown>;
-  payrollPolicies: Record<string, unknown>;
-  softDeletePolicy: Record<string, unknown>;
 }
 
 export type ReportDomain = 'students' | 'academic' | 'fees' | 'attendance' | 'payroll' | 'transport' | 'promotions' | 'operations';
@@ -644,31 +565,6 @@ export interface ExamClassReport {
   submissions: ExamSubmission[];
 }
 
-export interface StudentAiRecommendation {
-  code: string;
-  message: string;
-  priority: 'low' | 'medium' | 'high';
-}
-
-export interface StudentAiInsights {
-  performanceRating: string;
-  ratingScore: number;
-  summary: string;
-  strengths: string[];
-  needsWork: string[];
-  recommendations: string[];
-  focusSubjects: string[];
-  parentAdvice: string;
-  provider?: string;
-  performanceBand?: { key: string; label: string };
-  riskScore?: number;
-  riskLevel?: { key: string; label: string };
-  riskFactors?: string[];
-  scoreComponents?: Record<string, number>;
-  studentRecommendations?: StudentAiRecommendation[];
-  teacherRecommendations?: AiTeacherRecommendation[];
-}
-
 export interface StudentProfile {
   student: Student & { photoUrl?: string | null; admissionDate?: string; updatedAt?: string };
   academic: {
@@ -760,5 +656,4 @@ export interface StudentProfile {
     driverMobile?: string;
   };
   behavior: { score: string; remarks: string };
-  aiInsights: StudentAiInsights;
 }

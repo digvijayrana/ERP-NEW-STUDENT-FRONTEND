@@ -23,7 +23,7 @@
   </div>
 
   <div class="page-spinner-wrap" *ngIf="vm.profileLoading">
-    <app-spinner [show]="true" label="Loading student profile and AI insights..."></app-spinner>
+    <app-spinner [show]="true" label="Loading student profile..."></app-spinner>
   </div>
 
   <ng-container *ngIf="vm.studentProfile as p">
@@ -45,12 +45,6 @@
             <span class="status-badge" [ngClass]="p.student.status">{{ vm.studentStatusLabel(p.student.status) }}</span>
           </div>
         </div>
-      </div>
-      <div class="ai-rating-card" [attr.data-rating]="p.aiInsights.performanceRating">
-        <span class="eyebrow">AI performance rating</span>
-        <strong class="ai-score">{{ p.aiInsights.ratingScore }}<small>/100</small></strong>
-        <span class="rating-label">{{ p.aiInsights.performanceBand?.label || (p.aiInsights.performanceRating | titlecase) }}</span>
-        <span class="risk-badge" *ngIf="p.aiInsights.riskLevel" [ngClass]="vm.aiRiskClass(p.aiInsights.riskLevel.key)">{{ p.aiInsights.riskLevel.label }}</span>
       </div>
     </section>
 
@@ -87,35 +81,6 @@
         </article>
       </div>
       <ng-template #noTimeline><div class="premium-empty">No activity recorded yet.</div></ng-template>
-    </section>
-
-    <section class="panel ai-panel span-7">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">🤖 AI learning advisor</p>
-          <h3>Areas that need more work</h3>
-        </div>
-      </div>
-      <p class="ai-summary">{{ p.aiInsights.summary }}</p>
-      <div class="insight-grid">
-        <article class="insight-card strength">
-          <h4>Strengths</h4>
-          <ul><li *ngFor="let item of p.aiInsights.strengths">{{ item }}</li></ul>
-        </article>
-        <article class="insight-card focus">
-          <h4>Needs more work</h4>
-          <ul><li *ngFor="let item of p.aiInsights.needsWork">{{ item }}</li></ul>
-        </article>
-        <article class="insight-card recommend">
-          <h4>AI recommendations</h4>
-          <ul><li *ngFor="let item of p.aiInsights.recommendations">{{ item }}</li></ul>
-        </article>
-      </div>
-      <p class="parent-advice"><strong>Parent advice:</strong> {{ p.aiInsights.parentAdvice }}</p>
-      <div class="risk-factors" *ngIf="p.aiInsights.riskFactors?.length">
-        <strong>Risk factors:</strong>
-        <span class="meta-chip" *ngFor="let factor of p.aiInsights.riskFactors">{{ factor }}</span>
-      </div>
     </section>
 
     <section class="panel span-5">

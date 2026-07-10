@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, SchoolConfiguration, Student, StudentProfile, SystemHealthSummary, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -188,13 +188,6 @@ export class AppComponent implements OnInit {
   bulkBusRouteTarget = '';
   bulkBusStopSequence = '';
   bulkNotificationMessage = '';
-  governanceConfiguration: SchoolConfiguration | null = null;
-  governanceConfigSection = 'school';
-  governanceConfigDraft: Record<string, unknown> = {};
-  governanceConfigLoading = false;
-  complianceStatus: Record<string, unknown> | null = null;
-  businessRulesCatalog: Record<string, unknown> | null = null;
-  showGovernanceConfigPanel = false;
   isSidebarCollapsed = false;
   summary?: DashboardSummary;
   years: AcademicYear[] = [];
@@ -1264,7 +1257,6 @@ export class AppComponent implements OnInit {
         this.loadServerListings();
         this.loadSelfAttendanceStatus();
         this.loadWorkflowNotifications();
-        this.loadGovernanceConfiguration();
         if (this.can('transport', 'view')) this.loadBusReport();
         if (this.can('attendance', 'view')) this.loadAttendanceReport();
       },
@@ -1540,19 +1532,13 @@ export class AppComponent implements OnInit {
     return labels[type] || type;
   }
 
-  aiTrendLabel(trend: string): string {
+  trendLabel(trend: string): string {
     const labels: Record<string, string> = {
       improved: 'Improved',
       declined: 'Declined',
       stable: 'Stable'
     };
     return labels[trend] || trend;
-  }
-
-  aiRiskClass(level?: string): string {
-    if (level === 'high') return 'risk-high';
-    if (level === 'medium') return 'risk-medium';
-    return 'risk-low';
   }
 
   loadStudentDocuments(studentId: string): void {
@@ -4312,96 +4298,8 @@ export class AppComponent implements OnInit {
     return this.workflowNotifications.length;
   }
 
-  get systemHealth(): SystemHealthSummary | null {
-    return this.summary?.systemHealth || null;
-  }
-
-  get showGovernanceDashboard(): boolean {
-    return this.can('governance', 'view') && !!this.systemHealth;
-  }
-
-  readonly governanceConfigSections = [
-    { key: 'school', label: 'School information' },
-    { key: 'academicCalendar', label: 'Academic calendar' },
-    { key: 'feePolicies', label: 'Fee policies' },
-    { key: 'attendanceRules', label: 'Attendance rules' },
-    { key: 'promotionRules', label: 'Promotion rules' },
-    { key: 'busRules', label: 'Bus rules' },
-    { key: 'payrollPolicies', label: 'Payroll policies' },
-    { key: 'softDeletePolicy', label: 'Soft delete policy' }
-  ];
-
-  loadGovernanceConfiguration(): void {
-    if (!this.can('governance', 'view')) return;
-    this.governanceConfigLoading = true;
-    this.api.governanceConfiguration().subscribe({
-      next: (configuration) => {
-        this.governanceConfiguration = configuration;
-        this.governanceConfigDraft = { ...(configuration[this.governanceConfigSection as keyof SchoolConfiguration] as Record<string, unknown> || {}) };
-        this.governanceConfigLoading = false;
-      },
-      error: () => {
-        this.governanceConfigLoading = false;
-      }
-    });
-    this.api.complianceStatus().subscribe({
-      next: (status) => { this.complianceStatus = status; },
-      error: () => { this.complianceStatus = null; }
-    });
-    this.api.businessRulesCatalog().subscribe({
-      next: (catalog) => { this.businessRulesCatalog = catalog; },
-      error: () => { this.businessRulesCatalog = null; }
-    });
-  }
-
-  runComplianceBackup(): void {
-    if (!this.can('governance', 'edit')) return;
-    this.api.runComplianceBackup().subscribe({
-      next: () => this.toast.success('Backup job queued'),
-      error: (error) => this.toast.error(extractApiMessage(error))
-    });
-  }
-
   canViewSensitivePii(module: 'students' | 'teachers'): boolean {
     return this.permissionService.canViewSensitivePii(module, this.currentUser?.role);
-  }
-
-  selectGovernanceConfigSection(section: string): void {
-    this.governanceConfigSection = section;
-    if (this.governanceConfiguration) {
-      this.governanceConfigDraft = { ...(this.governanceConfiguration[section as keyof SchoolConfiguration] as Record<string, unknown> || {}) };
-    }
-  }
-
-  get governanceConfigJson(): string {
-    return JSON.stringify(this.governanceConfigDraft, null, 2);
-  }
-
-  setGovernanceConfigJson(value: string): void {
-    try {
-      this.governanceConfigDraft = JSON.parse(value) as Record<string, unknown>;
-    } catch {
-      // keep last valid draft until JSON is valid
-    }
-  }
-
-  saveGovernanceConfiguration(): void {
-    if (!this.can('governance', 'edit')) return;
-    this.api.updateGovernanceConfiguration(this.governanceConfigSection, this.governanceConfigDraft).subscribe({
-      next: (configuration) => {
-        this.governanceConfiguration = configuration;
-        this.toast.success('Governance configuration updated');
-        this.refresh();
-      },
-      error: (error) => this.toast.error(extractApiMessage(error, 'Could not save configuration'))
-    });
-  }
-
-  toggleGovernanceConfigPanel(): void {
-    this.showGovernanceConfigPanel = !this.showGovernanceConfigPanel;
-    if (this.showGovernanceConfigPanel && !this.governanceConfiguration) {
-      this.loadGovernanceConfiguration();
-    }
   }
 
   toggleNotificationMenu(): void {

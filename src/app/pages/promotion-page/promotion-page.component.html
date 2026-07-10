@@ -103,7 +103,7 @@
         </div>
 
         <div class="wizard-panel" *ngIf="vm.promotionWizardStep === 5 && vm.promotionPreview as preview">
-          <p class="ai-summary">Review {{ preview.promotableCount }} promotion(s). {{ preview.warningCount }} warning(s) require acknowledgement before execution.</p>
+          <p class="summary-note">Review {{ preview.promotableCount }} promotion(s). {{ preview.warningCount }} warning(s) require acknowledgement before execution.</p>
           <label class="inline-check" *ngIf="preview.warningCount">
             <input type="checkbox" [checked]="vm.promotionWarningsAcknowledged" (change)="vm.promotionWarningsAcknowledged = $any($event.target).checked">
             I acknowledge promotion warnings and wish to continue

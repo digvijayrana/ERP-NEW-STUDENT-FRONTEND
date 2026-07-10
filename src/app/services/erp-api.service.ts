@@ -12,9 +12,7 @@ import {
   AttendanceReportRow,
   AuthResponse,
   AuthUser,
-  AiTrendMetric,
   ClassRoom,
-  DashboardAiInsights,
   DashboardSummary,
   Exam,
   ExamClassReport,
@@ -28,8 +26,6 @@ import {
   PayrollRecord,
   GlobalSearchResult,
   WorkflowNotification,
-  SchoolConfiguration,
-  SystemHealthSummary,
   ReportDomain,
   ReportRow,
   Student,
@@ -70,18 +66,6 @@ export class ErpApiService {
 
   dashboard(): Observable<DashboardSummary> {
     return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard`, this.options());
-  }
-
-  aiManagementInsights(): Observable<DashboardAiInsights> {
-    return this.http.get<DashboardAiInsights>(`${this.baseUrl}/ai-insights/management`, this.options());
-  }
-
-  aiStudentInsights(studentId: string): Observable<unknown> {
-    return this.http.get(`${this.baseUrl}/ai-insights/students/${studentId}`, this.options());
-  }
-
-  aiTrendAnalysis(): Observable<{ trends: AiTrendMetric[] }> {
-    return this.http.get<{ trends: AiTrendMetric[] }>(`${this.baseUrl}/ai-insights/trends`, this.options());
   }
 
   academicYears(params?: ListQueryParams): Observable<ApiSuccessResponse<AcademicYear[]>> {
@@ -607,42 +591,6 @@ export class ErpApiService {
 
   workflowDefaults(): Observable<Record<string, unknown>> {
     return this.http.get<Record<string, unknown>>(`${this.baseUrl}/workflow/defaults`, this.options());
-  }
-
-  governanceConfiguration(): Observable<SchoolConfiguration> {
-    return this.http.get<SchoolConfiguration>(`${this.baseUrl}/governance/configuration`, this.options());
-  }
-
-  updateGovernanceConfiguration(section: string, data: Record<string, unknown>): Observable<SchoolConfiguration> {
-    return this.http.put<SchoolConfiguration>(`${this.baseUrl}/governance/configuration`, { section, data }, this.options());
-  }
-
-  governanceHealth(): Observable<SystemHealthSummary> {
-    return this.http.get<SystemHealthSummary>(`${this.baseUrl}/governance/health`, this.options());
-  }
-
-  governanceDataQuality(): Observable<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/governance/data-quality`, this.options());
-  }
-
-  complianceStatus(): Observable<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/compliance/status`, this.options());
-  }
-
-  complianceBackups(): Observable<{ backups: Array<Record<string, unknown>> }> {
-    return this.http.get<{ backups: Array<Record<string, unknown>> }>(`${this.baseUrl}/compliance/backups`, this.options());
-  }
-
-  runComplianceBackup(): Observable<{ jobId: string; status: string }> {
-    return this.http.post<{ jobId: string; status: string }>(`${this.baseUrl}/compliance/backups`, {}, this.options());
-  }
-
-  complianceExceptions(limit = 20): Observable<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/compliance/exceptions?limit=${limit}`, this.options());
-  }
-
-  businessRulesCatalog(): Observable<Record<string, unknown>> {
-    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/business-rules/catalog`, this.options());
   }
 
   private listOptions(params?: ListQueryParams): { headers: HttpHeaders; params?: HttpParams } {
