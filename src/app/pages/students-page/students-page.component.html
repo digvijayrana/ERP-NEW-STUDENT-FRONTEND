@@ -12,8 +12,6 @@
     </div>
     <div class="form-grid">
       <label *ngIf="vm.editingStudentId">Admission no<input formControlName="admissionNumber" readonly></label>
-      <label *ngIf="!vm.editingStudentId">Admission no<input value="Auto-generated on save" readonly disabled></label>
-      <label>Admission date<input type="date" formControlName="admissionDate"></label>
       <label class="required">First name<input formControlName="firstName"></label>
       <app-field-error [control]="vm.admissionForm.get('firstName')" label="First name"></app-field-error>
       <label>Last name<input formControlName="lastName"></label>
@@ -40,6 +38,13 @@
       <label>Guardian<input formControlName="guardianName"></label>
       <label>Relation<input formControlName="guardianRelation"></label>
       <label>Guardian phone<input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+      <label *ngIf="!vm.editingStudentId && vm.can('users', 'view')">Link parent account
+        <select formControlName="parentUserId">
+          <option value="">New guardian / none</option>
+          <option *ngFor="let parent of vm.parentAccounts" [value]="parent.id || parent._id">{{ parent.name }} ({{ parent.email }})</option>
+        </select>
+        <small class="field-hint">Select an existing parent login to link this student to their portal account.</small>
+      </label>
       <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
       <label>Class
         <select formControlName="classRoom">

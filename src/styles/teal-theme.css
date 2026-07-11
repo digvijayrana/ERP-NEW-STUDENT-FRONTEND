@@ -1,0 +1,265 @@
+/**
+ * Teal theme — dark sidebar, buttons, cards (no blue)
+ */
+
+body {
+  background: var(--bg);
+}
+
+/* ── App shell ── */
+.app-shell {
+  background: var(--bg);
+}
+
+/* ── Dark sidebar ── */
+.sidebar {
+  background: var(--sidebar-bg) !important;
+  border: 1px solid var(--sidebar-border) !important;
+  box-shadow: 0 12px 40px rgba(5, 25, 29, 0.35) !important;
+}
+
+.sidebar .eyebrow,
+.sidebar-profile .eyebrow,
+.sidebar-profile span {
+  color: var(--sidebar-muted) !important;
+}
+
+.sidebar-header,
+.sidebar-profile strong,
+.brand-full {
+  color: var(--shell-text) !important;
+}
+
+.brand-full {
+  color: #fff !important;
+}
+
+.sidebar.collapsed .brand-short {
+  background: linear-gradient(135deg, var(--primary-bright), var(--primary-strong)) !important;
+  color: #fff !important;
+}
+
+.sidebar-accent {
+  background: linear-gradient(90deg, var(--primary-bright), var(--accent)) !important;
+}
+
+.sidebar-toggle {
+  background: var(--shell-glass) !important;
+  border-color: var(--shell-glass-border) !important;
+  color: var(--shell-text) !important;
+}
+
+.sidebar-toggle:hover {
+  background: var(--sidebar-active) !important;
+  color: var(--primary-bright) !important;
+}
+
+.sidebar-profile {
+  background: var(--shell-glass) !important;
+  border-color: var(--shell-glass-border) !important;
+}
+
+.sidebar-profile strong {
+  color: var(--shell-text) !important;
+}
+
+.nav-list button {
+  color: var(--sidebar-text) !important;
+}
+
+.nav-list button:hover,
+.nav-list button.active {
+  background: var(--sidebar-active) !important;
+  border-left-color: var(--sidebar-active-accent) !important;
+  color: #fff !important;
+}
+
+.nav-icon {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--sidebar-muted) !important;
+}
+
+.nav-list button.active .nav-icon,
+.nav-list button:hover .nav-icon {
+  background: var(--primary-bright) !important;
+  border-color: var(--primary-bright) !important;
+  color: #fff !important;
+}
+
+/* ── Topbar ── */
+.topbar {
+  background: var(--surface) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Primary buttons (teal) ── */
+button:not(.ghost):not(.icon-button):not(.small):not(.action-btn):not(.pagination-nav-btn):not(.page-num):not(.search-result):not(.nav-list button):not(.role-card):not(.dash-module):not(.workflow-alert-card):not(.clickable-row):not(.notification-item-main):not(.child-chip):not(.menu-item):not(.segmented button) {
+  background: linear-gradient(180deg, var(--primary-bright), var(--primary)) !important;
+  border-color: var(--primary-strong) !important;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.28) !important;
+}
+
+button:not(.ghost):not(.icon-button):not(.small):not(.action-btn):not(.pagination-nav-btn):not(.page-num):not(.search-result):not(.nav-list button):not(.role-card):not(.dash-module):not(.workflow-alert-card):not(.clickable-row):not(.notification-item-main):not(.child-chip):not(.menu-item):not(.segmented button):hover:not(:disabled) {
+  background: linear-gradient(180deg, #2dd4bf, var(--primary-strong)) !important;
+  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.35) !important;
+}
+
+.primary-btn,
+.btn-primary,
+.login-submit {
+  background: linear-gradient(180deg, var(--primary-bright), var(--primary)) !important;
+  border-color: var(--primary-strong) !important;
+  color: #fff !important;
+}
+
+.spinner-ring {
+  border-top-color: var(--primary) !important;
+}
+
+/* ── Cards ── */
+.panel,
+.data-card,
+.page-hero {
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.data-card .section-head {
+  background: linear-gradient(180deg, var(--surface-soft), var(--surface)) !important;
+}
+
+.dash-stat-card,
+.dash-module,
+.module-card {
+  border-color: var(--border) !important;
+}
+
+.dash-stat-card.clickable:hover,
+.dash-module:hover,
+.panel:hover {
+  border-color: #99f6e4 !important;
+  box-shadow: 0 12px 32px rgba(13, 148, 136, 0.12) !important;
+}
+
+/* Teal stat / module accents (was blue) */
+.dash-stat-blue .dash-stat-icon,
+.dash-mod-blue .dash-mod-icon {
+  background: var(--primary-muted) !important;
+  color: var(--primary) !important;
+}
+
+.dash-stat-blue::after,
+.dash-mod-blue::before {
+  background: var(--primary) !important;
+}
+
+.dash-mod-blue::before {
+  background: var(--primary-bright) !important;
+}
+
+/* Welcome banner — teal gradient */
+.dash-welcome {
+  background: linear-gradient(135deg, var(--shell-dark-deep) 0%, var(--primary-strong) 50%, var(--primary-bright) 100%) !important;
+  box-shadow: 0 12px 40px rgba(5, 25, 29, 0.25) !important;
+}
+
+.dash-welcome-actions .segmented button:hover:not(:disabled),
+.dash-welcome-actions .segmented button.active {
+  color: var(--primary-strong) !important;
+}
+
+/* Role pills & avatars — admin uses teal not blue */
+.role-pill {
+  background: var(--primary-soft) !important;
+  border-color: #99f6e4 !important;
+  color: var(--primary-strong) !important;
+}
+
+.role-pill[data-role="admin"] {
+  background: var(--primary-soft) !important;
+  border-color: #99f6e4 !important;
+  color: var(--primary-strong) !important;
+}
+
+.avatar[data-role="admin"] {
+  background: linear-gradient(135deg, var(--primary-bright), var(--primary-strong)) !important;
+}
+
+/* Focus rings */
+input:focus,
+select:focus,
+textarea:focus,
+.global-search-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--primary-ring) !important;
+}
+
+.table-wrap tbody tr:hover {
+  background: var(--primary-soft) !important;
+}
+
+.pagination-controls .page-num.active-page,
+.page-num.active-page {
+  background: var(--primary) !important;
+  border-color: var(--primary-strong) !important;
+}
+
+.notification-item-main:hover {
+  background: var(--primary-soft) !important;
+}
+
+.notification-action {
+  color: var(--primary-strong) !important;
+}
+
+.toast-stack .toast.info {
+  background: var(--primary-soft) !important;
+  border-color: #99f6e4 !important;
+  color: var(--primary-strong) !important;
+}
+
+.status-badge.graded {
+  background: var(--primary-soft) !important;
+  color: var(--primary-strong) !important;
+}
+
+.module-card:hover:not(:disabled) {
+  border-color: #99f6e4 !important;
+}
+
+.metric-card.accent-blue::before {
+  background: linear-gradient(180deg, var(--primary), #5eead4) !important;
+}
+
+.insight-card.recommend {
+  border-left-color: var(--primary) !important;
+}
+
+.wizard-step.active {
+  background: var(--primary) !important;
+}
+
+/* Login — pure dark teal, no blue glow */
+.login-shell {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(20, 184, 166, 0.22), transparent 40%),
+    radial-gradient(circle at 15% 85%, rgba(15, 118, 110, 0.18), transparent 35%),
+    linear-gradient(135deg, var(--shell-dark-deep) 0%, var(--shell-dark) 45%, var(--shell-dark-mid) 100%) !important;
+}
+
+.role-card.active {
+  border-color: rgba(20, 184, 166, 0.45) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(20, 184, 166, 0.2) !important;
+}
+
+input[type="file"]::file-selector-button {
+  background: linear-gradient(180deg, var(--primary-bright), var(--primary)) !important;
+}
+
+.search-result:hover,
+.search-result.active {
+  background: var(--primary-soft) !important;
+}

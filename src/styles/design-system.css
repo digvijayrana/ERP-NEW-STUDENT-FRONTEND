@@ -1,0 +1,138 @@
+/**
+ * CampusFlow ERP — Teal / Dark Enterprise Theme
+ */
+
+:root {
+  /* Brand — teal (no blue) */
+  --primary: #0d9488;
+  --primary-strong: #0f766e;
+  --primary-bright: #14b8a6;
+  --primary-soft: #f0fdfa;
+  --primary-muted: #ccfbf1;
+  --primary-ring: rgba(13, 148, 136, 0.22);
+
+  --success: #10b981;
+  --success-strong: #059669;
+  --success-soft: #ecfdf5;
+
+  --warning: #f59e0b;
+  --warning-strong: #d97706;
+  --warning-soft: #fffbeb;
+
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --danger-soft: #fef2f2;
+
+  --accent: #14b8a6;
+  --accent-soft: #ecfdf5;
+
+  /* Dark shell (login + sidebar) */
+  --shell-dark: #0a2a33;
+  --shell-dark-deep: #05191d;
+  --shell-dark-mid: #102a2e;
+  --shell-glass: rgba(255, 255, 255, 0.08);
+  --shell-glass-border: rgba(255, 255, 255, 0.14);
+  --shell-text: #f8fafc;
+  --shell-text-muted: rgba(248, 250, 252, 0.72);
+
+  /* Sidebar */
+  --sidebar-bg: linear-gradient(180deg, #0c2e36 0%, #0a252c 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-text: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --sidebar-hover: rgba(20, 184, 166, 0.12);
+  --sidebar-active: rgba(20, 184, 166, 0.18);
+  --sidebar-active-accent: #14b8a6;
+
+  /* Surfaces (main content — light) */
+  --bg: #f4faf9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-soft: #f0fdfa;
+  --surface-muted: #f8fafc;
+
+  /* Text */
+  --text: #0f172a;
+  --text-soft: #334155;
+  --muted: #64748b;
+  --caption: #94a3b8;
+
+  /* Borders */
+  --border: #d1e7e4;
+  --border-soft: #ecfdf5;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(5, 25, 29, 0.06);
+  --shadow-md: 0 8px 30px rgba(5, 25, 29, 0.08);
+  --shadow-lg: 0 20px 50px rgba(5, 25, 29, 0.14);
+  --shadow-card: 0 8px 30px rgba(5, 25, 29, 0.06);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+
+  /* Typography */
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-page-title: 36px;
+  --text-section-title: 24px;
+  --text-card-title: 14px;
+  --text-metric: 40px;
+  --text-body: 14px;
+  --text-caption: 12px;
+
+  /* Controls */
+  --control-height: 48px;
+  --control-padding-x: 14px;
+  --button-height: 40px;
+  --button-min-width: 120px;
+
+  --bp-laptop: 1440px;
+  --bp-tablet: 1024px;
+  --bp-tablet-sm: 768px;
+  --bp-mobile: 640px;
+}
+
+.erp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.erp-page-title {
+  font-size: var(--text-page-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.erp-section-title {
+  font-size: var(--text-section-title);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.erp-caption {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.45;
+}
+
+.erp-body {
+  color: var(--text-soft);
+  font-size: var(--text-body);
+  line-height: 1.55;
+}

@@ -31,7 +31,8 @@ export const LIST_FILTER_KEYS: Record<string, string[]> = {
   dashboardAttendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear'],
   dashboardTeachers: ['teacherSearch', 'teacherStatus'],
   dashboardPayroll: ['payrollSearch', 'payrollStatus'],
-  dashboardTimetable: ['timetableSearch']
+  dashboardTimetable: ['timetableSearch'],
+  dashboardActivities: []
 };
 
 export const DEFAULT_LIST_SORT: Record<string, { field: string; dir: SortDirection }> = {
@@ -55,7 +56,8 @@ export const DEFAULT_LIST_SORT: Record<string, { field: string; dir: SortDirecti
   dashboardAttendance: { field: 'date', dir: 'desc' },
   dashboardTeachers: { field: 'firstName', dir: 'asc' },
   dashboardPayroll: { field: 'period', dir: 'desc' },
-  dashboardTimetable: { field: 'dayOfWeek', dir: 'asc' }
+  dashboardTimetable: { field: 'dayOfWeek', dir: 'asc' },
+  dashboardActivities: { field: 'performedAt', dir: 'desc' }
 };
 
 export function applyDefaultListSort(

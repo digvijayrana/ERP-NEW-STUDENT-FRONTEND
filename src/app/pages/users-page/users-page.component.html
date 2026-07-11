@@ -23,13 +23,13 @@
         <span>Issue temporary password (user must change on first login)</span>
       </label>
       <label>Teacher profile<select formControlName="teacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id">{{ vm.teacherName(teacher) }}</option></select></label>
-      <label>Student profile<select formControlName="student"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
-      <label>Linked child (for parent)<select formControlName="linkedStudent"><option value="">None</option><option *ngFor="let student of vm.students" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+      <label>Student profile<select formControlName="student"><option value="">None</option><option *ngFor="let student of vm.studentPickerOptions" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
+      <label>Linked child (for parent)<select formControlName="linkedStudent"><option value="">None</option><option *ngFor="let student of vm.studentPickerOptions" [value]="student._id">{{ student.admissionNumber }} - {{ vm.studentName(student) }}</option></select></label>
     </div>
     <div class="multi-child-select" *ngIf="vm.userForm.get('role')?.value === 'parent'">
       <label class="multi-label">Link additional children</label>
       <div class="multi-child-list">
-        <label *ngFor="let student of vm.students" class="child-check-row">
+        <label *ngFor="let student of vm.studentPickerOptions" class="child-check-row">
           <input type="checkbox" [checked]="vm.parentLinkedStudentIds.has(student._id)" (change)="vm.toggleParentChild(student._id)">
           <span>{{ student.admissionNumber }} - {{ vm.studentName(student) }}</span>
         </label>

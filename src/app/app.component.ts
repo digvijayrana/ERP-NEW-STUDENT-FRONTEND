@@ -32,7 +32,7 @@ import { ConfirmDialogService } from './services/confirm-dialog.service';
 import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, applyDefaultListSort, sortItems, SortDirection } from './core/listing.util';
 
 type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
-type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
+type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'dashboardActivities' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
 type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
 
 type HolidayRow = { _id: string; date: string; name: string; description?: string };
@@ -274,6 +274,8 @@ export class AppComponent implements OnInit {
     uploadedAt: ''
   };
   editingStudentId = '';
+  pickerStudents: Student[] = [];
+  parentAccounts: AppUser[] = [];
   editingTeacherId = '';
   viewingTeacher: Teacher | null = null;
   editingClassId = '';
@@ -368,6 +370,7 @@ export class AppComponent implements OnInit {
     dashboardTeachers: 1,
     dashboardPayroll: 1,
     dashboardTimetable: 1,
+    dashboardActivities: 1,
     students: 1,
     classes: 1,
     years: 1,
@@ -469,7 +472,6 @@ export class AppComponent implements OnInit {
 
   admissionForm = this.fb.group({
     admissionNumber: [''],
-    admissionDate: [{ value: new Date().toISOString().slice(0, 10), disabled: true }],
     firstName: ['', Validators.required],
     lastName: [''],
     gender: ['male', Validators.required],
@@ -487,6 +489,7 @@ export class AppComponent implements OnInit {
     guardianName: ['', Validators.required],
     guardianRelation: [APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION, Validators.required],
     guardianPhone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
+    parentUserId: [''],
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
     rollNumber: [''],
@@ -605,6 +608,7 @@ export class AppComponent implements OnInit {
       'dashboardTeachers',
       'dashboardPayroll',
       'dashboardTimetable',
+      'dashboardActivities',
       'profileExams',
       'profileFees'
     ]);
@@ -1254,6 +1258,7 @@ export class AppComponent implements OnInit {
         this.loading = false;
         this.submitting = false;
         this.loadReferenceData();
+        this.loadAssignmentPickers();
         this.loadServerListings();
         this.loadSelfAttendanceStatus();
         this.loadWorkflowNotifications();
@@ -1418,6 +1423,45 @@ export class AppComponent implements OnInit {
     }
   }
 
+  loadAssignmentPickers(): void {
+    if (this.can('students', 'view')) {
+      this.safeRefresh(
+        this.api.students({ page: 1, pageSize: 500, status: 'active', sortField: 'admissionNumber', sortDir: 'asc' }).pipe(map((r) => r.data)),
+        [] as Student[]
+      ).subscribe((rows) => {
+        this.pickerStudents = rows;
+        if (this.isAdmin) this.students = rows;
+      });
+    }
+    if (this.can('users', 'view')) {
+      this.safeRefresh(
+        this.api.listUsers({ page: 1, pageSize: 200, role: 'parent' }).pipe(map((r) => r.data as AppUser[])),
+        [] as AppUser[]
+      ).subscribe((rows) => {
+        this.parentAccounts = rows;
+      });
+    }
+    if (this.isAdmin && this.can('attendance', 'view') && !this.attendance.length) {
+      this.safeRefresh(
+        this.api.attendance({ page: 1, pageSize: 200, sortField: 'date', sortDir: 'desc' }).pipe(map((r) => r.data)),
+        [] as AttendanceRecord[]
+      ).subscribe((rows) => {
+        this.attendance = rows;
+      });
+    }
+  }
+
+  get studentPickerOptions(): Student[] {
+    if (this.pickerStudents.length) return this.pickerStudents;
+    const listed = (this.listingRows.students as Student[] | undefined) ?? [];
+    if (listed.length) return listed;
+    return this.students;
+  }
+
+  get dashboardRecentActivities(): NonNullable<DashboardSummary['recentActivities']> {
+    return this.summary?.recentActivities ?? [];
+  }
+
   setTab(tab: TabKey): void {
     if (!this.tabs.some((item) => item.key === tab)) return;
     this.activeTab = tab;
@@ -1440,6 +1484,7 @@ export class AppComponent implements OnInit {
     };
     const listKey = tabListKey[tab];
     if (listKey) this.loadListing(listKey);
+    if (tab === 'students' || tab === 'users') this.loadAssignmentPickers();
     if (tab === 'reports' && this.can('reports', 'view')) this.loadReport();
     if (tab === 'fees' && this.can('fees', 'view')) {
       if (!this.isPortalUser) {
@@ -2152,6 +2197,7 @@ export class AppComponent implements OnInit {
       academicYear: value.academicYear,
       classRoom: value.classRoom,
       rollNumber: value.rollNumber,
+      ...(value.parentUserId ? { parentUserId: value.parentUserId } : {}),
       ...(value.hasPreviousSchool === 'yes'
         ? {
             previousSchool: value.previousSchool,
@@ -2194,7 +2240,6 @@ export class AppComponent implements OnInit {
     this.editingStudentId = student._id;
     this.admissionForm.patchValue({
       admissionNumber: student.admissionNumber,
-      admissionDate: student.admissionDate ? student.admissionDate.slice(0, 10) : '',
       firstName: student.firstName,
       lastName: student.lastName || '',
       gender: student.gender,
