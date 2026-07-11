@@ -1458,8 +1458,79 @@ export class AppComponent implements OnInit {
     return this.students;
   }
 
-  get dashboardRecentActivities(): NonNullable<DashboardSummary['recentActivities']> {
-    return this.summary?.recentActivities ?? [];
+  get guardianSuggestions(): string[] {
+    const names = new Set<string>();
+    for (const parent of this.parentAccounts) {
+      const name = (parent?.name || '').trim();
+      if (name) names.add(name);
+    }
+    for (const student of this.studentPickerOptions) {
+      const guardian = student?.guardians?.find((g) => (g?.name || '').trim());
+      const name = (guardian?.name || '').trim();
+      if (name) names.add(name);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }
+
+  parentPickerTerm = '';
+  parentPickerResults: AppUser[] = [];
+  parentPickerOpen = false;
+  parentPickerLoading = false;
+  private parentPickerTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onParentPickerFocus(): void {
+    this.parentPickerOpen = true;
+    if (!this.parentPickerResults.length && !this.parentPickerTerm.trim()) {
+      this.parentPickerResults = this.parentAccounts.slice(0, 20);
+    }
+  }
+
+  onParentPickerBlur(): void {
+    setTimeout(() => { this.parentPickerOpen = false; }, 180);
+  }
+
+  onParentPickerInput(term: string): void {
+    this.parentPickerTerm = term;
+    this.parentPickerOpen = true;
+    this.admissionForm.patchValue({ parentUserId: '' });
+    if (this.parentPickerTimer) clearTimeout(this.parentPickerTimer);
+    this.parentPickerTimer = setTimeout(() => this.searchParentAccounts(term), 300);
+  }
+
+  searchParentAccounts(term: string): void {
+    if (!this.can('users', 'view')) return;
+    const search = (term || '').trim();
+    this.parentPickerLoading = true;
+    this.api
+      .listUsers({ role: 'parent', search, page: 1, pageSize: 20 })
+      .pipe(map((response) => response.data as AppUser[]))
+      .subscribe({
+        next: (rows) => {
+          this.parentPickerResults = rows;
+          this.parentPickerLoading = false;
+        },
+        error: () => {
+          this.parentPickerResults = [];
+          this.parentPickerLoading = false;
+        }
+      });
+  }
+
+  selectParentAccount(parent: AppUser): void {
+    const id = parent.id || parent._id || '';
+    this.admissionForm.patchValue({ parentUserId: id });
+    this.parentPickerTerm = parent.email ? `${parent.name} (${parent.email})` : parent.name;
+    this.parentPickerOpen = false;
+  }
+
+  clearParentSelection(): void {
+    this.admissionForm.patchValue({ parentUserId: '' });
+    this.parentPickerTerm = '';
+    this.parentPickerResults = this.parentAccounts.slice(0, 20);
+  }
+
+  parentInitials(parent: AppUser | null | undefined): string {
+    return (parent?.name || '?').trim().charAt(0).toUpperCase();
   }
 
   setTab(tab: TabKey): void {

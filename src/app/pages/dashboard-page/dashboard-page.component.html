@@ -110,25 +110,6 @@
     </div>
   </div>
 
-  <section class="data-card span-12 workflow-alerts" *ngIf="vm.workflowNotifications.length && vm.isAdmin">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Workflow</p>
-        <h3>Action required</h3>
-      </div>
-    </div>
-    <div class="workflow-alert-grid">
-      <article class="workflow-alert-card" *ngFor="let item of vm.workflowNotifications" (click)="vm.openWorkflowNotification(item)">
-        <div class="workflow-alert-head">
-          <strong>{{ item.title }}</strong>
-          <span class="status-badge" [ngClass]="item.severity">{{ item.count }}</span>
-        </div>
-        <p>{{ item.message }}</p>
-        <span class="workflow-alert-action">{{ item.action }}</span>
-      </article>
-    </div>
-  </section>
-
   <!-- Operational analytics (admin / accountant) -->
   <div class="dash-stats" *ngIf="vm.summary?.operational && vm.showOperationalDashboard">
     <div class="dash-stat-card dash-stat-teal clickable" (click)="vm.setTab('attendance')">
@@ -414,32 +395,6 @@
     </div>
   </section>
 
-  <!-- Recent Activities (Admin) -->
-  <section class="data-card span-12" *ngIf="vm.isAdmin && vm.dashboardRecentActivities.length">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Recent Activity</p>
-        <h3>Latest system events <small>(last 7 days)</small></h3>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Type</th><th>Description</th><th>User</th><th>Date &amp; Time</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let activity of vm.paged('dashboardActivities', vm.dashboardRecentActivities)">
-            <td><span class="status-badge active">{{ vm.dashboardActivityLabel(activity.type) }}</span></td>
-            <td>{{ activity.description }}</td>
-            <td>{{ activity.performedBy || 'System' }}</td>
-            <td>{{ activity.performedAt | date:'medium' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <app-pagination-bar [vm]="vm" listKey="dashboardActivities" [items]="vm.dashboardRecentActivities"></app-pagination-bar>
-  </section>
-  <section class="panel span-12" *ngIf="vm.isAdmin && vm.summary && !vm.dashboardRecentActivities.length">
-    <div class="empty-state">No system events in the last 7 days.</div>
-  </section>
 
   <!-- Students Table -->
   <section class="data-card span-8" *ngIf="!vm.isPortalUser">

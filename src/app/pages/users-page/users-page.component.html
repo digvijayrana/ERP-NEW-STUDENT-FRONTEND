@@ -6,13 +6,13 @@
   <form [formGroup]="vm.userForm" (ngSubmit)="vm.saveUser()" class="panel span-4" *ngIf="vm.can('users', 'create')">
     <div class="section-head"><div><p class="eyebrow">Access</p><h3>Create role login</h3></div></div>
     <div class="form-grid compact">
-      <label class="required">Name<input formControlName="name"></label>
+      <label class="required"><span class="label-text">Name</span><input formControlName="name"></label>
       <app-field-error [control]="vm.userForm.get('name')" label="Name"></app-field-error>
-      <label class="required">Email<input type="email" formControlName="email"></label>
+      <label class="required"><span class="label-text">Email</span><input type="email" formControlName="email"></label>
       <app-field-error [control]="vm.userForm.get('email')" label="Email"></app-field-error>
-      <label class="required">Password<input type="password" formControlName="password"></label>
+      <label class="required"><span class="label-text">Password</span><input type="password" formControlName="password"></label>
       <app-field-error [control]="vm.userForm.get('password')" label="Password"></app-field-error>
-      <label class="required">Role
+      <label class="required"><span class="label-text">Role</span>
         <select formControlName="role">
           <option *ngFor="let role of vm.roles" [value]="role.slug">{{ role.name }}</option>
           <option value="super_admin" *ngIf="vm.isSuperAdmin">Super Admin</option>

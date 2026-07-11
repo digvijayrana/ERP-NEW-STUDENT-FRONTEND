@@ -3538,17 +3538,14 @@ select option:disabled {
   margin-top: 4px;
 }
 
-label.required::after,
-.field-label.required::after {
+label.required > .label-text::after,
+.field-label.required > .label-text::after,
+label.required > span:first-child::after,
+.field-label.required > span:first-child::after {
   color: var(--danger);
-  content: '*';
+  content: ' *';
   font-size: 14px;
   font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  top: 0;
 }
 
 .primary-btn {

@@ -12,11 +12,11 @@
       </div>
     </div>
     <div class="form-grid compact">
-      <label class="required">Name<input formControlName="name" placeholder="2026-2027"></label>
+      <label class="required"><span class="label-text">Name</span><input formControlName="name" placeholder="2026-2027"></label>
       <app-field-error [control]="vm.academicYearForm.get('name')" label="Name"></app-field-error>
-      <label class="required">Start<input type="date" formControlName="startDate"></label>
+      <label class="required"><span class="label-text">Start</span><input type="date" formControlName="startDate"></label>
       <app-field-error [control]="vm.academicYearForm.get('startDate')" label="Start date"></app-field-error>
-      <label class="required">End<input type="date" formControlName="endDate"></label>
+      <label class="required"><span class="label-text">End</span><input type="date" formControlName="endDate"></label>
       <app-field-error [control]="vm.academicYearForm.get('endDate')" label="End date"></app-field-error>
       <label class="inline span-2" *ngIf="!vm.editingAcademicYearId">
         <input type="checkbox" formControlName="isActive"> Set as active year on create
@@ -96,17 +96,17 @@
   <form *ngIf="vm.isAdmin" [formGroup]="vm.classForm" (ngSubmit)="vm.saveClass()" class="panel span-12">
     <div class="section-head"><div><p class="eyebrow">Class & section</p><h3>{{ vm.editingClassId ? 'Update class' : 'Class configuration' }}</h3></div></div>
     <div class="form-grid compact">
-      <label class="required">Class<input formControlName="name" placeholder="1, 2, 10"></label>
+      <label class="required"><span class="label-text">Class</span><input formControlName="name" placeholder="1, 2, 10"></label>
       <app-field-error [control]="vm.classForm.get('name')" label="Class"></app-field-error>
-      <label class="required">Section<input formControlName="section"></label>
+      <label class="required"><span class="label-text">Section</span><input formControlName="section"></label>
       <app-field-error [control]="vm.classForm.get('section')" label="Section"></app-field-error>
-      <label class="required">Maximum capacity<input type="number" formControlName="capacity" min="1"></label>
+      <label class="required"><span class="label-text">Maximum capacity</span><input type="number" formControlName="capacity" min="1"></label>
       <app-field-error [control]="vm.classForm.get('capacity')" label="Capacity"></app-field-error>
-      <label class="required">Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id" [disabled]="vm.yearStatus(year) === 'closed'">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container><ng-container *ngIf="vm.yearStatus(year) === 'closed'"> (Closed)</ng-container></option></select></label>
+      <label class="required"><span class="label-text">Academic year</span><select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id" [disabled]="vm.yearStatus(year) === 'closed'">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container><ng-container *ngIf="vm.yearStatus(year) === 'closed'"> (Closed)</ng-container></option></select></label>
       <app-field-error [control]="vm.classForm.get('academicYear')" label="Academic year"></app-field-error>
-      <label>Class teacher<select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
-      <label class="required">Monthly tuition fee<input type="number" formControlName="monthlyFee" min="0"></label>
-      <label class="required">Status<select formControlName="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+      <label><span class="label-text">Class teacher</span><select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
+      <label class="required"><span class="label-text">Monthly tuition fee</span><input type="number" formControlName="monthlyFee" min="0"></label>
+      <label class="required"><span class="label-text">Status</span><select formControlName="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
     </div>
     <div class="form-actions">
       <button type="submit" [disabled]="vm.classForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingClassId ? 'Update class' : 'Save class') }}</button>

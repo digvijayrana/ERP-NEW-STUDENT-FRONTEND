@@ -118,19 +118,24 @@ label,
   position: relative;
 }
 
-label.required::after,
-.field-label.required::after,
-label.required > span::after,
-.field-label.required > span::after {
+/* Required marker sits inline right after the field name, e.g. "First name *" */
+label.required > .label-text::after,
+.field-label.required > .label-text::after,
+label.required > span:first-child::after,
+.field-label.required > span:first-child::after {
   color: var(--danger);
-  content: '*';
-  font-size: var(--text-body);
+  content: ' *';
   font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  top: 0;
+}
+
+/* Field validation errors drop to their own full-width row so grid columns stay aligned */
+app-field-error {
+  display: contents;
+}
+
+.form-grid .field-error {
+  grid-column: 1 / -1;
+  margin-top: calc(var(--space-2) * -1);
 }
 
 input:not([type='checkbox']):not([type='radio']):not([type='file']),
@@ -266,8 +271,152 @@ button.ghost {
 
 .search-box,
 .listing-search {
-  flex: 1 1 240px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex: 1 1 260px;
+  gap: var(--space-2);
+  max-width: 420px;
+  min-height: var(--control-height);
   min-width: min(100%, 240px);
+  padding: 0 var(--control-padding-x);
+}
+
+.search-box:focus-within,
+.listing-search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-ring);
+}
+
+/* Search field sits flush inside the pill — no nested/second border */
+.search-box input:not([type='checkbox']):not([type='radio']),
+.listing-search input:not([type='checkbox']):not([type='radio']) {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1 1 auto;
+  min-height: calc(var(--control-height) - 2px);
+  padding: 0;
+  width: 100%;
+}
+
+.search-box input:focus,
+.listing-search input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: none;
+}
+
+/* ── Searchable typeahead (e.g. Link parent account) ── */
+.typeahead {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-input {
+  padding-right: 34px;
+  width: 100%;
+}
+
+.typeahead-clear {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  min-height: auto;
+  min-width: auto;
+  padding: 0 6px;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.typeahead-clear:hover {
+  color: var(--danger);
+}
+
+.typeahead-menu {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(15, 23, 42, 0.14));
+  list-style: none;
+  margin: 4px 0 0;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 40;
+}
+
+.typeahead-item {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-3);
+  padding: 8px 10px;
+}
+
+.typeahead-item:hover {
+  background: var(--primary-soft);
+}
+
+.typeahead-avatar {
+  align-items: center;
+  background: var(--primary-soft);
+  border-radius: 50%;
+  color: var(--primary-strong);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.typeahead-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.typeahead-text strong {
+  color: var(--text);
+  font-size: var(--text-body);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeahead-text small {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+
+.typeahead-empty {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  padding: 10px 12px;
+}
+
+/* Keep filter dropdowns (e.g. All years / All status) inline on one row */
+.listing-filter-slot,
+.listing-filters {
+  flex: 1 1 auto;
 }
 
 .filter-select,
@@ -338,10 +487,17 @@ button.ghost {
 }
 
 .table-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
+  align-content: start;
+  display: grid;
   gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(84px, 1fr));
+  justify-items: stretch;
+}
+
+.table-actions .action-btn {
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
 }
 
 /* ── Status badges ── */
