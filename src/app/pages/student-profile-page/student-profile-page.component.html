@@ -29,9 +29,9 @@
   <ng-container *ngIf="vm.studentProfile as p">
     <section class="profile-hero span-12">
       <div class="profile-hero-left">
-        <div class="profile-avatar" [class.has-photo]="vm.profilePhotoSrc">
-          <img *ngIf="vm.profilePhotoSrc as photo" [src]="photo" alt="Student photo">
-          <span *ngIf="!vm.profilePhotoSrc">{{ p.student.firstName.charAt(0) }}{{ p.student.lastName?.charAt(0) || '' }}</span>
+        <div class="profile-avatar" [class.has-photo]="vm.profilePhotoSrc && !vm.profilePhotoError">
+          <img *ngIf="vm.profilePhotoSrc && !vm.profilePhotoError" [src]="vm.profilePhotoSrc" alt="Student photo" (error)="vm.onProfilePhotoError()">
+          <span *ngIf="!vm.profilePhotoSrc || vm.profilePhotoError">{{ p.student.firstName.charAt(0) }}{{ p.student.lastName?.charAt(0) || '' }}</span>
         </div>
         <div>
           <p class="eyebrow">Student profile</p>
@@ -57,30 +57,34 @@
       <article class="metric-card accent-purple" *ngIf="p.profileCompletion != null"><span>Profile completion</span><strong>{{ p.profileCompletion }}%</strong><small>Mandatory fields & documents</small></article>
     </div>
 
-    <section class="panel span-5" *ngIf="p.documents">
-      <div class="section-head"><div><p class="eyebrow">Documents</p><h3>Uploaded documents</h3></div></div>
+    <section class="panel span-7" *ngIf="p.documents">
+      <div class="section-head">
+        <div><p class="eyebrow">Documents</p><h3>Uploaded documents</h3></div>
+        <span class="status-badge warning" *ngIf="vm.profileHasPendingDocuments" title="Some documents are awaiting staff verification">
+          ⚑ Verification pending ({{ vm.profilePendingDocuments.length }})
+        </span>
+      </div>
       <div class="info-list">
         <div><span>Mandatory status</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.overall">{{ p.documents.mandatoryStatus.overall }}</span></strong></div>
         <div><span>Photo</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.photo">{{ p.documents.mandatoryStatus.photo }}</span></strong></div>
         <div><span>Birth certificate</span><strong><span class="status-badge doc-status" [ngClass]="p.documents.mandatoryStatus.birthCertificate">{{ p.documents.mandatoryStatus.birthCertificate }}</span></strong></div>
       </div>
-      <ul class="doc-summary-list" *ngIf="p.documents.items.length">
-        <li *ngFor="let doc of p.documents.items">{{ doc.title }} — <span class="status-badge doc-status" [ngClass]="doc.status">{{ doc.status }}</span></li>
-      </ul>
-    </section>
-
-    <section class="panel span-7">
-      <div class="section-head"><div><p class="eyebrow">Activity</p><h3>Student timeline</h3></div></div>
-      <div class="activity-timeline" *ngIf="p.activityTimeline?.length; else noTimeline">
-        <article *ngFor="let event of p.activityTimeline" class="timeline-item">
-          <div class="timeline-item-head">
-            <span class="status-badge active">{{ vm.profileTimelineLabel(event.action) }}</span>
-            <strong>{{ event.description }}</strong>
-          </div>
-          <span>{{ event.performedAt | date:'medium' }}<ng-container *ngIf="event.performedBy"> · {{ event.performedBy }}</ng-container></span>
-        </article>
+      <div class="table-wrap sticky-header" *ngIf="p.documents.items.length; else noDocs">
+        <table>
+          <thead><tr><th>Document</th><th>Upload</th><th>Verification</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let doc of p.documents.items">
+              <td>{{ doc.title }}</td>
+              <td><span class="status-badge doc-status" [ngClass]="doc.status">{{ doc.status }}</span></td>
+              <td><span class="status-badge" [ngClass]="doc.verificationStatus === 'approved' ? 'active' : (doc.verificationStatus === 'rejected' ? 'rejected' : 'warning')">{{ vm.docVerificationLabel(doc.verificationStatus) }}</span></td>
+              <td class="action-cell">
+                <button *ngIf="doc.status === 'uploaded' && doc._id && (vm.isAdmin || vm.isTeacher)" type="button" class="ghost small" (click)="vm.viewProfileDocument(doc._id)">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <ng-template #noTimeline><div class="premium-empty">No activity recorded yet.</div></ng-template>
+      <ng-template #noDocs><div class="premium-empty">No documents uploaded yet.</div></ng-template>
     </section>
 
     <section class="panel span-5">

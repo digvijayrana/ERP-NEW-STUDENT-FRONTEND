@@ -3460,7 +3460,7 @@ select option:disabled {
 }
 
 .toast-stack {
-  bottom: 24px;
+  top: 24px;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -4373,6 +4373,16 @@ tbody tr:hover {
 .invoice-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   border-color: var(--primary);
+}
+
+.clickable-card {
+  cursor: pointer;
+}
+
+.inv-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .inv-header {

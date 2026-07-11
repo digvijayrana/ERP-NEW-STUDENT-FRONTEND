@@ -1769,6 +1769,7 @@ export class AppComponent implements OnInit {
     }
     this.profileStudentId = studentId;
     this.profileLoading = true;
+    this.profilePhotoError = false;
     this.api.studentProfile(studentId).subscribe({
       next: (profile) => {
         this.studentProfile = profile;
@@ -1788,6 +1789,8 @@ export class AppComponent implements OnInit {
 
   // Resolve the best avatar URL for the profile hero: an http(s) URL is usable
   // directly; otherwise build an authenticated stream URL from the photo doc id.
+  profilePhotoError = false;
+
   get profilePhotoSrc(): string | null {
     const student = this.studentProfile?.student;
     if (!student) return null;
@@ -1797,6 +1800,38 @@ export class AppComponent implements OnInit {
     const studentId = this.profileStudentId;
     if (docId && studentId) return this.api.studentDocumentImageUrl(studentId, docId);
     return null;
+  }
+
+  onProfilePhotoError(): void {
+    // The photo failed to load (missing/blocked) — fall back to initials.
+    this.profilePhotoError = true;
+  }
+
+  /** Opens an uploaded student document (image/PDF) in a new tab via the authenticated stream. */
+  viewProfileDocument(documentId?: string): void {
+    if (!documentId || !this.profileStudentId) return;
+    this.openProtectedFile(this.api.studentDocumentFileUrl(this.profileStudentId, documentId));
+  }
+
+  /** Documents that have been uploaded but not yet approved by staff. */
+  get profilePendingDocuments(): Array<{ _id?: string; title: string; verificationStatus?: string }> {
+    return (this.studentProfile?.documents?.items || []).filter(
+      (doc) => doc.status === 'uploaded' && doc.verificationStatus !== 'approved' && doc.verificationStatus !== 'rejected'
+    );
+  }
+
+  get profileHasPendingDocuments(): boolean {
+    return this.profilePendingDocuments.length > 0;
+  }
+
+  docVerificationLabel(status?: string): string {
+    const labels: Record<string, string> = {
+      approved: 'Verified',
+      uploaded: 'Verification pending',
+      pending: 'Verification pending',
+      rejected: 'Rejected'
+    };
+    return labels[status || ''] || (status || 'Pending');
   }
 
   openMyProfile(): void {
@@ -3554,6 +3589,16 @@ export class AppComponent implements OnInit {
 
   viewRecord(label: string): void {
     this.message = label;
+  }
+
+  viewingInvoice: FeeInvoice | null = null;
+
+  openInvoiceDetail(invoice: FeeInvoice): void {
+    this.viewingInvoice = invoice;
+  }
+
+  closeInvoiceDetail(): void {
+    this.viewingInvoice = null;
   }
 
   openInvoicePdf(invoiceId: string): void {

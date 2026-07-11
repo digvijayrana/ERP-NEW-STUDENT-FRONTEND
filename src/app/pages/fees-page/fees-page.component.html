@@ -91,7 +91,7 @@
 
     <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('invoices')">
     <div class="invoice-cards" *ngIf="!vm.isListingLoading('invoices') || vm.sortedInvoices.length">
-      <div *ngFor="let invoice of vm.paged('invoices', vm.sortedInvoices)" class="invoice-card">
+      <div *ngFor="let invoice of vm.paged('invoices', vm.sortedInvoices)" class="invoice-card clickable-card" (click)="vm.openInvoiceDetail(invoice)" title="Click to view full invoice">
         <div class="inv-header">
           <div class="inv-number">{{ invoice.invoiceNumber }}</div>
           <span class="status-badge" [ngClass]="invoice.status">{{ invoice.status }}</span>
@@ -109,14 +109,17 @@
           <div class="payment-chip" *ngFor="let payment of invoice.payments">
             <span>{{ payment.receiptNumber }} — {{ payment.amount | currency: 'INR' }}</span>
             <span class="status-badge small" [ngClass]="payment.status || 'active'">{{ payment.status || 'active' }}</span>
-            <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="vm.openReceiptPdf(invoice._id, payment._id!)">Receipt PDF</button>
-            <button *ngIf="vm.can('fees', 'edit') && payment._id && payment.status !== 'void' && !payment.locked" type="button" class="ghost small danger-text" (click)="vm.voidFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Void</button>
-            <button *ngIf="vm.can('fees', 'unlock') && payment._id && payment.locked" type="button" class="ghost small" (click)="vm.unlockFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Unlock</button>
+            <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openReceiptPdf(invoice._id, payment._id!)">Receipt PDF</button>
+            <button *ngIf="vm.can('fees', 'edit') && payment._id && payment.status !== 'void' && !payment.locked" type="button" class="ghost small danger-text" (click)="$event.stopPropagation(); vm.voidFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Void</button>
+            <button *ngIf="vm.can('fees', 'unlock') && payment._id && payment.locked" type="button" class="ghost small" (click)="$event.stopPropagation(); vm.unlockFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Unlock</button>
           </div>
         </div>
         <div class="inv-footer">
           <span class="inv-due">Due: {{ invoice.dueDate | date: 'dd MMM yyyy' }}</span>
-          <button type="button" class="ghost small" (click)="vm.openInvoicePdf(invoice._id)">Demand PDF</button>
+          <div class="inv-footer-actions">
+            <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoiceDetail(invoice)">View</button>
+            <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoicePdf(invoice._id)">Demand PDF</button>
+          </div>
         </div>
       </div>
     </div>
@@ -203,4 +206,58 @@
     <app-pagination-bar [vm]="vm" listKey="feeHistory" [items]="vm.sortedFeeHistory"></app-pagination-bar>
   </section>
   </ng-container>
+
+  <!-- Fee demand (invoice) detail -->
+  <div class="admission-overlay" *ngIf="vm.viewingInvoice as inv" (click)="vm.closeInvoiceDetail()">
+    <div class="admission-modal fee-detail-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Fee demand · {{ inv.invoiceNumber }}</p>
+          <h3>{{ vm.studentName(inv.student) }}<span *ngIf="inv.feeMonth && inv.feeYear"> · {{ vm.feePeriodLabel(inv.feeMonth, inv.feeYear) }}</span></h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeInvoiceDetail()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="admission-modal-body">
+        <div class="inv-header" style="margin-bottom: 0.75rem;">
+          <span class="inv-due">Due: {{ inv.dueDate | date: 'dd MMM yyyy' }}</span>
+          <span class="status-badge" [ngClass]="inv.status">{{ inv.status }}</span>
+        </div>
+
+        <div class="inv-details fee-breakdown">
+          <div class="inv-detail"><span class="inv-label">Tuition</span><span class="inv-value">{{ inv.tuitionFee || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Bus fee</span><span class="inv-value">{{ inv.busFee || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Other charges</span><span class="inv-value">{{ inv.otherCharges || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Previous pending</span><span class="inv-value">{{ inv.previousPending || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Discount</span><span class="inv-value">{{ inv.discount || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Fine</span><span class="inv-value">{{ inv.fine || 0 | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Total payable</span><span class="inv-value">{{ inv.totalAmount | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Paid</span><span class="inv-value success-text">{{ inv.paidAmount | currency: 'INR' }}</span></div>
+          <div class="inv-detail"><span class="inv-label">Balance due</span><span class="inv-value" [class.danger-text]="inv.balanceAmount > 0">{{ inv.balanceAmount | currency: 'INR' }}</span></div>
+        </div>
+
+        <ng-container *ngIf="inv.items?.length">
+          <div class="section-head compact" style="margin-top: 1rem;"><div><p class="eyebrow">Line items</p></div></div>
+          <div class="info-list">
+            <div *ngFor="let item of inv.items"><span>{{ item.label }}</span><strong>{{ item.amount | currency: 'INR' }}</strong></div>
+          </div>
+        </ng-container>
+
+        <div class="section-head compact" style="margin-top: 1rem;"><div><p class="eyebrow">Payments</p></div></div>
+        <div class="payment-chips" *ngIf="inv.payments?.length; else noInvPayments">
+          <div class="payment-chip" *ngFor="let payment of inv.payments">
+            <span>{{ payment.receiptNumber }} — {{ payment.amount | currency: 'INR' }}<small *ngIf="payment.paidAt"> · {{ payment.paidAt | date: 'dd MMM yyyy' }}</small></span>
+            <span class="status-badge small" [ngClass]="payment.status || 'active'">{{ payment.status || 'active' }}</span>
+            <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="vm.openReceiptPdf(inv._id, payment._id!)">Receipt PDF</button>
+          </div>
+        </div>
+        <ng-template #noInvPayments><p class="hint-text">No payments recorded on this demand yet.</p></ng-template>
+      </div>
+
+      <div class="admission-modal-footer">
+        <button type="button" class="ghost" (click)="vm.closeInvoiceDetail()">Close</button>
+        <button type="button" class="primary-btn" (click)="vm.openInvoicePdf(inv._id)">Demand PDF</button>
+      </div>
+    </div>
+  </div>
 </section>
