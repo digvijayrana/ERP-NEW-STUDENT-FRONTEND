@@ -734,3 +734,163 @@ textarea:focus-visible {
     min-width: 560px;
   }
 }
+
+/* ── Student admission / document modal ── */
+.admission-overlay {
+  align-items: flex-start;
+  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 32px 24px;
+  position: fixed;
+  z-index: 1250;
+}
+
+.admission-modal {
+  animation: modalPop 0.18s ease;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg, 0 24px 60px rgba(15, 23, 42, 0.28));
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  width: min(940px, 100%);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.admission-modal form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  min-height: 0;
+}
+
+.admission-modal-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+}
+
+.admission-modal-header h3 {
+  margin: 4px 0 0;
+}
+
+.modal-close-btn {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 20px;
+  height: 34px;
+  line-height: 1;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+  width: 34px;
+}
+
+.modal-close-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.admission-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.admission-modal-footer {
+  align-items: center;
+  background: var(--surface-soft);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding: var(--space-4) var(--space-6);
+}
+
+.form-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0;
+  padding: var(--space-5);
+}
+
+.form-section > legend {
+  color: var(--primary-strong);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0 var(--space-2);
+  text-transform: uppercase;
+}
+
+.form-grid .span-full {
+  grid-column: 1 / -1;
+}
+
+.parent-link-chip {
+  align-items: center;
+  background: var(--success-soft);
+  border-radius: var(--radius-sm);
+  color: var(--success-strong);
+  display: flex;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.parent-link-icon {
+  font-weight: 800;
+}
+
+.new-admission-btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.new-admission-btn .btn-plus {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.doc-vault-modal {
+  width: min(700px, 100%);
+}
+
+@media (max-width: 720px) {
+  .admission-overlay {
+    padding: 12px;
+  }
+
+  .admission-modal,
+  .admission-modal form {
+    max-height: calc(100vh - 24px);
+  }
+
+  .admission-modal-header,
+  .admission-modal-body,
+  .admission-modal-footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}

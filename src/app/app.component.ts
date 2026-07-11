@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -1473,16 +1473,13 @@ export class AppComponent implements OnInit {
   }
 
   parentPickerTerm = '';
-  parentPickerResults: AppUser[] = [];
+  parentPickerResults: ParentSearchResult[] = [];
   parentPickerOpen = false;
   parentPickerLoading = false;
   private parentPickerTimer: ReturnType<typeof setTimeout> | null = null;
 
   onParentPickerFocus(): void {
     this.parentPickerOpen = true;
-    if (!this.parentPickerResults.length && !this.parentPickerTerm.trim()) {
-      this.parentPickerResults = this.parentAccounts.slice(0, 20);
-    }
   }
 
   onParentPickerBlur(): void {
@@ -1492,18 +1489,28 @@ export class AppComponent implements OnInit {
   onParentPickerInput(term: string): void {
     this.parentPickerTerm = term;
     this.parentPickerOpen = true;
-    this.admissionForm.patchValue({ parentUserId: '' });
     if (this.parentPickerTimer) clearTimeout(this.parentPickerTimer);
-    this.parentPickerTimer = setTimeout(() => this.searchParentAccounts(term), 300);
+    const search = (term || '').trim();
+    if (search.length < 2) {
+      this.parentPickerResults = [];
+      this.parentPickerLoading = false;
+      return;
+    }
+    this.parentPickerLoading = true;
+    this.parentPickerTimer = setTimeout(() => this.searchParentAccounts(search), 300);
   }
 
   searchParentAccounts(term: string): void {
-    if (!this.can('users', 'view')) return;
     const search = (term || '').trim();
+    if (search.length < 2) {
+      this.parentPickerResults = [];
+      this.parentPickerLoading = false;
+      return;
+    }
     this.parentPickerLoading = true;
     this.api
-      .listUsers({ role: 'parent', search, page: 1, pageSize: 20 })
-      .pipe(map((response) => response.data as AppUser[]))
+      .searchParents(search)
+      .pipe(map((response) => response.data ?? []))
       .subscribe({
         next: (rows) => {
           this.parentPickerResults = rows;
@@ -1516,21 +1523,93 @@ export class AppComponent implements OnInit {
       });
   }
 
-  selectParentAccount(parent: AppUser): void {
-    const id = parent.id || parent._id || '';
-    this.admissionForm.patchValue({ parentUserId: id });
-    this.parentPickerTerm = parent.email ? `${parent.name} (${parent.email})` : parent.name;
+  selectParentAccount(result: ParentSearchResult): void {
+    const patch: Record<string, unknown> = {};
+    if (result.name) patch['guardianName'] = result.name;
+    if (result.relation) patch['guardianRelation'] = result.relation;
+    if (result.phone) patch['guardianPhone'] = result.phone;
+    if (result.parentUserId && !this.editingStudentId) patch['parentUserId'] = result.parentUserId;
+    this.admissionForm.patchValue(patch);
+    this.parentPickerTerm = result.phone ? `${result.name} · ${result.phone}` : result.name;
+    this.parentPickerResults = [];
     this.parentPickerOpen = false;
   }
 
   clearParentSelection(): void {
     this.admissionForm.patchValue({ parentUserId: '' });
     this.parentPickerTerm = '';
-    this.parentPickerResults = this.parentAccounts.slice(0, 20);
+    this.parentPickerResults = [];
+    this.parentPickerOpen = false;
   }
 
-  parentInitials(parent: AppUser | null | undefined): string {
-    return (parent?.name || '?').trim().charAt(0).toUpperCase();
+  parentInitials(result: ParentSearchResult | null | undefined): string {
+    return (result?.name || '?').trim().charAt(0).toUpperCase();
+  }
+
+  showAdmissionModal = false;
+
+  openAdmissionModal(): void {
+    this.editingStudentId = '';
+    this.resetAdmissionForm();
+    this.files = {};
+    this.clearParentSelection();
+    this.loadAssignmentPickers();
+    this.message = '';
+    this.showAdmissionModal = true;
+  }
+
+  closeAdmissionModal(): void {
+    this.showAdmissionModal = false;
+    this.editingStudentId = '';
+    this.resetAdmissionForm();
+    this.files = {};
+    this.clearParentSelection();
+  }
+
+  resetAdmissionForm(): void {
+    this.admissionForm.reset({
+      admissionNumber: '',
+      firstName: '',
+      lastName: '',
+      gender: 'male',
+      dateOfBirth: '',
+      bloodGroup: '',
+      category: '',
+      nationality: 'Indian',
+      motherName: '',
+      aadhaarNumber: '',
+      udisePenId: '',
+      line1: '',
+      city: '',
+      state: '',
+      pincode: '',
+      guardianName: '',
+      guardianRelation: APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION,
+      guardianPhone: '',
+      parentUserId: '',
+      academicYear: '',
+      classRoom: '',
+      rollNumber: '',
+      studentStatus: 'active',
+      hasPreviousSchool: 'no',
+      previousSchool: '',
+      previousSchoolBoard: '',
+      previousSchoolPercentage: '',
+      previousSchoolRollNumber: '',
+      previousSchoolAddress: '',
+      previousSchoolLastClass: '',
+      previousSchoolYearOfPassing: '',
+      previousSchoolReasonForLeaving: '',
+      previousSchoolTcNumber: '',
+      previousSchoolTcDate: ''
+    });
+    const active = this.activeAcademicYear;
+    if (active?._id) this.admissionForm.patchValue({ academicYear: active._id });
+  }
+
+  closeStudentDocuments(): void {
+    this.selectedStudentId = '';
+    this.selectedStudentDocuments = [];
   }
 
   setTab(tab: TabKey): void {
@@ -2232,8 +2311,7 @@ export class AppComponent implements OnInit {
             ]
           : undefined
       };
-      this.submit(this.api.updateStudent(this.editingStudentId, payload), 'Student updated', this.admissionForm);
-      this.editingStudentId = '';
+      this.submit(this.api.updateStudent(this.editingStudentId, payload), 'Student updated', undefined, () => this.closeAdmissionModal());
       return;
     }
 
@@ -2299,8 +2377,7 @@ export class AppComponent implements OnInit {
       Array.from(otherDocuments).forEach((file) => formData.append('otherDocuments', file));
     }
 
-    this.submit(this.api.createAdmission(formData), 'Student admission saved', this.admissionForm);
-    this.files = {};
+    this.submit(this.api.createAdmission(formData), 'Student admission saved', undefined, () => this.closeAdmissionModal());
   }
 
   editStudent(student: Student): void {
@@ -2344,7 +2421,10 @@ export class AppComponent implements OnInit {
       previousSchoolTcNumber: prev?.tcNumber || '',
       previousSchoolTcDate: prev?.tcDate ? String(prev.tcDate).slice(0, 10) : ''
     });
+    this.files = {};
+    this.clearParentSelection();
     this.message = `Editing student ${this.studentName(student)}`;
+    this.showAdmissionModal = true;
   }
 
   async deactivateStudent(id: string): Promise<void> {
@@ -5559,7 +5639,7 @@ export class AppComponent implements OnInit {
       .catch((error: Error) => this.toast.error(error.message || 'Document unavailable'));
   }
 
-  private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }): void {
+  private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }, onSuccess?: () => void): void {
     if (this.submitting) return;
     this.message = '';
     this.submitting = true;
@@ -5568,6 +5648,7 @@ export class AppComponent implements OnInit {
       next: () => {
         this.toast.success(successMessage);
         if (formToReset) formToReset.reset();
+        if (onSuccess) onSuccess();
         this.refresh();
       },
       error: (error) => {

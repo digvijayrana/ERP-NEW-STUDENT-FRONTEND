@@ -372,6 +372,17 @@ export interface ErpRole {
   permissions: Record<string, ModulePermissions>;
 }
 
+export interface ParentSearchResult {
+  name: string;
+  relation?: string;
+  phone?: string;
+  email?: string;
+  parentUserId?: string;
+  studentName?: string;
+  admissionNumber?: string;
+  source?: 'guardian' | 'account';
+}
+
 export interface AuthUser {
   id: string;
   name: string;

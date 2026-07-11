@@ -28,6 +28,7 @@ import {
   WorkflowNotification,
   ReportDomain,
   ReportRow,
+  ParentSearchResult,
   Student,
   StudentProfile,
   Teacher,
@@ -184,6 +185,14 @@ export class ErpApiService {
 
   studentDetails(id: string): Observable<Student> {
     return this.http.get<Student>(`${this.baseUrl}/students/${id}`, this.options());
+  }
+
+  searchParents(term: string): Observable<ApiSuccessResponse<ParentSearchResult[]>> {
+    const params = new HttpParams().set('q', term || '');
+    return this.http.get<ApiSuccessResponse<ParentSearchResult[]>>(
+      `${this.baseUrl}/students/parents/search`,
+      { ...this.options(), params }
+    );
   }
 
   studentProfile(id: string): Observable<StudentProfile> {

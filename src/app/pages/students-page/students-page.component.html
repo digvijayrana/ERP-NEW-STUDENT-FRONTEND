@@ -3,147 +3,20 @@
     <app-spinner [show]="true" label="Loading students..."></app-spinner>
   </div>
   <ng-container *ngIf="!vm.loading || vm.students.length">
-  <form [formGroup]="vm.admissionForm" (ngSubmit)="vm.saveAdmission()" class="panel span-12">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Student</p>
-        <h3>{{ vm.editingStudentId ? 'Update student profile' : 'New admission' }}</h3>
-      </div>
-    </div>
-    <div class="form-grid">
-      <label *ngIf="vm.editingStudentId"><span class="label-text">Admission no</span><input formControlName="admissionNumber" readonly></label>
-      <label class="required"><span class="label-text">First name</span><input formControlName="firstName"></label>
-      <app-field-error [control]="vm.admissionForm.get('firstName')" label="First name"></app-field-error>
-      <label><span class="label-text">Last name</span><input formControlName="lastName"></label>
-      <label class="required"><span class="label-text">Gender</span><select formControlName="gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
-      <label class="required"><span class="label-text">Date of birth</span><input type="date" formControlName="dateOfBirth"></label>
-      <app-field-error [control]="vm.admissionForm.get('dateOfBirth')" label="Date of birth"></app-field-error>
-      <label><span class="label-text">Blood group</span>
-        <select formControlName="bloodGroup">
-          <option value="">Select</option>
-          <option value="A+">A+</option>
-          <option value="A-">A-</option>
-          <option value="B+">B+</option>
-          <option value="B-">B-</option>
-          <option value="AB+">AB+</option>
-          <option value="AB-">AB-</option>
-          <option value="O+">O+</option>
-          <option value="O-">O-</option>
-        </select>
-      </label>
-      <label><span class="label-text">Category</span>
-        <select formControlName="category">
-          <option value="">Select</option>
-          <option value="General">General</option>
-          <option value="OBC">OBC</option>
-          <option value="SC">SC</option>
-          <option value="ST">ST</option>
-          <option value="EWS">EWS</option>
-          <option value="Other">Other</option>
-        </select>
-      </label>
-      <label><span class="label-text">Nationality</span><input formControlName="nationality"></label>
-      <label><span class="label-text">Mother name</span><input formControlName="motherName"></label>
-      <label><span class="label-text">Aadhaar no</span><input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
-      <label><span class="label-text">UDISE+/PEN ID</span>
-        <div class="inline-field-actions">
-          <input formControlName="udisePenId" placeholder="UDISE or PEN ID">
-          <button type="button" class="ghost small" (click)="vm.generateUdisePenId()">Generate</button>
-          <button type="button" class="ghost small" (click)="vm.searchByUdise()">Search</button>
-        </div>
-      </label>
-      <label class="required"><span class="label-text">Address</span><input formControlName="line1"></label>
-      <app-field-error [control]="vm.admissionForm.get('line1')" label="Address"></app-field-error>
-      <label><span class="label-text">City</span><input formControlName="city"></label>
-      <label><span class="label-text">State</span><input formControlName="state"></label>
-      <label><span class="label-text">Pincode</span><input formControlName="pincode"></label>
-      <label><span class="label-text">Guardian</span>
-        <input formControlName="guardianName" list="guardian-name-suggestions" placeholder="Search or enter guardian name" autocomplete="off">
-        <datalist id="guardian-name-suggestions">
-          <option *ngFor="let name of vm.guardianSuggestions" [value]="name"></option>
-        </datalist>
-      </label>
-      <label><span class="label-text">Relation</span>
-        <select formControlName="guardianRelation">
-          <option value="Father">Father</option>
-          <option value="Mother">Mother</option>
-          <option value="Grandfather">Grandfather</option>
-          <option value="Grandmother">Grandmother</option>
-          <option value="Guardian">Guardian</option>
-          <option value="Uncle">Uncle</option>
-          <option value="Aunt">Aunt</option>
-          <option value="Brother">Brother</option>
-          <option value="Sister">Sister</option>
-          <option value="Other">Other</option>
-        </select>
-      </label>
-      <label><span class="label-text">Guardian phone</span><input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
-      <label *ngIf="!vm.editingStudentId && vm.can('users', 'view')"><span class="label-text">Link parent account</span>
-        <div class="typeahead">
-          <input
-            type="text"
-            class="typeahead-input"
-            [value]="vm.parentPickerTerm"
-            (input)="vm.onParentPickerInput($any($event.target).value)"
-            (focus)="vm.onParentPickerFocus()"
-            (blur)="vm.onParentPickerBlur()"
-            placeholder="Search parent by name or email"
-            autocomplete="off">
-          <button type="button" class="typeahead-clear" *ngIf="vm.parentPickerTerm" (click)="vm.clearParentSelection()" aria-label="Clear">&times;</button>
-          <ul class="typeahead-menu" *ngIf="vm.parentPickerOpen">
-            <li class="typeahead-empty" *ngIf="vm.parentPickerLoading">Searching…</li>
-            <li class="typeahead-empty" *ngIf="!vm.parentPickerLoading && !vm.parentPickerResults.length">No parent accounts found</li>
-            <li class="typeahead-item" *ngFor="let parent of vm.parentPickerResults" (mousedown)="vm.selectParentAccount(parent)">
-              <span class="typeahead-avatar">{{ vm.parentInitials(parent) }}</span>
-              <span class="typeahead-text"><strong>{{ parent.name }}</strong><small>{{ parent.email }}</small></span>
-            </li>
-          </ul>
-        </div>
-        <small class="field-hint">Search an existing parent login to link this student to their portal account. Leave blank to create a new guardian.</small>
-      </label>
-      <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
-      <label>Class
-        <select formControlName="classRoom">
-          <option value="">Select active class with available seats</option>
-          <option *ngFor="let room of vm.admissionClassOptions" [value]="room._id">
-            {{ room.name }}-{{ room.section }} · {{ vm.getClassAvailableCapacity(room) }} seats · {{ room.monthlyFee | currency:'INR' }}/mo
-          </option>
-        </select>
-      </label>
-      <label>Roll no<input formControlName="rollNumber"></label>
-      <label>Student status<input formControlName="studentStatus"></label>
-      <label>Transfer from another school?
-        <select formControlName="hasPreviousSchool">
-          <option value="no">No — new admission</option>
-          <option value="yes">Yes — transfer from previous school</option>
-        </select>
-      </label>
-      <ng-container *ngIf="vm.showPreviousSchoolDetails">
-        <label>Previous school name<input formControlName="previousSchool" placeholder="School name"></label>
-        <label>Board<input formControlName="previousSchoolBoard" placeholder="CBSE, ICSE, State board"></label>
-        <label>Percentage<input type="number" formControlName="previousSchoolPercentage" min="0" max="100" placeholder="e.g. 85"></label>
-        <label>Prev roll no<input formControlName="previousSchoolRollNumber" placeholder="Roll number"></label>
-        <label>Prev school address<input formControlName="previousSchoolAddress" placeholder="City, State"></label>
-        <label>Last class attended<input formControlName="previousSchoolLastClass" placeholder="e.g. Class 5"></label>
-        <label>Year of passing<input type="number" formControlName="previousSchoolYearOfPassing" placeholder="e.g. 2024" min="1990" max="2099"></label>
-        <label>Reason for leaving<input formControlName="previousSchoolReasonForLeaving" placeholder="Transfer, relocation..."></label>
-        <label>TC number<input formControlName="previousSchoolTcNumber" placeholder="Transfer certificate no."></label>
-        <label>TC date<input type="date" formControlName="previousSchoolTcDate"></label>
-        <label>Transfer certificate<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('otherDocuments', $event)"></label>
-      </ng-container>
-      <label>Photo (mandatory)<input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
-      <label>Aadhaar file<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('aadhaar', $event)"></label>
-      <label>Birth certificate (mandatory)<input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
-    </div>
-    <div class="form-actions">
-      <button type="submit" [disabled]="vm.admissionForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingStudentId ? 'Update student' : 'Save admission') }}</button>
-    </div>
-  </form>
 
-  <section class="data-card span-8">
-    <div class="section-head"><div><p class="eyebrow">Directory</p><h3>Students</h3></div></div>
+  <section class="data-card span-12">
+    <div class="section-head">
+      <div><p class="eyebrow">Directory</p><h3>Students</h3></div>
+      <button
+        type="button"
+        class="primary-btn new-admission-btn"
+        *ngIf="vm.isAdmin || vm.can('students', 'create') || vm.can('students', 'edit')"
+        (click)="vm.openAdmissionModal()">
+        <span class="btn-plus" aria-hidden="true">+</span> New admission
+      </button>
+    </div>
     <app-listing-toolbar
-      searchPlaceholder="Search adm no, name, roll, guardian, phone, aadhaar, UDISE"
+      searchPlaceholder="Search by name, phone, father name, adm no, aadhaar, UDISE"
       [searchValue]="vm.filters.studentSearch"
       [loading]="vm.isListingLoading('students')"
       (searchChange)="vm.updateListSearch('students', 'studentSearch', $event)"
@@ -152,7 +25,7 @@
       (exportPdf)="vm.exportStudentsPdf()">
       <div listing-filters class="listing-filters">
         <select class="filter-select" [value]="vm.filters.studentYear" (change)="vm.updateListFilter('students', 'studentYear', $any($event.target).value)">
-          <option value="">All years</option>
+          <option value="">All sessions</option>
           <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option>
         </select>
         <select class="filter-select" [value]="vm.filters.studentClass" (change)="vm.updateListFilter('students', 'studentClass', $any($event.target).value)">
@@ -228,7 +101,7 @@
             <td>
               <div class="table-photo" [class.has-photo]="vm.studentPhotoUrl(student)">
                 <img *ngIf="vm.studentPhotoUrl(student) as photoUrl" [src]="photoUrl" alt="">
-                <span *ngIf="!vm.studentPhotoUrl(student)">{{ student.firstName.charAt(0) }}</span>
+                <span *ngIf="!vm.studentPhotoUrl(student)">{{ (student.firstName || '?').charAt(0) }}</span>
               </div>
             </td>
             <td>{{ student.admissionNumber }}</td>
@@ -250,7 +123,7 @@
             <td [attr.colspan]="(vm.can('students', 'edit') || vm.can('transport', 'edit')) ? 9 : 8">
               <app-empty-state
                 title="No students found"
-                message="Adjust filters or register a new admission using the form above.">
+                message="Adjust the filters above or click New admission to register a student.">
               </app-empty-state>
             </td>
           </tr>
@@ -262,69 +135,273 @@
     <app-pagination-bar [vm]="vm" listKey="students" [items]="vm.sortedStudents"></app-pagination-bar>
   </section>
 
-  <section class="panel span-4 document-vault-panel">
-    <div class="section-head"><div><p class="eyebrow">Documents</p><h3>Document vault</h3></div></div>
-    <label class="vault-student-select">Select student
-      <select [value]="vm.selectedStudentId" (change)="vm.loadStudentDocuments($any($event.target).value)">
-        <option value="">Choose a student</option>
-        <option *ngFor="let student of vm.students" [value]="student._id">{{ vm.studentName(student) }} · {{ student.admissionNumber }}</option>
-      </select>
-    </label>
-    <div class="document-list" *ngIf="vm.selectedStudentDocuments.length; else noDocuments">
-      <article *ngFor="let document of vm.selectedStudentDocuments"
-               class="document-card-enhanced"
-               [class.doc-approved]="document.status === 'approved'"
-               [class.doc-rejected]="document.status === 'rejected'"
-               [class.doc-pending]="document.status === 'pending' || document.status === 'uploaded' || !document.status">
-        <div class="doc-card-header">
-          <div class="doc-card-title-wrap">
-            <span class="doc-type-icon" aria-hidden="true">📄</span>
-            <div>
-              <strong>{{ document.title }}</strong>
-              <span class="doc-card-type">{{ document.type | titlecase }}</span>
-            </div>
+  <!-- Create / edit admission modal -->
+  <div class="admission-overlay" *ngIf="vm.showAdmissionModal" (click)="vm.closeAdmissionModal()">
+    <div class="admission-modal" (click)="$event.stopPropagation()">
+      <form [formGroup]="vm.admissionForm" (ngSubmit)="vm.saveAdmission()">
+        <div class="admission-modal-header">
+          <div>
+            <p class="eyebrow">Student</p>
+            <h3>{{ vm.editingStudentId ? 'Update student profile' : 'New admission' }}</h3>
           </div>
-          <span class="status-badge doc-status" [ngClass]="document.status || 'pending'">{{ document.status || 'pending' }}</span>
+          <button type="button" class="modal-close-btn" (click)="vm.closeAdmissionModal()" aria-label="Close">&times;</button>
         </div>
 
-        <p class="doc-approved-note" *ngIf="document.status === 'approved'">
-          <span class="doc-approved-check" aria-hidden="true">✓</span> Verified and approved — view or download only.
-        </p>
+        <div class="admission-modal-body">
+          <fieldset class="form-section">
+            <legend>Personal details</legend>
+            <div class="form-grid">
+              <label *ngIf="vm.editingStudentId"><span class="label-text">Admission no</span><input formControlName="admissionNumber" readonly></label>
+              <label class="required"><span class="label-text">First name</span><input formControlName="firstName"></label>
+              <app-field-error [control]="vm.admissionForm.get('firstName')" label="First name"></app-field-error>
+              <label><span class="label-text">Last name</span><input formControlName="lastName"></label>
+              <label class="required"><span class="label-text">Gender</span><select formControlName="gender"><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
+              <label class="required"><span class="label-text">Date of birth</span><input type="date" formControlName="dateOfBirth"></label>
+              <app-field-error [control]="vm.admissionForm.get('dateOfBirth')" label="Date of birth"></app-field-error>
+              <label><span class="label-text">Blood group</span>
+                <select formControlName="bloodGroup">
+                  <option value="">Select</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </label>
+              <label><span class="label-text">Category</span>
+                <select formControlName="category">
+                  <option value="">Select</option>
+                  <option value="General">General</option>
+                  <option value="OBC">OBC</option>
+                  <option value="SC">SC</option>
+                  <option value="ST">ST</option>
+                  <option value="EWS">EWS</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label><span class="label-text">Nationality</span><input formControlName="nationality"></label>
+              <label><span class="label-text">Mother name</span><input formControlName="motherName"></label>
+              <label><span class="label-text">Aadhaar no</span><input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
+              <label><span class="label-text">UDISE+/PEN ID</span>
+                <div class="inline-field-actions">
+                  <input formControlName="udisePenId" placeholder="UDISE or PEN ID">
+                  <button type="button" class="ghost small" (click)="vm.generateUdisePenId()">Generate</button>
+                  <button type="button" class="ghost small" (click)="vm.searchByUdise()">Search</button>
+                </div>
+              </label>
+            </div>
+          </fieldset>
 
-        <p class="reject-reason" *ngIf="document.status === 'rejected' && document.rejectReason">
-          <strong>Rejection reason:</strong> {{ document.rejectReason }}
-        </p>
+          <fieldset class="form-section">
+            <legend>Address</legend>
+            <div class="form-grid">
+              <label class="required"><span class="label-text">Address</span><input formControlName="line1"></label>
+              <app-field-error [control]="vm.admissionForm.get('line1')" label="Address"></app-field-error>
+              <label><span class="label-text">City</span><input formControlName="city"></label>
+              <label><span class="label-text">State</span><input formControlName="state"></label>
+              <label><span class="label-text">Pincode</span><input formControlName="pincode"></label>
+            </div>
+          </fieldset>
 
-        <div class="doc-action-row doc-primary-actions">
-          <button type="button" class="doc-view-btn" (click)="vm.openStudentDocument(document)">
-            <span class="doc-view-icon" aria-hidden="true">👁</span> Preview
-          </button>
-          <button type="button" class="doc-download-btn" (click)="vm.downloadStudentDocument(document)">
-            <span aria-hidden="true">⬇</span> Download
-          </button>
+          <fieldset class="form-section">
+            <legend>Guardian &amp; parent</legend>
+            <div class="form-grid">
+              <label class="span-full"><span class="label-text">Search existing parent / guardian</span>
+                <div class="typeahead">
+                  <input
+                    type="text"
+                    class="typeahead-input"
+                    [value]="vm.parentPickerTerm"
+                    (input)="vm.onParentPickerInput($any($event.target).value)"
+                    (focus)="vm.onParentPickerFocus()"
+                    (blur)="vm.onParentPickerBlur()"
+                    placeholder="Search by name or phone number"
+                    autocomplete="off">
+                  <button type="button" class="typeahead-clear" *ngIf="vm.parentPickerTerm" (click)="vm.clearParentSelection()" aria-label="Clear">&times;</button>
+                  <ul class="typeahead-menu" *ngIf="vm.parentPickerOpen">
+                    <li class="typeahead-empty" *ngIf="vm.parentPickerLoading">Searching…</li>
+                    <li class="typeahead-empty" *ngIf="!vm.parentPickerLoading && vm.parentPickerTerm.trim().length < 2">Type at least 2 characters (name or phone)</li>
+                    <li class="typeahead-empty" *ngIf="!vm.parentPickerLoading && vm.parentPickerTerm.trim().length >= 2 && !vm.parentPickerResults.length">No matching parent or guardian found</li>
+                    <li class="typeahead-item" *ngFor="let result of vm.parentPickerResults" (mousedown)="vm.selectParentAccount(result)">
+                      <span class="typeahead-avatar">{{ vm.parentInitials(result) }}</span>
+                      <span class="typeahead-text">
+                        <strong>{{ result.name }}</strong>
+                        <small>
+                          <ng-container *ngIf="result.phone">{{ result.phone }}</ng-container>
+                          <ng-container *ngIf="result.relation"> · {{ result.relation }}</ng-container>
+                          <ng-container *ngIf="result.email">{{ result.email }}</ng-container>
+                          <ng-container *ngIf="result.source === 'account'"> · Portal account</ng-container>
+                          <ng-container *ngIf="result.admissionNumber"> · {{ result.admissionNumber }}</ng-container>
+                        </small>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <small class="field-hint">Find an existing guardian to auto-fill their details, or fill the fields below for a new guardian.</small>
+              </label>
+              <label><span class="label-text">Guardian</span>
+                <input formControlName="guardianName" list="guardian-name-suggestions" placeholder="Guardian / father name" autocomplete="off">
+                <datalist id="guardian-name-suggestions">
+                  <option *ngFor="let name of vm.guardianSuggestions" [value]="name"></option>
+                </datalist>
+              </label>
+              <label><span class="label-text">Relation</span>
+                <select formControlName="guardianRelation">
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Grandfather">Grandfather</option>
+                  <option value="Grandmother">Grandmother</option>
+                  <option value="Guardian">Guardian</option>
+                  <option value="Uncle">Uncle</option>
+                  <option value="Aunt">Aunt</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label><span class="label-text">Guardian phone</span><input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+              <p class="parent-link-chip span-full" *ngIf="!vm.editingStudentId && vm.admissionForm.get('parentUserId')?.value">
+                <span class="parent-link-icon" aria-hidden="true">&#10003;</span> This student will be linked to the selected parent portal account.
+              </p>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend>Academic</legend>
+            <div class="form-grid">
+              <label><span class="label-text">Academic year</span><select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
+              <label><span class="label-text">Class</span>
+                <select formControlName="classRoom">
+                  <option value="">Select active class with available seats</option>
+                  <option *ngFor="let room of vm.admissionClassOptions" [value]="room._id">
+                    {{ room.name }}-{{ room.section }} · {{ vm.getClassAvailableCapacity(room) }} seats · {{ room.monthlyFee | currency:'INR' }}/mo
+                  </option>
+                </select>
+              </label>
+              <label><span class="label-text">Roll no</span><input formControlName="rollNumber"></label>
+              <label><span class="label-text">Student status</span><input formControlName="studentStatus"></label>
+              <label class="span-full"><span class="label-text">Transfer from another school?</span>
+                <select formControlName="hasPreviousSchool">
+                  <option value="no">No — new admission</option>
+                  <option value="yes">Yes — transfer from previous school</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section" *ngIf="vm.showPreviousSchoolDetails">
+            <legend>Previous school</legend>
+            <div class="form-grid">
+              <label><span class="label-text">Previous school name</span><input formControlName="previousSchool" placeholder="School name"></label>
+              <label><span class="label-text">Board</span><input formControlName="previousSchoolBoard" placeholder="CBSE, ICSE, State board"></label>
+              <label><span class="label-text">Percentage</span><input type="number" formControlName="previousSchoolPercentage" min="0" max="100" placeholder="e.g. 85"></label>
+              <label><span class="label-text">Prev roll no</span><input formControlName="previousSchoolRollNumber" placeholder="Roll number"></label>
+              <label><span class="label-text">Prev school address</span><input formControlName="previousSchoolAddress" placeholder="City, State"></label>
+              <label><span class="label-text">Last class attended</span><input formControlName="previousSchoolLastClass" placeholder="e.g. Class 5"></label>
+              <label><span class="label-text">Year of passing</span><input type="number" formControlName="previousSchoolYearOfPassing" placeholder="e.g. 2024" min="1990" max="2099"></label>
+              <label><span class="label-text">Reason for leaving</span><input formControlName="previousSchoolReasonForLeaving" placeholder="Transfer, relocation..."></label>
+              <label><span class="label-text">TC number</span><input formControlName="previousSchoolTcNumber" placeholder="Transfer certificate no."></label>
+              <label><span class="label-text">TC date</span><input type="date" formControlName="previousSchoolTcDate"></label>
+              <label><span class="label-text">Transfer certificate</span><input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('otherDocuments', $event)"></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend>Documents</legend>
+            <div class="form-grid">
+              <label><span class="label-text">Photo (mandatory)</span><input type="file" accept="image/png,image/jpeg" (change)="vm.onFile('photo', $event)"></label>
+              <label><span class="label-text">Aadhaar file</span><input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('aadhaar', $event)"></label>
+              <label><span class="label-text">Birth certificate (mandatory)</span><input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.onFile('birthCertificate', $event)"></label>
+            </div>
+          </fieldset>
         </div>
 
-        <div class="doc-action-row doc-admin-row" *ngIf="vm.isAdmin && document.status !== 'approved'">
-          <label class="replace-doc-label">
-            <span class="replace-doc-text">Replace file</span>
-            <input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.replaceStudentDocument(document._id!, $event)">
-          </label>
-          <button type="button" class="danger-btn small" (click)="vm.deleteStudentDocument(document._id!)">Delete</button>
+        <div class="admission-modal-footer">
+          <button type="button" class="ghost" (click)="vm.closeAdmissionModal()">Cancel</button>
+          <button type="submit" class="primary-btn" [disabled]="vm.admissionForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingStudentId ? 'Update student' : 'Save admission') }}</button>
         </div>
-
-        <div class="verify-actions" *ngIf="vm.isAdmin && document.status !== 'approved'">
-          <button type="button" class="ghost small success-btn" (click)="vm.verifyStudentDoc(document._id!, 'approve')">Approve</button>
-          <input [(ngModel)]="vm.verifyDocReason" placeholder="Rejection reason (required to reject)" class="reject-input">
-          <button type="button" class="danger-btn small" (click)="vm.verifyStudentDoc(document._id!, 'reject')">Reject</button>
-        </div>
-      </article>
+      </form>
     </div>
-    <ng-template #noDocuments>
-      <app-empty-state
-        title="No documents selected"
-        message="Choose a student from the directory to review uploaded files.">
-      </app-empty-state>
-    </ng-template>
-  </section>
+  </div>
+
+  <!-- Document vault modal -->
+  <div class="admission-overlay" *ngIf="vm.selectedStudentId" (click)="vm.closeStudentDocuments()">
+    <div class="admission-modal doc-vault-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Documents</p>
+          <h3>Document vault</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeStudentDocuments()" aria-label="Close">&times;</button>
+      </div>
+      <div class="admission-modal-body">
+        <label class="vault-student-select"><span class="label-text">Select student</span>
+          <select [value]="vm.selectedStudentId" (change)="vm.loadStudentDocuments($any($event.target).value)">
+            <option value="">Choose a student</option>
+            <option *ngFor="let student of vm.studentPickerOptions" [value]="student._id">{{ vm.studentName(student) }} · {{ student.admissionNumber }}</option>
+          </select>
+        </label>
+        <div class="document-list" *ngIf="vm.selectedStudentDocuments.length; else noDocuments">
+          <article *ngFor="let document of vm.selectedStudentDocuments"
+                   class="document-card-enhanced"
+                   [class.doc-approved]="document.status === 'approved'"
+                   [class.doc-rejected]="document.status === 'rejected'"
+                   [class.doc-pending]="document.status === 'pending' || document.status === 'uploaded' || !document.status">
+            <div class="doc-card-header">
+              <div class="doc-card-title-wrap">
+                <span class="doc-type-icon" aria-hidden="true">📄</span>
+                <div>
+                  <strong>{{ document.title }}</strong>
+                  <span class="doc-card-type">{{ document.type | titlecase }}</span>
+                </div>
+              </div>
+              <span class="status-badge doc-status" [ngClass]="document.status || 'pending'">{{ document.status || 'pending' }}</span>
+            </div>
+
+            <p class="doc-approved-note" *ngIf="document.status === 'approved'">
+              <span class="doc-approved-check" aria-hidden="true">✓</span> Verified and approved — view or download only.
+            </p>
+
+            <p class="reject-reason" *ngIf="document.status === 'rejected' && document.rejectReason">
+              <strong>Rejection reason:</strong> {{ document.rejectReason }}
+            </p>
+
+            <div class="doc-action-row doc-primary-actions">
+              <button type="button" class="doc-view-btn" (click)="vm.openStudentDocument(document)">
+                <span class="doc-view-icon" aria-hidden="true">👁</span> Preview
+              </button>
+              <button type="button" class="doc-download-btn" (click)="vm.downloadStudentDocument(document)">
+                <span aria-hidden="true">⬇</span> Download
+              </button>
+            </div>
+
+            <div class="doc-action-row doc-admin-row" *ngIf="vm.isAdmin && document.status !== 'approved'">
+              <label class="replace-doc-label">
+                <span class="replace-doc-text">Replace file</span>
+                <input type="file" accept="image/png,image/jpeg,application/pdf" (change)="vm.replaceStudentDocument(document._id!, $event)">
+              </label>
+              <button type="button" class="danger-btn small" (click)="vm.deleteStudentDocument(document._id!)">Delete</button>
+            </div>
+
+            <div class="verify-actions" *ngIf="vm.isAdmin && document.status !== 'approved'">
+              <button type="button" class="ghost small success-btn" (click)="vm.verifyStudentDoc(document._id!, 'approve')">Approve</button>
+              <input [(ngModel)]="vm.verifyDocReason" placeholder="Rejection reason (required to reject)" class="reject-input">
+              <button type="button" class="danger-btn small" (click)="vm.verifyStudentDoc(document._id!, 'reject')">Reject</button>
+            </div>
+          </article>
+        </div>
+        <ng-template #noDocuments>
+          <app-empty-state
+            title="No documents uploaded"
+            message="This student has no documents in the vault yet.">
+          </app-empty-state>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
   </ng-container>
 </section>
