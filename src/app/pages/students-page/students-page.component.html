@@ -32,10 +32,6 @@
           <option value="">All classes</option>
           <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
         </select>
-        <select class="filter-select" [value]="vm.filters.studentSection" (change)="vm.updateListFilter('students', 'studentSection', $any($event.target).value)">
-          <option value="">All sections</option>
-          <option *ngFor="let section of vm.studentSectionOptions" [value]="section">{{ section }}</option>
-        </select>
         <select class="filter-select" [value]="vm.filters.studentStatus" (change)="vm.updateListFilter('students', 'studentStatus', $any($event.target).value)">
           <option value="">All status</option>
           <option value="active">Active</option>
@@ -263,6 +259,10 @@
                 </select>
               </label>
               <label><span class="label-text">Guardian phone</span><input formControlName="guardianPhone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+              <label><span class="label-text">Guardian email</span>
+                <input formControlName="guardianEmail" type="email" placeholder="Optional — enables email login &amp; reset" autocomplete="off">
+              </label>
+              <small class="field-hint span-full">Parent portal login: if an email is given, the parent verifies it and sets a password. Otherwise the parent logs in with their <strong>phone number</strong> and a temporary password shown after admission.</small>
               <p class="parent-link-chip span-full" *ngIf="!vm.editingStudentId && vm.admissionForm.get('parentUserId')?.value">
                 <span class="parent-link-icon" aria-hidden="true">&#10003;</span> This student will be linked to the selected parent portal account.
               </p>
@@ -324,6 +324,53 @@
           <button type="submit" class="primary-btn" [disabled]="vm.admissionForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingStudentId ? 'Update student' : 'Save admission') }}</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Login credentials created modal -->
+  <div class="admission-overlay" *ngIf="vm.admissionCredentials" (click)="vm.closeAdmissionCredentials()">
+    <div class="admission-modal credentials-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Login credentials</p>
+          <h3>Accounts created</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeAdmissionCredentials()" aria-label="Close">&times;</button>
+      </div>
+      <div class="admission-modal-body">
+        <p class="dash-sub">Share these credentials securely. Passwords must be changed on first login.</p>
+
+        <div class="cred-card" *ngIf="vm.admissionCredentials?.student as sc">
+          <h4>Student login<span *ngIf="vm.admissionCredentials?.studentName"> · {{ vm.admissionCredentials?.studentName }}</span></h4>
+          <div class="cred-row"><span>Username</span><strong>{{ sc.username }}</strong></div>
+          <div class="cred-row"><span>Temporary password</span><strong>{{ sc.temporaryPassword }}</strong></div>
+          <p class="cred-hint">Student signs in with the username and temporary password, then sets a new password.</p>
+        </div>
+
+        <div class="cred-card" *ngIf="vm.admissionCredentials?.parent as pc">
+          <h4>Parent login</h4>
+          <!-- Newly created phone-based account -->
+          <ng-container *ngIf="pc.mode === 'phone' && !pc.existing">
+            <div class="cred-row"><span>Login (phone)</span><strong>{{ pc.username }}</strong></div>
+            <div class="cred-row"><span>Temporary password</span><strong>{{ pc.temporaryPassword }}</strong></div>
+            <p class="cred-hint">Parent signs in on the Parent portal using the phone number and temporary password, then sets a new password.</p>
+          </ng-container>
+          <!-- Newly created email-based account -->
+          <ng-container *ngIf="pc.mode === 'email' && !pc.existing">
+            <div class="cred-row"><span>Login (email)</span><strong>{{ pc.email }}</strong></div>
+            <p class="cred-hint" *ngIf="pc.verificationEmailSent">A verification email was sent to {{ pc.email }}. The parent verifies it, sets a password, then signs in.</p>
+            <p class="cred-hint" *ngIf="!pc.verificationEmailSent">Email is not configured on the server, so the verification email could not be sent. Configure SMTP, or the parent can use "Forgot password" once email works.</p>
+          </ng-container>
+          <!-- Existing parent account (sibling already admitted) -->
+          <ng-container *ngIf="pc.existing">
+            <div class="cred-row"><span>Login</span><strong>{{ pc.username || pc.email }}</strong></div>
+            <p class="cred-hint">This parent already has an account (another child is linked). They use their existing password — or "Forgot password" to reset it. This child is now linked to that account.</p>
+          </ng-container>
+        </div>
+      </div>
+      <div class="admission-modal-footer">
+        <button type="button" class="primary-btn" (click)="vm.closeAdmissionCredentials()">Done</button>
+      </div>
     </div>
   </div>
 

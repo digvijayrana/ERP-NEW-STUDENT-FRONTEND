@@ -393,8 +393,8 @@ export class AppComponent implements OnInit {
   readonly loginRoles: Array<{ key: UserRole; label: string; description: string; placeholder: string; hint: string }> = [
     { key: 'admin', label: 'Administrator', description: 'Full school control', placeholder: 'admin@schoolerp.local', hint: 'Manage admissions, finance, payroll, and users.' },
     { key: 'teacher', label: 'Teacher', description: 'Classes & AI exams', placeholder: 'teacher@schoolerp.local', hint: 'Mark attendance, build timetables, and publish unit tests.' },
-    { key: 'student', label: 'Student', description: 'Learning portal', placeholder: 'student@schoolerp.local', hint: 'View fees, timetable, and attempt AI-generated exams.' },
-    { key: 'parent', label: 'Parent', description: 'Child progress', placeholder: 'parent@schoolerp.local', hint: 'Track your child attendance, fees, and exam results.' }
+    { key: 'student', label: 'Student', description: 'Learning portal', placeholder: 'Username (given at admission)', hint: 'Sign in with the username and temporary password from admission.' },
+    { key: 'parent', label: 'Parent', description: 'Child progress', placeholder: 'Phone number or email', hint: 'Sign in with your phone number (or email) and password.' }
   ];
 
   readonly allTabs: Array<{ key: TabKey; label: string; icon: TabIcon; roles: UserRole[] }> = [
@@ -415,7 +415,7 @@ export class AppComponent implements OnInit {
   ];
 
   loginForm = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required]],
     password: ['', Validators.required]
   });
 
@@ -436,6 +436,20 @@ export class AppComponent implements OnInit {
     newPassword: ['', Validators.required],
     confirmPassword: ['', Validators.required]
   });
+
+  forgotForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    otp: [''],
+    newPassword: [''],
+    confirmPassword: ['']
+  });
+
+  showForgotPassword = false;
+  forgotStep: 'request' | 'reset' = 'request';
+  forgotLoading = false;
+  forgotMessage = '';
+  forgotError = '';
+  forgotDevOtp = '';
 
   showChangePasswordPanel = false;
   private lastActivityAt = Date.now();
@@ -489,6 +503,7 @@ export class AppComponent implements OnInit {
     guardianName: ['', Validators.required],
     guardianRelation: [APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION, Validators.required],
     guardianPhone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
+    guardianEmail: ['', Validators.email],
     parentUserId: [''],
     academicYear: ['', Validators.required],
     classRoom: ['', Validators.required],
@@ -818,6 +833,86 @@ export class AppComponent implements OnInit {
         this.refresh();
       },
       error: (error) => (this.message = error.error?.message || 'Login failed. Check email and password.')
+    });
+  }
+
+  openForgotPassword(): void {
+    this.showForgotPassword = true;
+    this.forgotStep = 'request';
+    this.forgotMessage = '';
+    this.forgotError = '';
+    this.forgotDevOtp = '';
+    this.forgotForm.reset({
+      email: this.loginForm.get('email')?.value || '',
+      otp: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+  }
+
+  closeForgotPassword(): void {
+    this.showForgotPassword = false;
+    this.forgotLoading = false;
+    this.forgotForm.reset({ email: '', otp: '', newPassword: '', confirmPassword: '' });
+  }
+
+  requestResetOtp(): void {
+    const email = String(this.forgotForm.get('email')?.value || '').trim();
+    if (!email) {
+      this.forgotError = 'Please enter your registered email address.';
+      return;
+    }
+    this.forgotLoading = true;
+    this.forgotError = '';
+    this.forgotMessage = '';
+    this.api.forgotPassword(email).subscribe({
+      next: (res) => {
+        this.forgotLoading = false;
+        this.forgotStep = 'reset';
+        this.forgotDevOtp = res.devOtp || '';
+        if (res.emailSent) {
+          this.forgotMessage = `We've emailed a one-time code to ${email}. It expires in ${res.expiresInMinutes ?? 10} minutes.`;
+        } else if (res.devOtp) {
+          this.forgotMessage = 'Email is not configured on the server, so the code is shown below (development mode).';
+          this.forgotForm.patchValue({ otp: res.devOtp });
+        } else {
+          this.forgotMessage = res.message || 'If an account exists for that email, a one-time code has been sent.';
+        }
+      },
+      error: (error) => {
+        this.forgotLoading = false;
+        this.forgotError = error.error?.message || 'Could not send the reset code. Please try again.';
+      }
+    });
+  }
+
+  submitResetPassword(): void {
+    const { email, otp, newPassword, confirmPassword } = this.forgotForm.getRawValue();
+    this.forgotError = '';
+    if (!otp || String(otp).trim().length < 4) {
+      this.forgotError = 'Enter the code sent to your email.';
+      return;
+    }
+    if (!newPassword) {
+      this.forgotError = 'Enter a new password.';
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      this.forgotError = 'Passwords do not match.';
+      return;
+    }
+    this.forgotLoading = true;
+    this.api.resetPassword(String(email || '').trim(), String(otp).trim(), String(newPassword)).subscribe({
+      next: () => {
+        this.forgotLoading = false;
+        this.toast.success('Password reset successfully. Please sign in with your new password.');
+        this.loginForm.patchValue({ email: String(email || '').trim(), password: '' });
+        this.closeForgotPassword();
+      },
+      error: (error) => {
+        this.forgotLoading = false;
+        this.forgotError = error.error?.message || 'Could not reset password. Check the code and try again.';
+      }
     });
   }
 
@@ -1528,6 +1623,7 @@ export class AppComponent implements OnInit {
     if (result.name) patch['guardianName'] = result.name;
     if (result.relation) patch['guardianRelation'] = result.relation;
     if (result.phone) patch['guardianPhone'] = result.phone;
+    if (result.email) patch['guardianEmail'] = result.email;
     if (result.parentUserId && !this.editingStudentId) patch['parentUserId'] = result.parentUserId;
     this.admissionForm.patchValue(patch);
     this.parentPickerTerm = result.phone ? `${result.name} · ${result.phone}` : result.name;
@@ -1586,6 +1682,7 @@ export class AppComponent implements OnInit {
       guardianName: '',
       guardianRelation: APP_CONSTANTS.DEFAULT_GUARDIAN_RELATION,
       guardianPhone: '',
+      guardianEmail: '',
       parentUserId: '',
       academicYear: '',
       classRoom: '',
@@ -1687,6 +1784,19 @@ export class AppComponent implements OnInit {
 
   openStudentProfile(studentId: string): void {
     this.loadStudentProfile(studentId);
+  }
+
+  // Resolve the best avatar URL for the profile hero: an http(s) URL is usable
+  // directly; otherwise build an authenticated stream URL from the photo doc id.
+  get profilePhotoSrc(): string | null {
+    const student = this.studentProfile?.student;
+    if (!student) return null;
+    const url = student.photoUrl || '';
+    if (url.startsWith('http')) return url;
+    const docId = student.photoDocumentId;
+    const studentId = this.profileStudentId;
+    if (docId && studentId) return this.api.studentDocumentImageUrl(studentId, docId);
+    return null;
   }
 
   openMyProfile(): void {
@@ -2283,6 +2393,7 @@ export class AppComponent implements OnInit {
             name: value.guardianName,
             relation: value.guardianRelation,
             phone: value.guardianPhone,
+            email: value.guardianEmail || undefined,
             isPrimary: true
           }
         ],
@@ -2340,6 +2451,7 @@ export class AppComponent implements OnInit {
           name: value.guardianName,
           relation: value.guardianRelation,
           phone: value.guardianPhone,
+          email: value.guardianEmail || undefined,
           isPrimary: true
         }
       ],
@@ -2377,7 +2489,38 @@ export class AppComponent implements OnInit {
       Array.from(otherDocuments).forEach((file) => formData.append('otherDocuments', file));
     }
 
-    this.submit(this.api.createAdmission(formData), 'Student admission saved', undefined, () => this.closeAdmissionModal());
+    this.submit(this.api.createAdmission(formData), 'Student admission saved', undefined, (response) => {
+      this.closeAdmissionModal();
+      this.showAdmissionCredentials(response);
+    });
+  }
+
+  admissionCredentials: {
+    studentName?: string;
+    student?: { username?: string; temporaryPassword?: string };
+    parent?: { mode?: string; existing?: boolean; username?: string; temporaryPassword?: string; email?: string; verificationEmailSent?: boolean };
+  } | null = null;
+
+  private showAdmissionCredentials(response: unknown): void {
+    const res = (response || {}) as {
+      firstName?: string;
+      lastName?: string;
+      studentCredentials?: { username?: string; temporaryPassword?: string } | null;
+      parentCredentials?: { mode?: string; existing?: boolean; username?: string; temporaryPassword?: string; email?: string; verificationEmailSent?: boolean } | null;
+    };
+    if (!res.studentCredentials && !res.parentCredentials) {
+      this.admissionCredentials = null;
+      return;
+    }
+    this.admissionCredentials = {
+      studentName: [res.firstName, res.lastName].filter(Boolean).join(' ').trim(),
+      student: res.studentCredentials || undefined,
+      parent: res.parentCredentials || undefined
+    };
+  }
+
+  closeAdmissionCredentials(): void {
+    this.admissionCredentials = null;
   }
 
   editStudent(student: Student): void {
@@ -2405,6 +2548,7 @@ export class AppComponent implements OnInit {
       guardianName: guardian?.name || '',
       guardianRelation: guardian?.relation || 'Father',
       guardianPhone: guardian?.phone || '',
+      guardianEmail: guardian?.email || '',
       academicYear: typeof latest?.academicYear === 'string' ? latest.academicYear : latest?.academicYear?._id || '',
       classRoom: typeof latest?.classRoom === 'string' ? latest.classRoom : latest?.classRoom?._id || '',
       rollNumber: latest?.rollNumber || '',
@@ -2510,7 +2654,10 @@ export class AppComponent implements OnInit {
 
   studentPhotoUrl(student: Student): string | null {
     const photo = student.documents?.find((d) => d.type === 'photo');
-    return photo?.fileUrl || null;
+    if (!photo?._id || !student._id) return null;
+    // Serve via the authenticated stream endpoint; raw fileUrl may be a
+    // non-browser scheme (e.g. local://) or a protected/S3 key.
+    return this.api.studentDocumentImageUrl(student._id, photo._id);
   }
 
   get studentSectionOptions(): string[] {
@@ -5639,16 +5786,16 @@ export class AppComponent implements OnInit {
       .catch((error: Error) => this.toast.error(error.message || 'Document unavailable'));
   }
 
-  private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }, onSuccess?: () => void): void {
+  private submit(request: Observable<unknown>, successMessage: string, formToReset?: { reset: () => void }, onSuccess?: (response: unknown) => void): void {
     if (this.submitting) return;
     this.message = '';
     this.submitting = true;
     this.loading = true;
     request.subscribe({
-      next: () => {
+      next: (response) => {
         this.toast.success(successMessage);
         if (formToReset) formToReset.reset();
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(response);
         this.refresh();
       },
       error: (error) => {

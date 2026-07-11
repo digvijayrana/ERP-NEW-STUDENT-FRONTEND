@@ -29,9 +29,9 @@
   <ng-container *ngIf="vm.studentProfile as p">
     <section class="profile-hero span-12">
       <div class="profile-hero-left">
-        <div class="profile-avatar" [class.has-photo]="p.student.photoUrl">
-          <img *ngIf="p.student.photoUrl" [src]="p.student.photoUrl" alt="Student photo">
-          <span *ngIf="!p.student.photoUrl">{{ p.student.firstName.charAt(0) }}{{ p.student.lastName?.charAt(0) || '' }}</span>
+        <div class="profile-avatar" [class.has-photo]="vm.profilePhotoSrc">
+          <img *ngIf="vm.profilePhotoSrc as photo" [src]="photo" alt="Student photo">
+          <span *ngIf="!vm.profilePhotoSrc">{{ p.student.firstName.charAt(0) }}{{ p.student.lastName?.charAt(0) || '' }}</span>
         </div>
         <div>
           <p class="eyebrow">Student profile</p>

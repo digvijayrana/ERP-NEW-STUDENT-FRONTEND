@@ -486,18 +486,129 @@ button.ghost {
   z-index: 2;
 }
 
+/* ── Login credentials modal ── */
+.credentials-modal {
+  max-width: 480px;
+}
+
+.cred-card {
+  background: var(--surface-muted, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+}
+
+.cred-card h4 {
+  margin: 0 0 var(--space-3);
+}
+
+.cred-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+}
+
+.cred-row > span {
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-caption);
+}
+
+.cred-row > strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-body);
+  letter-spacing: 0.02em;
+}
+
+.cred-hint {
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-caption);
+  margin: var(--space-2) 0 0;
+}
+
+/* ── Forgot password (OTP) ── */
+.forgot-link {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--primary, #0f766e);
+  cursor: pointer;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  justify-self: center;
+  margin-top: calc(-1 * var(--space-2));
+  padding: 0 !important;
+  text-align: center;
+  text-decoration: underline;
+  width: auto !important;
+}
+
+.forgot-link:hover {
+  color: var(--primary-strong, #0b5c55);
+  text-decoration: underline;
+}
+
+.forgot-modal {
+  max-width: 460px;
+}
+
+.forgot-modal .field-label {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.forgot-modal .field-label > span {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  color: var(--primary, #0f766e);
+  cursor: pointer;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  padding: 0;
+}
+
+.link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.link-btn:disabled {
+  color: var(--text-muted, #94a3b8);
+  cursor: not-allowed;
+}
+
+.dev-otp-hint {
+  background: var(--warning-soft, #fef3c7);
+  border-radius: 8px;
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-caption);
+  margin: var(--space-2) 0;
+  padding: 8px 12px;
+}
+
+.status.ok {
+  color: var(--success, #16a34a);
+}
+
 .table-actions {
-  align-content: start;
-  display: grid;
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  grid-template-columns: repeat(2, minmax(84px, 1fr));
-  justify-items: stretch;
 }
 
 .table-actions .action-btn {
   justify-content: center;
   min-width: 0;
-  width: 100%;
+  width: auto;
 }
 
 /* ── Status badges ── */

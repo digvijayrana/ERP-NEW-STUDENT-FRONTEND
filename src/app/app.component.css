@@ -1837,6 +1837,8 @@ p {
   margin-top: 4px;
 }
 
+
+
 .verify-actions {
   display: flex;
   flex-wrap: wrap;
@@ -4968,4 +4970,25 @@ tr.ineligible {
   align-items: center;
   display: flex;
   gap: 8px;
+}
+
+.forgot-password-container {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin: 8px 0 16px;
+}
+
+.forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }

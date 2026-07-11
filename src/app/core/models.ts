@@ -60,7 +60,7 @@ export interface Student {
   udisePenId?: string;
   status: string;
   address?: { line1: string; city: string; state: string; pincode: string };
-  guardians: Array<{ name: string; relation: string; phone: string; isPrimary?: boolean }>;
+  guardians: Array<{ name: string; relation: string; phone: string; email?: string; isPrimary?: boolean }>;
   documents?: Array<{ _id?: string; type: string; title: string; fileUrl?: string; status?: string; uploadedAt?: string }>;
   previousSchoolDetails?: {
     schoolName?: string;
@@ -577,7 +577,7 @@ export interface ExamClassReport {
 }
 
 export interface StudentProfile {
-  student: Student & { photoUrl?: string | null; admissionDate?: string; updatedAt?: string };
+  student: Student & { photoUrl?: string | null; photoDocumentId?: string | null; admissionDate?: string; updatedAt?: string };
   academic: {
     className: string;
     rollNumber: string;

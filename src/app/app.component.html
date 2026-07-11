@@ -31,13 +31,16 @@
 
       <form [formGroup]="loginForm" (ngSubmit)="login()">
         <label class="field-label">
-          <span>Email address</span>
-          <input type="email" formControlName="email" [placeholder]="selectedRolePlaceholder" autocomplete="username">
+          <span>Email, username or phone</span>
+          <input type="text" formControlName="email" [placeholder]="selectedRolePlaceholder" autocomplete="username">
         </label>
         <label class="field-label">
           <span>Password</span>
           <input type="password" formControlName="password" placeholder="Enter your password" autocomplete="current-password">
         </label>
+        <div class="forgot-password-container">
+            <p type="button" class="forgot-link" (click)="openForgotPassword()">Forgot password?</p>
+        </div>
         <button type="submit" class="login-submit" [disabled]="loginForm.invalid">
           Sign in as {{ selectedRoleLabel }}
         </button>
@@ -45,6 +48,56 @@
 
       <p class="status error" *ngIf="message">{{ message }}</p>
     </section>
+  </div>
+
+  <!-- Forgot password (OTP) overlay -->
+  <div class="admission-overlay forgot-overlay" *ngIf="showForgotPassword" (click)="closeForgotPassword()">
+    <div class="admission-modal forgot-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Account recovery</p>
+          <h3>{{ forgotStep === 'request' ? 'Forgot password' : 'Enter code &amp; new password' }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeForgotPassword()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="admission-modal-body" [formGroup]="forgotForm">
+        <ng-container *ngIf="forgotStep === 'request'">
+          <p class="dash-sub">Enter your registered email and we'll send a one-time verification code (OTP) to reset your password.</p>
+          <label class="field-label"><span>Email address</span>
+            <input type="email" formControlName="email" placeholder="you@example.com" autocomplete="email">
+          </label>
+        </ng-container>
+
+        <ng-container *ngIf="forgotStep === 'reset'">
+          <p class="dash-sub">We sent a one-time code to <strong>{{ forgotForm.get('email')?.value }}</strong>. Enter it below with your new password.</p>
+          <label class="field-label"><span>Verification code (OTP)</span>
+            <input type="text" formControlName="otp" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
+          </label>
+          <label class="field-label"><span>New password</span>
+            <input type="password" formControlName="newPassword" placeholder="Enter a new password" autocomplete="new-password">
+          </label>
+          <label class="field-label"><span>Confirm new password</span>
+            <input type="password" formControlName="confirmPassword" placeholder="Re-enter new password" autocomplete="new-password">
+          </label>
+          <p class="dev-otp-hint" *ngIf="forgotDevOtp">Dev mode (email not configured): your code is <strong>{{ forgotDevOtp }}</strong></p>
+          <button type="button" class="link-btn" (click)="requestResetOtp()" [disabled]="forgotLoading">Resend code</button>
+        </ng-container>
+
+        <p class="status ok" *ngIf="forgotMessage && !forgotError">{{ forgotMessage }}</p>
+        <p class="status error" *ngIf="forgotError">{{ forgotError }}</p>
+      </div>
+
+      <div class="admission-modal-footer">
+        <button type="button" class="ghost" (click)="closeForgotPassword()">Cancel</button>
+        <button type="button" class="primary-btn" *ngIf="forgotStep === 'request'" (click)="requestResetOtp()" [disabled]="forgotLoading || forgotForm.get('email')?.invalid">
+          {{ forgotLoading ? 'Sending…' : 'Send code' }}
+        </button>
+        <button type="button" class="primary-btn" *ngIf="forgotStep === 'reset'" (click)="submitResetPassword()" [disabled]="forgotLoading">
+          {{ forgotLoading ? 'Resetting…' : 'Reset password' }}
+        </button>
+      </div>
+    </div>
   </div>
 </main>
 

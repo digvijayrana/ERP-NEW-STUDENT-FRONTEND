@@ -57,6 +57,28 @@ export class ErpApiService {
     return this.http.post<AuthResponse>(`${this.baseUrl}/auth/change-password`, { currentPassword, newPassword }, this.options());
   }
 
+  verifyEmail(token: string, password?: string): Observable<{ verified: boolean; passwordSet: boolean; email: string }> {
+    return this.http.post<{ verified: boolean; passwordSet: boolean; email: string }>(
+      `${this.baseUrl}/auth/verify-email`, { token, password });
+  }
+
+  resendVerification(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/auth/resend-verification`, { email });
+  }
+
+  forgotPassword(email: string): Observable<{ message: string; expiresInMinutes?: number; emailSent?: boolean; devOtp?: string }> {
+    return this.http.post<{ message: string; expiresInMinutes?: number; emailSent?: boolean; devOtp?: string }>(
+      `${this.baseUrl}/auth/forgot-password`, { email });
+  }
+
+  verifyResetOtp(email: string, otp: string): Observable<{ valid: boolean; message?: string }> {
+    return this.http.post<{ valid: boolean; message?: string }>(`${this.baseUrl}/auth/verify-reset-otp`, { email, otp });
+  }
+
+  resetPassword(email: string, otp: string, password: string): Observable<{ reset: boolean }> {
+    return this.http.post<{ reset: boolean }>(`${this.baseUrl}/auth/reset-password`, { email, otp, password });
+  }
+
   assignableRoles(): Observable<Array<{ slug: string; name: string }>> {
     return this.http.get<Array<{ slug: string; name: string }>>(`${this.baseUrl}/auth/assignable-roles`, this.options());
   }
@@ -168,6 +190,12 @@ export class ErpApiService {
   studentDocumentFileUrl(studentId: string, documentId: string, download = false): string {
     const suffix = download ? '?download=1' : '';
     return `${this.baseUrl}/students/${studentId}/documents/${documentId}/file${suffix}`;
+  }
+
+  // Authenticated image URL usable directly in <img src> (token via query param).
+  studentDocumentImageUrl(studentId: string, documentId: string): string {
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
+    return `${this.baseUrl}/students/${studentId}/documents/${documentId}/file?access_token=${encodeURIComponent(token)}`;
   }
 
   teacherDocumentFileUrl(teacherId: string, docType: string, download = false): string {
