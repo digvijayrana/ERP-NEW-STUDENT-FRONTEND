@@ -96,9 +96,19 @@
   <form *ngIf="vm.isAdmin" [formGroup]="vm.classForm" (ngSubmit)="vm.saveClass()" class="panel span-12">
     <div class="section-head"><div><p class="eyebrow">Class & section</p><h3>{{ vm.editingClassId ? 'Update class' : 'Class configuration' }}</h3></div></div>
     <div class="form-grid compact">
-      <label class="required"><span class="label-text">Class</span><input formControlName="name" placeholder="1, 2, 10"></label>
+      <label class="required"><span class="label-text">Class</span>
+        <select formControlName="name">
+          <option value="">Select class</option>
+          <option *ngFor="let c of vm.classNameOptions" [value]="c">{{ c }}</option>
+        </select>
+      </label>
       <app-field-error [control]="vm.classForm.get('name')" label="Class"></app-field-error>
-      <label class="required"><span class="label-text">Section</span><input formControlName="section"></label>
+      <label class="required"><span class="label-text">Section</span>
+        <select formControlName="section">
+          <option value="">Select section</option>
+          <option *ngFor="let s of vm.sectionOptions" [value]="s">{{ s }}</option>
+        </select>
+      </label>
       <app-field-error [control]="vm.classForm.get('section')" label="Section"></app-field-error>
       <label class="required"><span class="label-text">Maximum capacity</span><input type="number" formControlName="capacity" min="1"></label>
       <app-field-error [control]="vm.classForm.get('capacity')" label="Capacity"></app-field-error>

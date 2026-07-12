@@ -12,7 +12,9 @@
       <label>Fee month<select formControlName="month"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>
       <label>Fee year<input type="number" formControlName="year" min="2020" max="2100"></label>
     </div>
-    <button type="submit" [disabled]="vm.feeDemandForm.invalid || vm.submitting">Generate Demands</button>
+    <div class="form-actions">
+      <button type="submit" class="primary-btn compact-submit" [disabled]="vm.feeDemandForm.invalid || vm.submitting">Generate Demands</button>
+    </div>
   </form>
 
   <form *ngIf="vm.can('fees', 'edit')" [formGroup]="vm.paymentForm" (ngSubmit)="vm.savePayment()" class="panel span-6">
@@ -260,7 +262,38 @@
 
       <div class="admission-modal-footer">
         <button type="button" class="ghost" (click)="vm.closeInvoiceDetail()">Close</button>
+        <button type="button" class="success-btn" *ngIf="vm.isPortalUser && inv.balanceAmount > 0" (click)="vm.openUpiPayment(inv)">Pay online (UPI)</button>
         <button type="button" class="primary-btn" (click)="vm.openInvoicePdf(inv._id)">Demand PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPI / QR online payment -->
+  <div class="admission-overlay upi-overlay" *ngIf="vm.payingInvoice as pay" (click)="vm.closeUpiPayment()">
+    <div class="admission-modal upi-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Pay fees · {{ pay.invoiceNumber }}</p>
+          <h3>Scan &amp; pay with any UPI app</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeUpiPayment()" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="admission-modal-body upi-body">
+        <div class="upi-amount">Amount due <strong>{{ pay.balanceAmount | currency: 'INR' }}</strong></div>
+        <div class="upi-qr-wrap">
+          <img class="upi-qr" [src]="vm.upiQrUrl(pay)" alt="UPI payment QR code" width="220" height="220">
+        </div>
+        <div class="upi-details">
+          <div class="upi-detail"><span>UPI ID</span><strong>{{ vm.upiVpa }}</strong></div>
+          <div class="upi-detail"><span>Payee</span><strong>{{ vm.upiPayeeName }}</strong></div>
+        </div>
+        <a class="primary-btn upi-app-btn" [href]="vm.upiPaymentLink(pay)">Open in UPI app</a>
+        <p class="hint-text upi-hint">Scan the QR with Google Pay, PhonePe, Paytm or any UPI app, or tap “Open in UPI app” on your phone. After paying, your receipt will be updated once the school confirms the payment.</p>
+      </div>
+
+      <div class="admission-modal-footer">
+        <button type="button" class="ghost" (click)="vm.closeUpiPayment()">Done</button>
       </div>
     </div>
   </div>

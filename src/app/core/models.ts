@@ -19,6 +19,7 @@ export interface Teacher {
   email?: string;
   aadhaarNumber?: string;
   qualification?: string;
+  subjects?: string[];
   baseSalary: number;
   status: 'active' | 'inactive';
   experience?: Array<{ instituteName: string; designation: string; fromDate: string; toDate: string; description?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;

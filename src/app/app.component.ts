@@ -5,7 +5,7 @@ import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
 import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
-import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES } from './core/constants';
+import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
 import { ClassesPageComponent } from './pages/classes-page/classes-page.component';
 import { DashboardPageComponent } from './pages/dashboard-page/dashboard-page.component';
@@ -30,6 +30,7 @@ import { PermissionAction, PermissionService } from './services/permission.servi
 import { ToastService } from './services/toast.service';
 import { ConfirmDialogService } from './services/confirm-dialog.service';
 import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, applyDefaultListSort, sortItems, SortDirection } from './core/listing.util';
+import { environment } from '../environments/environment';
 
 type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
 type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'dashboardActivities' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
@@ -451,6 +452,8 @@ export class AppComponent implements OnInit {
   forgotMessage = '';
   forgotError = '';
   forgotDevOtp = '';
+  forgotResendSeconds = 0;
+  private forgotResendTimer: ReturnType<typeof setInterval> | null = null;
 
   showChangePasswordPanel = false;
   private lastActivityAt = Date.now();
@@ -482,8 +485,35 @@ export class AppComponent implements OnInit {
     email: [''],
     aadhaarNumber: ['', Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
     qualification: [''],
+    subjects: [[] as string[]],
     baseSalary: [0, [Validators.required, Validators.min(0)]]
   });
+
+  // Option lists for class configuration and teacher specialisation.
+  readonly classNameOptions = CLASS_NAME_OPTIONS;
+  readonly sectionOptions = SECTION_OPTIONS;
+  readonly subjectOptions = SUBJECT_OPTIONS;
+  teacherSubjectDraft = '';
+
+  get teacherSubjects(): string[] {
+    return (this.teacherForm.get('subjects')?.value as string[]) || [];
+  }
+
+  addTeacherSubject(subject: string): void {
+    const value = (subject || '').trim();
+    if (!value) return;
+    const current = this.teacherSubjects;
+    if (current.includes(value)) {
+      this.teacherSubjectDraft = '';
+      return;
+    }
+    this.teacherForm.get('subjects')?.setValue([...current, value]);
+    this.teacherSubjectDraft = '';
+  }
+
+  removeTeacherSubject(subject: string): void {
+    this.teacherForm.get('subjects')?.setValue(this.teacherSubjects.filter((s) => s !== subject));
+  }
 
   admissionForm = this.fb.group({
     admissionNumber: [''],
@@ -861,10 +891,31 @@ export class AppComponent implements OnInit {
   closeForgotPassword(): void {
     this.showForgotPassword = false;
     this.forgotLoading = false;
+    this.stopForgotResendCountdown();
     this.forgotForm.reset({ email: '', otp: '', newPassword: '', confirmPassword: '' });
   }
 
+  private startForgotResendCountdown(seconds = 60): void {
+    this.stopForgotResendCountdown();
+    this.forgotResendSeconds = seconds;
+    this.forgotResendTimer = setInterval(() => {
+      this.forgotResendSeconds -= 1;
+      if (this.forgotResendSeconds <= 0) {
+        this.stopForgotResendCountdown();
+      }
+    }, 1000);
+  }
+
+  private stopForgotResendCountdown(): void {
+    if (this.forgotResendTimer) {
+      clearInterval(this.forgotResendTimer);
+      this.forgotResendTimer = null;
+    }
+    this.forgotResendSeconds = 0;
+  }
+
   requestResetOtp(): void {
+    if (this.forgotStep === 'reset' && this.forgotResendSeconds > 0) return;
     const email = String(this.forgotForm.get('email')?.value || '').trim();
     if (!email) {
       this.forgotError = 'Please enter your registered email address.';
@@ -877,6 +928,7 @@ export class AppComponent implements OnInit {
       next: (res) => {
         this.forgotLoading = false;
         this.forgotStep = 'reset';
+        this.startForgotResendCountdown(60);
         this.forgotDevOtp = res.devOtp || '';
         if (res.emailSent) {
           this.forgotMessage = `We've emailed a one-time code to ${email}. It expires in ${res.expiresInMinutes ?? 10} minutes.`;
@@ -1805,17 +1857,27 @@ export class AppComponent implements OnInit {
   get profilePhotoSrc(): string | null {
     const student = this.studentProfile?.student;
     if (!student) return null;
-    const url = student.photoUrl || '';
-    if (url.startsWith('http')) return url;
+    // Prefer the authenticated stream endpoint (works for both local and private
+    // S3 storage). A raw http(s) URL is only used as a last resort.
     const docId = student.photoDocumentId;
     const studentId = this.profileStudentId;
     if (docId && studentId) return this.api.studentDocumentImageUrl(studentId, docId);
+    const url = student.photoUrl || '';
+    if (url.startsWith('http')) return url;
     return null;
   }
 
   onProfilePhotoError(): void {
     // The photo failed to load (missing/blocked) — fall back to initials.
     this.profilePhotoError = true;
+  }
+
+  /** Dates (last 30 days) on which the student was marked absent. */
+  get profileRecentAbsentDates(): string[] {
+    const recent = this.studentProfile?.attendance?.recent || [];
+    return recent
+      .filter((day) => day.status === 'absent')
+      .map((day) => day.date);
   }
 
   /** Opens an uploaded student document (image/PDF) in a new tab via the authenticated stream. */
@@ -2149,12 +2211,42 @@ export class AppComponent implements OnInit {
     });
   }
 
+  showTeacherForm = false;
+
+  openTeacherForm(): void {
+    this.editingTeacherId = '';
+    this.resetTeacherForm();
+    this.message = '';
+    this.showTeacherForm = true;
+  }
+
+  closeTeacherForm(): void {
+    this.showTeacherForm = false;
+    this.editingTeacherId = '';
+    this.resetTeacherForm();
+  }
+
+  private resetTeacherForm(): void {
+    this.teacherForm.reset({
+      employeeCode: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      aadhaarNumber: '',
+      qualification: '',
+      subjects: [],
+      baseSalary: 0
+    });
+    this.teacherSubjectDraft = '';
+  }
+
   saveTeacher(): void {
-    const request = this.editingTeacherId
+    const editing = !!this.editingTeacherId;
+    const request = editing
       ? this.api.updateTeacher(this.editingTeacherId, this.teacherForm.getRawValue())
       : this.api.createTeacher(this.teacherForm.getRawValue());
-    this.submit(request, this.editingTeacherId ? 'Teacher updated' : 'Teacher saved', this.teacherForm);
-    this.editingTeacherId = '';
+    this.submit(request, editing ? 'Teacher updated' : 'Teacher saved', undefined, () => this.closeTeacherForm());
   }
 
   editTeacher(teacher: Teacher): void {
@@ -2166,9 +2258,13 @@ export class AppComponent implements OnInit {
       phone: teacher.phone,
       email: teacher.email || '',
       aadhaarNumber: teacher.aadhaarNumber || '',
+      qualification: teacher.qualification || '',
+      subjects: teacher.subjects ? [...teacher.subjects] : [],
       baseSalary: teacher.baseSalary
     });
+    this.teacherSubjectDraft = '';
     this.message = `Editing ${teacher.firstName}`;
+    this.showTeacherForm = true;
   }
 
   viewTeacherProfile(teacher: Teacher): void {
@@ -3645,6 +3741,47 @@ export class AppComponent implements OnInit {
 
   closeInvoiceDetail(): void {
     this.viewingInvoice = null;
+  }
+
+  // ── UPI / QR online payment (portal users) ──
+  payingInvoice: FeeInvoice | null = null;
+
+  openUpiPayment(invoice: FeeInvoice): void {
+    this.payingInvoice = invoice;
+  }
+
+  closeUpiPayment(): void {
+    this.payingInvoice = null;
+  }
+
+  get upiPayeeName(): string {
+    return environment.upi?.payeeName || 'School';
+  }
+
+  get upiVpa(): string {
+    return environment.upi?.vpa || '';
+  }
+
+  /** Builds a standard UPI deep link (upi://pay) for the given invoice balance. */
+  upiPaymentLink(invoice: FeeInvoice | null): string {
+    if (!invoice) return '';
+    const amount = Math.max(0, Number(invoice.balanceAmount) || 0).toFixed(2);
+    const note = `Fee ${invoice.invoiceNumber || ''}`.trim();
+    const params = new URLSearchParams({
+      pa: this.upiVpa,
+      pn: this.upiPayeeName,
+      am: amount,
+      cu: 'INR',
+      tn: note
+    });
+    return `upi://pay?${params.toString()}`;
+  }
+
+  /** QR image URL that encodes the UPI deep link so it can be scanned by any UPI app. */
+  upiQrUrl(invoice: FeeInvoice | null): string {
+    const link = this.upiPaymentLink(invoice);
+    if (!link) return '';
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}`;
   }
 
   openInvoicePdf(invoiceId: string): void {

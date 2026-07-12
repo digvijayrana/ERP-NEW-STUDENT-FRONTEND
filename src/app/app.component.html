@@ -81,7 +81,9 @@
             <input type="password" formControlName="confirmPassword" placeholder="Re-enter new password" autocomplete="new-password">
           </label>
           <p class="dev-otp-hint" *ngIf="forgotDevOtp">Dev mode (email not configured): your code is <strong>{{ forgotDevOtp }}</strong></p>
-          <button type="button" class="link-btn" (click)="requestResetOtp()" [disabled]="forgotLoading">Resend code</button>
+          <button type="button" class="link-btn" (click)="requestResetOtp()" [disabled]="forgotLoading || forgotResendSeconds > 0">
+            {{ forgotResendSeconds > 0 ? 'Resend code in ' + forgotResendSeconds + 's' : 'Resend code' }}
+          </button>
         </ng-container>
 
         <p class="status ok" *ngIf="forgotMessage && !forgotError">{{ forgotMessage }}</p>

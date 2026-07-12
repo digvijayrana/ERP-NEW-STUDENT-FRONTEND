@@ -151,6 +151,15 @@
       <div class="attendance-calendar">
         <span *ngFor="let day of p.attendance.recent" class="att-day" [attr.data-status]="day.status" [title]="day.date | date">{{ day.status === 'present' ? 'P' : day.status === 'absent' ? 'A' : day.status === 'leave' ? 'L' : day.status === 'holiday' ? 'H' : day.status === 'late' ? 'L' : 'H' }}</span>
       </div>
+      <div class="absent-dates" *ngIf="vm.profileRecentAbsentDates.length; else noAbsent">
+        <p class="eyebrow" style="margin-top:1rem">Absent on ({{ vm.profileRecentAbsentDates.length }})</p>
+        <div class="absent-date-chips">
+          <span class="absent-date-chip" *ngFor="let d of vm.profileRecentAbsentDates">{{ d | date:'dd MMM yyyy' }}</span>
+        </div>
+      </div>
+      <ng-template #noAbsent>
+        <p class="hint-text" style="margin-top:1rem">No absences in the last 30 days.</p>
+      </ng-template>
     </section>
 
     <section class="data-card span-12">

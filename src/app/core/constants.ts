@@ -79,3 +79,20 @@ export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ] as const;
+
+// Selectable class levels and sections used across class configuration.
+export const CLASS_NAME_OPTIONS = [
+  'Nursery', 'LKG', 'UKG',
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
+] as const;
+
+export const SECTION_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
+
+// Subjects a teacher can specialise in (used by the teacher create/edit form).
+export const SUBJECT_OPTIONS = [
+  'English', 'Hindi', 'Mathematics', 'Science', 'Physics', 'Chemistry',
+  'Biology', 'Social Science', 'History', 'Geography', 'Civics', 'Economics',
+  'Computer Science', 'Information Technology', 'Physical Education',
+  'Environmental Studies', 'General Knowledge', 'Sanskrit', 'Drawing & Art',
+  'Music', 'Accountancy', 'Business Studies'
+] as const;

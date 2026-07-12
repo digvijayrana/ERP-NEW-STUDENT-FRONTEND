@@ -54,6 +54,15 @@
             <ng-template #noSubjects><span class="muted">No subjects assigned</span></ng-template>
           </span>
         </div>
+        <div class="my-profile-field span-2-field">
+          <span class="my-profile-label">Specialization</span>
+          <span class="my-profile-value chip-value">
+            <ng-container *ngIf="tp.subjects?.length; else noSpec">
+              <span *ngFor="let s of tp.subjects" class="class-chip">{{ s }}</span>
+            </ng-container>
+            <ng-template #noSpec><span class="muted">Not specified</span></ng-template>
+          </span>
+        </div>
       </div>
 
       <!-- Teacher self documents -->
@@ -65,7 +74,7 @@
             <span class="my-profile-value" *ngIf="tp.documents?.idProof?.originalName">
               {{ tp.documents.idProof.originalName }}
               <span class="status-badge small" [ngClass]="tp.documents.idProof.status || 'pending'">{{ tp.documents.idProof.status || 'pending' }}</span>
-              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(tp._id, 'idProof')">View</button>
+              <button type="button" class="ghost small doc-view-btn" (click)="vm.openTeacherDocument(tp._id, 'idProof')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!tp.documents?.idProof?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="tp.documents?.idProof?.rejectReason">Reason: {{ tp.documents.idProof.rejectReason }}</span>
@@ -79,7 +88,7 @@
             <span class="my-profile-value" *ngIf="tp.documents?.resume?.originalName">
               {{ tp.documents.resume.originalName }}
               <span class="status-badge small" [ngClass]="tp.documents.resume.status || 'pending'">{{ tp.documents.resume.status || 'pending' }}</span>
-              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(tp._id, 'resume')">View</button>
+              <button type="button" class="ghost small doc-view-btn" (click)="vm.openTeacherDocument(tp._id, 'resume')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!tp.documents?.resume?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="tp.documents?.resume?.rejectReason">Reason: {{ tp.documents.resume.rejectReason }}</span>
@@ -104,7 +113,7 @@
               </span>
             </div>
             <div class="exp-edu-dates">{{ exp.fromDate | date:'MMM yyyy' }} — {{ exp.toDate ? (exp.toDate | date:'MMM yyyy') : 'Present' }}</div>
-            <button type="button" class="danger-btn small" (click)="vm.removeTeacherExperience(i)">Remove</button>
+            <button type="button" class="ghost small danger-text" (click)="vm.removeTeacherExperience(i)">Remove</button>
           </div>
         </div>
         <p *ngIf="!tp.experience?.length" class="muted" style="margin-bottom: 8px;">No experience added</p>
@@ -134,7 +143,7 @@
               </span>
             </div>
             <div class="exp-edu-dates">{{ edu.fromDate | date:'yyyy' }} — {{ edu.toDate ? (edu.toDate | date:'yyyy') : 'Present' }}</div>
-            <button type="button" class="danger-btn small" (click)="vm.removeTeacherEducation(i)">Remove</button>
+            <button type="button" class="ghost small danger-text" (click)="vm.removeTeacherEducation(i)">Remove</button>
           </div>
         </div>
         <p *ngIf="!tp.education?.length" class="muted" style="margin-bottom: 8px;">No education added</p>
@@ -154,30 +163,14 @@
     </div>
   </ng-container>
 
-  <!-- Admin view: form + roster -->
-  <form *ngIf="vm.isAdmin" [formGroup]="vm.teacherForm" (ngSubmit)="vm.saveTeacher()" class="panel span-4">
-    <div class="section-head"><div><p class="eyebrow">Teacher</p><h3>{{ vm.editingTeacherId ? 'Update teacher' : 'Teacher profile' }}</h3></div></div>
-    <div class="form-grid compact">
-      <label class="required"><span class="label-text">Employee code</span><input formControlName="employeeCode"></label>
-      <app-field-error [control]="vm.teacherForm.get('employeeCode')" label="Employee code"></app-field-error>
-      <label class="required"><span class="label-text">First name</span><input formControlName="firstName"></label>
-      <app-field-error [control]="vm.teacherForm.get('firstName')" label="First name"></app-field-error>
-      <label><span class="label-text">Last name</span><input formControlName="lastName"></label>
-      <label class="required"><span class="label-text">Phone</span><input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
-      <app-field-error [control]="vm.teacherForm.get('phone')" label="Phone"></app-field-error>
-      <label>Email<input formControlName="email"></label>
-      <label>Aadhaar number<input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
-      <app-field-error [control]="vm.teacherForm.get('aadhaarNumber')" label="Aadhaar number"></app-field-error>
-      <label>Qualification<input formControlName="qualification"></label>
-      <label class="required"><span class="label-text">Base salary</span><input type="number" formControlName="baseSalary" min="0"></label>
+  <!-- Admin view: full-width roster with a create button -->
+  <section *ngIf="vm.isAdmin" class="data-card span-12">
+    <div class="section-head">
+      <div><p class="eyebrow">Roster</p><h3>Teachers</h3></div>
+      <button type="button" class="primary-btn new-admission-btn" (click)="vm.openTeacherForm()">
+        <span class="btn-plus" aria-hidden="true">+</span> Create teacher
+      </button>
     </div>
-    <div class="form-actions">
-      <button type="submit" [disabled]="vm.teacherForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingTeacherId ? 'Update teacher' : 'Save teacher') }}</button>
-    </div>
-  </form>
-
-  <section *ngIf="vm.isAdmin" class="data-card span-8">
-    <div class="section-head"><div><p class="eyebrow">Roster</p><h3>Teacher roster</h3></div></div>
     <app-listing-toolbar
       searchPlaceholder="Search teacher, employee code, phone, email"
       [searchValue]="vm.filters.teacherSearch"
@@ -216,7 +209,7 @@
               <div class="table-actions">
                 <app-action-btn type="view" (clicked)="vm.viewTeacherProfile(teacher)"></app-action-btn>
                 <app-action-btn type="edit" (clicked)="vm.editTeacher(teacher)"></app-action-btn>
-                <app-action-btn type="deactivate" label="Deactivate" (clicked)="vm.deleteTeacher(teacher._id)"></app-action-btn>
+                <app-action-btn type="delete" (clicked)="vm.deleteTeacher(teacher._id)"></app-action-btn>
               </div>
             </td>
           </tr>
@@ -224,7 +217,7 @@
             <td colspan="6">
               <app-empty-state
                 title="No teachers found"
-                message="Register a teacher using the form on the left to build your staff roster.">
+                message="Click “Create teacher” to add your first staff member.">
               </app-empty-state>
             </td>
           </tr>
@@ -235,6 +228,66 @@
     </div>
     <app-pagination-bar [vm]="vm" listKey="teachers" [items]="vm.sortedTeachers"></app-pagination-bar>
   </section>
+
+  <!-- Create / Edit teacher modal -->
+  <div class="admission-overlay" *ngIf="vm.isAdmin && vm.showTeacherForm" (click)="vm.closeTeacherForm()">
+    <div class="admission-modal" (click)="$event.stopPropagation()">
+      <form [formGroup]="vm.teacherForm" (ngSubmit)="vm.saveTeacher()">
+        <div class="admission-modal-header">
+          <div>
+            <p class="eyebrow">Teacher</p>
+            <h3>{{ vm.editingTeacherId ? 'Update teacher' : 'Create teacher' }}</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="vm.closeTeacherForm()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="admission-modal-body">
+          <fieldset class="form-section">
+            <legend>Basic details</legend>
+            <div class="form-grid">
+              <label class="required"><span class="label-text">Employee code</span><input formControlName="employeeCode"></label>
+              <app-field-error [control]="vm.teacherForm.get('employeeCode')" label="Employee code"></app-field-error>
+              <label class="required"><span class="label-text">First name</span><input formControlName="firstName"></label>
+              <app-field-error [control]="vm.teacherForm.get('firstName')" label="First name"></app-field-error>
+              <label><span class="label-text">Last name</span><input formControlName="lastName"></label>
+              <label class="required"><span class="label-text">Phone</span><input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
+              <app-field-error [control]="vm.teacherForm.get('phone')" label="Phone"></app-field-error>
+              <label><span class="label-text">Email</span><input formControlName="email"></label>
+              <label><span class="label-text">Aadhaar number</span><input formControlName="aadhaarNumber" maxlength="12" pattern="\d{12}" inputmode="numeric"></label>
+              <app-field-error [control]="vm.teacherForm.get('aadhaarNumber')" label="Aadhaar number"></app-field-error>
+              <label><span class="label-text">Qualification</span><input formControlName="qualification"></label>
+              <label class="required"><span class="label-text">Base salary</span><input type="number" formControlName="baseSalary" min="0"></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend>Subjects / Specialization</legend>
+            <div class="subject-picker">
+              <div class="subject-picker-row">
+                <select [(ngModel)]="vm.teacherSubjectDraft" [ngModelOptions]="{ standalone: true }">
+                  <option value="">Select subject</option>
+                  <option *ngFor="let s of vm.subjectOptions" [value]="s" [disabled]="vm.teacherSubjects.includes(s)">{{ s }}</option>
+                </select>
+                <button type="button" class="ghost small" [disabled]="!vm.teacherSubjectDraft" (click)="vm.addTeacherSubject(vm.teacherSubjectDraft)">Add</button>
+              </div>
+              <div class="subject-chips" *ngIf="vm.teacherSubjects.length">
+                <span class="class-chip" *ngFor="let s of vm.teacherSubjects">
+                  {{ s }}
+                  <button type="button" class="chip-remove" (click)="vm.removeTeacherSubject(s)" aria-label="Remove subject">&times;</button>
+                </span>
+              </div>
+              <span class="field-hint" *ngIf="!vm.teacherSubjects.length">No subjects selected yet.</span>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="admission-modal-footer">
+          <button type="button" class="ghost" (click)="vm.closeTeacherForm()">Cancel</button>
+          <button type="submit" class="primary-btn" [disabled]="vm.teacherForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingTeacherId ? 'Update teacher' : 'Create teacher') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Teacher Profile Modal -->
   <div class="my-profile-overlay" *ngIf="vm.viewingTeacher" (click)="vm.closeTeacherProfile()">
@@ -280,6 +333,15 @@
             <ng-template #noClasses><span class="muted">No class assigned</span></ng-template>
           </span>
         </div>
+        <div class="my-profile-field span-2-field">
+          <span class="my-profile-label">Specialization</span>
+          <span class="my-profile-value chip-value">
+            <ng-container *ngIf="vm.viewingTeacher.subjects?.length; else noSpecView">
+              <span *ngFor="let s of vm.viewingTeacher.subjects" class="class-chip">{{ s }}</span>
+            </ng-container>
+            <ng-template #noSpecView><span class="muted">Not specified</span></ng-template>
+          </span>
+        </div>
       </div>
 
       <!-- Documents Section -->
@@ -291,7 +353,7 @@
             <span class="my-profile-value" *ngIf="vm.viewingTeacher.documents?.idProof?.originalName">
               {{ vm.viewingTeacher.documents.idProof.originalName }}
               <span class="status-badge small" [ngClass]="vm.viewingTeacher.documents.idProof.status || 'pending'">{{ vm.viewingTeacher.documents.idProof.status || 'pending' }}</span>
-              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'idProof')">View</button>
+              <button type="button" class="ghost small doc-view-btn" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'idProof')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!vm.viewingTeacher.documents?.idProof?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="vm.viewingTeacher.documents?.idProof?.rejectReason">Reason: {{ vm.viewingTeacher.documents.idProof.rejectReason }}</span>
@@ -314,7 +376,7 @@
             <span class="my-profile-value" *ngIf="vm.viewingTeacher.documents?.resume?.originalName">
               {{ vm.viewingTeacher.documents.resume.originalName }}
               <span class="status-badge small" [ngClass]="vm.viewingTeacher.documents.resume.status || 'pending'">{{ vm.viewingTeacher.documents.resume.status || 'pending' }}</span>
-              <button type="button" class="doc-view-link inline" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'resume')">View</button>
+              <button type="button" class="ghost small doc-view-btn" (click)="vm.openTeacherDocument(vm.viewingTeacher._id, 'resume')">View</button>
             </span>
             <span class="my-profile-value muted" *ngIf="!vm.viewingTeacher.documents?.resume?.originalName">Not uploaded</span>
             <span class="reject-reason" *ngIf="vm.viewingTeacher.documents?.resume?.rejectReason">Reason: {{ vm.viewingTeacher.documents.resume.rejectReason }}</span>
@@ -348,7 +410,7 @@
               </span>
             </div>
             <div class="exp-edu-dates">{{ exp.fromDate | date:'MMM yyyy' }} — {{ exp.toDate ? (exp.toDate | date:'MMM yyyy') : 'Present' }}</div>
-            <button type="button" class="danger-btn small" (click)="vm.removeTeacherExperience(i)">Remove</button>
+            <button type="button" class="ghost small danger-text" (click)="vm.removeTeacherExperience(i)">Remove</button>
           </div>
         </div>
         <p *ngIf="!vm.viewingTeacher.experience?.length" class="muted" style="margin-bottom: 8px;">No experience added</p>
@@ -378,7 +440,7 @@
               </span>
             </div>
             <div class="exp-edu-dates">{{ edu.fromDate | date:'yyyy' }} — {{ edu.toDate ? (edu.toDate | date:'yyyy') : 'Present' }}</div>
-            <button type="button" class="danger-btn small" (click)="vm.removeTeacherEducation(i)">Remove</button>
+            <button type="button" class="ghost small danger-text" (click)="vm.removeTeacherEducation(i)">Remove</button>
           </div>
         </div>
         <p *ngIf="!vm.viewingTeacher.education?.length" class="muted" style="margin-bottom: 8px;">No education added</p>
