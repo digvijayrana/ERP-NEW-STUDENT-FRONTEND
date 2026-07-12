@@ -41,7 +41,7 @@
           <option value="tc_issued">TC Issued</option>
         </select>
         <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionFrom" (change)="vm.updateListFilter('students', 'studentAdmissionFrom', $any($event.target).value)" title="Admission from">
-        <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionTo" (change)="vm.updateListFilter('students', 'studentAdmissionTo', $any($event.target).value)" title="Admission to">
+        <input type="date" class="filter-select" [value]="vm.filters.studentAdmissionTo" [min]="vm.filters.studentAdmissionFrom" (change)="vm.updateListFilter('students', 'studentAdmissionTo', $any($event.target).value)" title="Admission to">
       </div>
     </app-listing-toolbar>
     <div class="bulk-actions-bar" *ngIf="vm.selectedStudentCount > 0 && (vm.can('students', 'edit') || vm.can('transport', 'edit'))">

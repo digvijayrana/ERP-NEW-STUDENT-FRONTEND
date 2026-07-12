@@ -42,7 +42,7 @@
       </select>
 
       <input *ngIf="vm.reportDomain === 'students'" type="date" class="filter-select" [value]="vm.filters.reportAdmissionFrom" (change)="vm.filters.reportAdmissionFrom = $any($event.target).value; vm.loadReport()">
-      <input *ngIf="vm.reportDomain === 'students'" type="date" class="filter-select" [value]="vm.filters.reportAdmissionTo" (change)="vm.filters.reportAdmissionTo = $any($event.target).value; vm.loadReport()">
+      <input *ngIf="vm.reportDomain === 'students'" type="date" class="filter-select" [value]="vm.filters.reportAdmissionTo" [min]="vm.filters.reportAdmissionFrom" (change)="vm.filters.reportAdmissionTo = $any($event.target).value; vm.loadReport()">
 
       <select *ngIf="['fees','payroll','attendance','operations'].includes(vm.reportDomain)" class="filter-select" [value]="vm.filters.reportMonth" (change)="vm.filters.reportMonth = $any($event.target).value; vm.loadReport()">
         <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option>

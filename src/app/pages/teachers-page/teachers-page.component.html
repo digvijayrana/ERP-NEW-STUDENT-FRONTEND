@@ -99,7 +99,9 @@
             <div class="exp-edu-main">
               <strong>{{ exp.instituteName }}</strong>
               <span class="muted">{{ exp.designation }}</span>
-              <span class="muted doc-attached" *ngIf="exp.document?.originalName">Doc: {{ exp.document.originalName }}</span>
+              <span class="muted doc-attached" *ngIf="exp.document?.originalName">Doc: {{ exp.document.originalName }}
+                <button type="button" class="ghost small" (click)="vm.openTeacherEntryDocument(tp._id, 'experience', i)">View</button>
+              </span>
             </div>
             <div class="exp-edu-dates">{{ exp.fromDate | date:'MMM yyyy' }} — {{ exp.toDate ? (exp.toDate | date:'MMM yyyy') : 'Present' }}</div>
             <button type="button" class="danger-btn small" (click)="vm.removeTeacherExperience(i)">Remove</button>
@@ -110,7 +112,7 @@
           <input [(ngModel)]="vm.teacherExpForm.instituteName" placeholder="Institute / School name">
           <input [(ngModel)]="vm.teacherExpForm.designation" placeholder="Designation / Role">
           <input type="date" [(ngModel)]="vm.teacherExpForm.fromDate">
-          <input type="date" [(ngModel)]="vm.teacherExpForm.toDate">
+          <input type="date" [(ngModel)]="vm.teacherExpForm.toDate" [min]="vm.teacherExpForm.fromDate">
           <label class="doc-upload-label compact">
             <input type="file" accept="image/*,application/pdf" (change)="vm.onExpFileChange($event)">
             <span>{{ vm.teacherExpFile ? vm.teacherExpFile.name : 'Attach Document' }}</span>
@@ -127,7 +129,9 @@
             <div class="exp-edu-main">
               <strong>{{ edu.instituteName }}</strong>
               <span class="muted">{{ edu.degree }} — {{ edu.fieldOfStudy }}</span>
-              <span class="muted doc-attached" *ngIf="edu.document?.originalName">Doc: {{ edu.document.originalName }}</span>
+              <span class="muted doc-attached" *ngIf="edu.document?.originalName">Doc: {{ edu.document.originalName }}
+                <button type="button" class="ghost small" (click)="vm.openTeacherEntryDocument(tp._id, 'education', i)">View</button>
+              </span>
             </div>
             <div class="exp-edu-dates">{{ edu.fromDate | date:'yyyy' }} — {{ edu.toDate ? (edu.toDate | date:'yyyy') : 'Present' }}</div>
             <button type="button" class="danger-btn small" (click)="vm.removeTeacherEducation(i)">Remove</button>
@@ -139,7 +143,7 @@
           <input [(ngModel)]="vm.teacherEduForm.degree" placeholder="Degree (B.Ed, M.Sc...)">
           <input [(ngModel)]="vm.teacherEduForm.fieldOfStudy" placeholder="Field of study">
           <input type="date" [(ngModel)]="vm.teacherEduForm.fromDate">
-          <input type="date" [(ngModel)]="vm.teacherEduForm.toDate">
+          <input type="date" [(ngModel)]="vm.teacherEduForm.toDate" [min]="vm.teacherEduForm.fromDate">
           <label class="doc-upload-label compact">
             <input type="file" accept="image/*,application/pdf" (change)="vm.onEduFileChange($event)">
             <span>{{ vm.teacherEduFile ? vm.teacherEduFile.name : 'Attach Document' }}</span>
@@ -299,7 +303,7 @@
               <input type="file" accept="image/*,application/pdf" (change)="vm.selfUploadTeacherDoc($event, 'idProof')">
               <span>Upload ID Proof</span>
             </label>
-            <div class="verify-actions" *ngIf="vm.isAdmin && vm.viewingTeacher.documents?.idProof?.url">
+            <div class="verify-actions" *ngIf="vm.isAdmin && vm.viewingTeacher.documents?.idProof?.url && vm.viewingTeacher.documents.idProof.status !== 'approved'">
               <button type="button" class="ghost small success-btn" (click)="vm.verifyTeacherDoc('idProof', 'approve')">Approve</button>
               <input [(ngModel)]="vm.verifyDocReason" placeholder="Reason for rejection" class="reject-input">
               <button type="button" class="danger-btn small" (click)="vm.verifyTeacherDoc('idProof', 'reject')">Reject & Request Reupload</button>
@@ -322,7 +326,7 @@
               <input type="file" accept="image/*,application/pdf" (change)="vm.selfUploadTeacherDoc($event, 'resume')">
               <span>Upload Resume</span>
             </label>
-            <div class="verify-actions" *ngIf="vm.isAdmin && vm.viewingTeacher.documents?.resume?.url">
+            <div class="verify-actions" *ngIf="vm.isAdmin && vm.viewingTeacher.documents?.resume?.url && vm.viewingTeacher.documents.resume.status !== 'approved'">
               <button type="button" class="ghost small success-btn" (click)="vm.verifyTeacherDoc('resume', 'approve')">Approve</button>
               <input [(ngModel)]="vm.verifyDocReason" placeholder="Reason for rejection" class="reject-input">
               <button type="button" class="danger-btn small" (click)="vm.verifyTeacherDoc('resume', 'reject')">Reject & Request Reupload</button>
@@ -339,7 +343,9 @@
             <div class="exp-edu-main">
               <strong>{{ exp.instituteName }}</strong>
               <span class="muted">{{ exp.designation }}</span>
-              <span class="muted doc-attached" *ngIf="exp.document?.originalName">Doc: {{ exp.document.originalName }}</span>
+              <span class="muted doc-attached" *ngIf="exp.document?.originalName">Doc: {{ exp.document.originalName }}
+                <button type="button" class="ghost small" (click)="vm.openTeacherEntryDocument(vm.viewingTeacher._id, 'experience', i)">View</button>
+              </span>
             </div>
             <div class="exp-edu-dates">{{ exp.fromDate | date:'MMM yyyy' }} — {{ exp.toDate ? (exp.toDate | date:'MMM yyyy') : 'Present' }}</div>
             <button type="button" class="danger-btn small" (click)="vm.removeTeacherExperience(i)">Remove</button>
@@ -350,7 +356,7 @@
           <input [(ngModel)]="vm.teacherExpForm.instituteName" placeholder="Institute / School name">
           <input [(ngModel)]="vm.teacherExpForm.designation" placeholder="Designation / Role">
           <input type="date" [(ngModel)]="vm.teacherExpForm.fromDate">
-          <input type="date" [(ngModel)]="vm.teacherExpForm.toDate">
+          <input type="date" [(ngModel)]="vm.teacherExpForm.toDate" [min]="vm.teacherExpForm.fromDate">
           <label class="doc-upload-label compact">
             <input type="file" accept="image/*,application/pdf" (change)="vm.onExpFileChange($event)">
             <span>{{ vm.teacherExpFile ? vm.teacherExpFile.name : 'Attach Document' }}</span>
@@ -367,7 +373,9 @@
             <div class="exp-edu-main">
               <strong>{{ edu.instituteName }}</strong>
               <span class="muted">{{ edu.degree }} — {{ edu.fieldOfStudy }}</span>
-              <span class="muted doc-attached" *ngIf="edu.document?.originalName">Doc: {{ edu.document.originalName }}</span>
+              <span class="muted doc-attached" *ngIf="edu.document?.originalName">Doc: {{ edu.document.originalName }}
+                <button type="button" class="ghost small" (click)="vm.openTeacherEntryDocument(vm.viewingTeacher._id, 'education', i)">View</button>
+              </span>
             </div>
             <div class="exp-edu-dates">{{ edu.fromDate | date:'yyyy' }} — {{ edu.toDate ? (edu.toDate | date:'yyyy') : 'Present' }}</div>
             <button type="button" class="danger-btn small" (click)="vm.removeTeacherEducation(i)">Remove</button>
@@ -379,7 +387,7 @@
           <input [(ngModel)]="vm.teacherEduForm.degree" placeholder="Degree (B.Ed, M.Sc...)">
           <input [(ngModel)]="vm.teacherEduForm.fieldOfStudy" placeholder="Field of study">
           <input type="date" [(ngModel)]="vm.teacherEduForm.fromDate">
-          <input type="date" [(ngModel)]="vm.teacherEduForm.toDate">
+          <input type="date" [(ngModel)]="vm.teacherEduForm.toDate" [min]="vm.teacherEduForm.fromDate">
           <label class="doc-upload-label compact">
             <input type="file" accept="image/*,application/pdf" (change)="vm.onEduFileChange($event)">
             <span>{{ vm.teacherEduFile ? vm.teacherEduFile.name : 'Attach Document' }}</span>

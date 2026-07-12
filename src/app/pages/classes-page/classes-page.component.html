@@ -16,7 +16,7 @@
       <app-field-error [control]="vm.academicYearForm.get('name')" label="Name"></app-field-error>
       <label class="required"><span class="label-text">Start</span><input type="date" formControlName="startDate"></label>
       <app-field-error [control]="vm.academicYearForm.get('startDate')" label="Start date"></app-field-error>
-      <label class="required"><span class="label-text">End</span><input type="date" formControlName="endDate"></label>
+      <label class="required"><span class="label-text">End</span><input type="date" formControlName="endDate" [min]="vm.academicYearForm.get('startDate')?.value"></label>
       <app-field-error [control]="vm.academicYearForm.get('endDate')" label="End date"></app-field-error>
       <label class="inline span-2" *ngIf="!vm.editingAcademicYearId">
         <input type="checkbox" formControlName="isActive"> Set as active year on create

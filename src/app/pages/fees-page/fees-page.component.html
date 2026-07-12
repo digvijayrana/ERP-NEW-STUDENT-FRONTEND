@@ -153,6 +153,10 @@
           <option value="unpaid">Unpaid</option>
           <option value="void">Void</option>
         </select>
+        <select class="filter-select" [value]="vm.filters.feeHistoryClass" (change)="vm.updateListFilter('feeHistory', 'feeHistoryClass', $any($event.target).value)">
+          <option value="">All classes</option>
+          <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+        </select>
       </div>
     </app-listing-toolbar>
     <div class="toolbar" *ngIf="vm.isPortalUser">

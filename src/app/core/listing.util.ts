@@ -17,7 +17,7 @@ export const LIST_FILTER_KEYS: Record<string, string[]> = {
   teachers: ['teacherSearch', 'teacherStatus'],
   users: ['userSearch', 'userRole', 'userStatus'],
   invoices: ['invoiceSearch', 'invoiceStatus', 'invoiceYear', 'invoiceClass', 'invoiceMonth'],
-  feeHistory: ['feeHistorySearch', 'feeHistoryStatus'],
+  feeHistory: ['feeHistorySearch', 'feeHistoryStatus', 'feeHistoryClass'],
   payroll: ['payrollSearch', 'payrollStatus'],
   busRoutes: ['busRouteSearch', 'busRouteStatus'],
   busRegistrations: ['busRegYear', 'busRegRoute', 'busRegStatus', 'busRegSearch'],

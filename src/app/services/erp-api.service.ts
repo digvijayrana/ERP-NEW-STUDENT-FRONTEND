@@ -207,6 +207,11 @@ export class ErpApiService {
     return this.http.get<{ url: string }>(`${this.baseUrl}/teachers/${teacherId}/documents/${docType}/url`, this.options());
   }
 
+  teacherEntryDocumentFileUrl(teacherId: string, section: 'experience' | 'education', index: number, download = false): string {
+    const suffix = download ? '?download=1' : '';
+    return `${this.baseUrl}/teachers/${teacherId}/entries/${section}/${index}/file${suffix}`;
+  }
+
   students(params?: ListQueryParams): Observable<ApiSuccessResponse<Student[]>> {
     return this.http.get<ApiSuccessResponse<Student[]>>(`${this.baseUrl}/students`, this.listOptions(params));
   }
@@ -428,6 +433,10 @@ export class ErpApiService {
 
   saveTimetable(payload: Record<string, unknown>): Observable<TimetableRow> {
     return this.http.post<TimetableRow>(`${this.baseUrl}/timetable`, payload, this.options());
+  }
+
+  deleteTimetablePeriod(timetableId: string, periodId: string): Observable<TimetableRow> {
+    return this.http.delete<TimetableRow>(`${this.baseUrl}/timetable/${timetableId}/periods/${periodId}`, this.options());
   }
 
   exams(params?: ListQueryParams): Observable<ApiSuccessResponse<Exam[]>> {

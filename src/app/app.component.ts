@@ -334,6 +334,7 @@ export class AppComponent implements OnInit {
     profileFeeStatus: '',
     feeHistorySearch: '',
     feeHistoryStatus: '',
+    feeHistoryClass: '',
     busRouteSearch: '',
     busRouteStatus: '',
     busRegYear: '',
@@ -597,6 +598,12 @@ export class AppComponent implements OnInit {
     room: ['']
   });
 
+  readonly timetableDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  timetableClassName = '';
+  timetableClassId = '';
+  timetableSelectedDay = 'monday';
+  showTimetableForm = false;
+
   examForm = this.fb.group({
     title: ['', Validators.required],
     subject: ['', Validators.required],
@@ -826,6 +833,7 @@ export class AppComponent implements OnInit {
         this.persistSession(token, user);
         this.activeTab = 'dashboard';
         this.message = '';
+        this.loginForm.reset({ email: '', password: '' });
         if (user.mustChangePassword || user.passwordExpired) {
           this.showChangePasswordPanel = true;
           this.toast.warning('You must change your password before continuing.');
@@ -1194,6 +1202,7 @@ export class AppComponent implements OnInit {
         this.safeRefresh(this.api.timetable(), [] as TimetableRow[]).subscribe({
           next: (rows) => {
             this.timetable = rows;
+            this.ensureTimetableSelection();
             this.loadedTabs.add('timetable');
             this.loading = false;
           },
@@ -1288,6 +1297,7 @@ export class AppComponent implements OnInit {
         this.safeRefresh(this.api.timetable(), [] as TimetableRow[]).subscribe({
           next: (rows) => {
             this.timetable = rows;
+            this.ensureTimetableSelection();
             this.loadedTabs.add('timetable');
             this.loading = false;
           },
@@ -1342,6 +1352,7 @@ export class AppComponent implements OnInit {
         this.holidays = data.holidays;
         this.holidaysLoaded = true;
         this.timetable = data.timetable;
+        this.ensureTimetableSelection();
         this.exams = data.exams;
         this.examResults = data.examResults;
         this.users = data.users;
@@ -1917,6 +1928,10 @@ export class AppComponent implements OnInit {
 
   saveAcademicYear(): void {
     const value = this.academicYearForm.getRawValue();
+    if (this.isEndBeforeStart(value.startDate, value.endDate)) {
+      this.toast.error('End date cannot be earlier than the start date.');
+      return;
+    }
     const payload: Partial<AcademicYear> = {
       name: value.name || undefined,
       startDate: value.startDate || undefined,
@@ -2177,9 +2192,21 @@ export class AppComponent implements OnInit {
     this.teacherEduFile = (event.target as HTMLInputElement).files?.[0] || null;
   }
 
+  private isEndBeforeStart(from?: string | null, to?: string | null): boolean {
+    if (!from || !to) return false;
+    const start = new Date(from);
+    const end = new Date(to);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+    return end < start;
+  }
+
   addTeacherExperience(): void {
     const teacher = this.viewingTeacher || this.myTeacherProfile;
     if (!teacher || !this.teacherExpForm.instituteName) return;
+    if (this.isEndBeforeStart(this.teacherExpForm.fromDate, this.teacherExpForm.toDate)) {
+      this.toast.error('End date cannot be earlier than the start date.');
+      return;
+    }
 
     const saveEntry = (doc?: { url: string; originalName: string; uploadedAt: string }) => {
       const entry: Record<string, unknown> = { ...this.teacherExpForm };
@@ -2244,6 +2271,10 @@ export class AppComponent implements OnInit {
   addTeacherEducation(): void {
     const teacher = this.viewingTeacher || this.myTeacherProfile;
     if (!teacher || !this.teacherEduForm.instituteName) return;
+    if (this.isEndBeforeStart(this.teacherEduForm.fromDate, this.teacherEduForm.toDate)) {
+      this.toast.error('End date cannot be earlier than the start date.');
+      return;
+    }
 
     const saveEntry = (doc?: { url: string; originalName: string; uploadedAt: string }) => {
       const entry: Record<string, unknown> = { ...this.teacherEduForm };
@@ -2335,12 +2366,17 @@ export class AppComponent implements OnInit {
   verifyTeacherDoc(docType: string, action: 'approve' | 'reject'): void {
     if (!this.viewingTeacher) return;
     this.api.verifyTeacherDocument(this.viewingTeacher._id, docType, action, this.verifyDocReason).subscribe({
-      next: () => {
-        this.message = `Document ${action === 'approve' ? 'approved' : 'rejected — reupload requested'}`;
+      next: (res) => {
+        this.toast.success(action === 'approve' ? 'Document approved' : 'Document rejected — reupload requested');
         this.verifyDocReason = '';
+        // Reflect the new verification status immediately in the open profile.
+        const documents = (res as { documents?: Record<string, unknown> })?.documents;
+        if (this.viewingTeacher && documents) {
+          this.viewingTeacher = { ...this.viewingTeacher, documents } as typeof this.viewingTeacher;
+        }
         this.refresh();
       },
-      error: (err) => { this.message = err.error?.message || 'Verification failed'; }
+      error: (err) => this.toast.error(extractApiMessage(err, 'Verification failed'))
     });
   }
 
@@ -2364,6 +2400,11 @@ export class AppComponent implements OnInit {
   openTeacherDocument(teacherId: string, docType: string): void {
     if (!teacherId || !docType) return;
     this.openProtectedFile(this.api.teacherDocumentFileUrl(teacherId, docType));
+  }
+
+  openTeacherEntryDocument(teacherId: string, section: 'experience' | 'education', index: number): void {
+    if (!teacherId || index < 0) return;
+    this.openProtectedFile(this.api.teacherEntryDocumentFileUrl(teacherId, section, index));
   }
 
   get showPreviousSchoolDetails(): boolean {
@@ -2998,6 +3039,7 @@ export class AppComponent implements OnInit {
     if (key === 'feeHistory') {
       if (this.filters.feeHistorySearch) query.search = this.filters.feeHistorySearch;
       if (this.filters.feeHistoryStatus) query.paymentStatus = this.filters.feeHistoryStatus;
+      if (this.filters.feeHistoryClass) query.classRoom = this.filters.feeHistoryClass;
     }
     if (key === 'payroll') {
       if (this.filters.payrollSearch) query.search = this.filters.payrollSearch;
@@ -3430,6 +3472,10 @@ export class AppComponent implements OnInit {
   saveBusRegistration(): void {
     if (!this.can('transport', 'create') && !this.can('transport', 'edit')) return;
     const value = this.busRegistrationForm.getRawValue();
+    if (this.isEndBeforeStart(value.serviceStartDate, value.serviceEndDate)) {
+      this.toast.error('Service end date cannot be earlier than the start date.');
+      return;
+    }
     const route = this.busRoutes.find((item) => item._id === value.route);
     const stop = route?.stops.find((item) => item.sequence === Number(value.stopSequence));
     const payload: Record<string, unknown> = {
@@ -4502,8 +4548,111 @@ export class AppComponent implements OnInit {
     });
   }
 
+  get timetableClassPool(): ClassRoom[] {
+    if (this.isAdmin) {
+      return this.classes.filter((room) => room.status !== 'inactive');
+    }
+    const map = new Map<string, ClassRoom>();
+    for (const row of this.timetable) {
+      const cr = row.classRoom;
+      if (cr && typeof cr === 'object') map.set(cr._id, cr as ClassRoom);
+    }
+    return [...map.values()];
+  }
+
+  get timetableClassNames(): string[] {
+    const names = [...new Set(this.timetableClassPool.map((room) => room.name))];
+    return names.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  timetableSectionsFor(name: string): ClassRoom[] {
+    return this.timetableClassPool
+      .filter((room) => room.name === name)
+      .sort((a, b) => (a.section || '').localeCompare(b.section || ''));
+  }
+
+  get timetableSelectedClassRoom(): ClassRoom | null {
+    return this.timetableClassPool.find((room) => room._id === this.timetableClassId) || null;
+  }
+
+  get timetableSelectedRow(): TimetableRow | null {
+    if (!this.timetableClassId) return null;
+    return (
+      this.timetable.find(
+        (row) => this.entityRefId(row.classRoom) === this.timetableClassId && row.dayOfWeek === this.timetableSelectedDay
+      ) || null
+    );
+  }
+
+  get timetableSelectedPeriods(): TimetableRow['periods'] {
+    const row = this.timetableSelectedRow;
+    if (!row?.periods?.length) return [];
+    return [...row.periods].sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
+  }
+
+  timetableDayHasPeriods(day: string): boolean {
+    if (!this.timetableClassId) return false;
+    const row = this.timetable.find(
+      (item) => this.entityRefId(item.classRoom) === this.timetableClassId && item.dayOfWeek === day
+    );
+    return !!row?.periods?.length;
+  }
+
+  onTimetableClassNameChange(name: string): void {
+    this.timetableClassName = name;
+    const sections = this.timetableSectionsFor(name);
+    this.timetableClassId = sections.length === 1 ? sections[0]._id : '';
+  }
+
+  selectTimetableSection(classId: string): void {
+    this.timetableClassId = classId;
+  }
+
+  selectTimetableDay(day: string): void {
+    this.timetableSelectedDay = day;
+  }
+
+  private ensureTimetableSelection(): void {
+    const pool = this.timetableClassPool;
+    if (this.timetableClassId && pool.some((room) => room._id === this.timetableClassId)) {
+      const current = pool.find((room) => room._id === this.timetableClassId);
+      if (current) this.timetableClassName = current.name;
+      return;
+    }
+    if (!this.isAdmin && pool.length) {
+      const first = pool[0];
+      this.timetableClassName = first.name;
+      const sections = this.timetableSectionsFor(first.name);
+      this.timetableClassId = sections.length ? sections[0]._id : first._id;
+    }
+  }
+
+  openTimetableForm(): void {
+    if (!this.isAdmin) return;
+    const cls = this.timetableSelectedClassRoom;
+    this.timetableForm.reset({
+      classRoom: this.timetableClassId || '',
+      academicYear: cls ? this.entityRefId(cls.academicYear) : '',
+      dayOfWeek: this.timetableSelectedDay,
+      startTime: '09:00',
+      endTime: '09:45',
+      subject: '',
+      teacher: '',
+      room: ''
+    });
+    this.showTimetableForm = true;
+  }
+
+  closeTimetableForm(): void {
+    this.showTimetableForm = false;
+  }
+
   saveTimetable(): void {
     const value = this.timetableForm.getRawValue();
+    if (value.startTime && value.endTime && value.endTime <= value.startTime) {
+      this.toast.error('End time must be after the start time.');
+      return;
+    }
     this.submit(
       this.api.saveTimetable({
         classRoom: value.classRoom,
@@ -4519,9 +4668,35 @@ export class AppComponent implements OnInit {
           }
         ]
       }),
-      'Timetable saved',
-      this.timetableForm
+      'Period added to timetable',
+      undefined,
+      () => {
+        if (value.classRoom) this.timetableClassId = value.classRoom;
+        const cls = this.timetableClassPool.find((room) => room._id === this.timetableClassId);
+        if (cls) this.timetableClassName = cls.name;
+        if (value.dayOfWeek) this.timetableSelectedDay = value.dayOfWeek;
+        this.showTimetableForm = false;
+      }
     );
+  }
+
+  deleteTimetablePeriod(row: TimetableRow | null, periodId?: string): void {
+    if (!this.isAdmin || !row?._id || !periodId) return;
+    void this.confirmAction({
+      title: 'Remove period',
+      message: 'Remove this period from the timetable?',
+      danger: true,
+      confirmLabel: 'Remove'
+    }).then((confirmed) => {
+      if (!confirmed) return;
+      this.api.deleteTimetablePeriod(row._id, periodId).subscribe({
+        next: () => {
+          this.toast.success('Period removed');
+          this.refresh();
+        },
+        error: (error) => this.toast.error(extractApiMessage(error, 'Could not remove period'))
+      });
+    });
   }
 
   generateExamPaper(): void {

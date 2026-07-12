@@ -470,12 +470,14 @@ export interface TimetableRow {
   classRoom: ClassRoom | string;
   dayOfWeek: string;
   periods: Array<{
+    _id?: string;
     startTime: string;
     endTime: string;
     subject: string;
     teacher: Teacher | string;
     room?: string;
   }>;
+  academicYear?: AcademicYear | string;
 }
 
 export interface PayrollRecord {

@@ -118,7 +118,7 @@
       <label>Stop<select formControlName="stopSequence" (change)="vm.onBusRegStopChange()"><option value="">Select stop</option><option *ngFor="let stop of vm.selectedBusRouteStops()" [value]="stop.sequence">{{ stop.sequence }}. {{ stop.name }}</option></select></label>
       <label>Monthly fee<input type="number" formControlName="monthlyFee" min="0" readonly class="readonly-field"></label>
       <label>Service start<input type="date" formControlName="serviceStartDate"></label>
-      <label>Service end<input type="date" formControlName="serviceEndDate"></label>
+      <label>Service end<input type="date" formControlName="serviceEndDate" [min]="vm.busRegistrationForm.get('serviceStartDate')?.value"></label>
       <label class="inline span-2"><input type="checkbox" formControlName="busService"> Bus service enabled</label>
       <label>Status
         <select formControlName="status">
