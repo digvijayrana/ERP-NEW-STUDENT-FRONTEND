@@ -14,6 +14,7 @@ export interface Teacher {
   _id: string;
   employeeCode: string;
   firstName: string;
+  middleName?: string;
   lastName?: string;
   phone: string;
   email?: string;
@@ -25,6 +26,7 @@ export interface Teacher {
   experience?: Array<{ instituteName: string; designation: string; fromDate: string; toDate: string; description?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
   education?: Array<{ instituteName: string; degree: string; fieldOfStudy: string; fromDate: string; toDate: string; grade?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
   documents?: {
+    photo?: { url: string; originalName: string; uploadedAt: string };
     idProof?: { url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string };
     resume?: { url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string };
     certificates?: Array<{ url: string; originalName: string; uploadedAt: string; status?: string; rejectReason?: string }>;
@@ -50,6 +52,7 @@ export interface Student {
   admissionNumber: string;
   admissionDate?: string;
   firstName: string;
+  middleName?: string;
   lastName?: string;
   gender: string;
   dateOfBirth: string;
@@ -114,6 +117,19 @@ export interface FeeInvoice {
   paidAmount: number;
   balanceAmount: number;
   createdAt?: string;
+}
+
+export interface FeeSummary {
+  totalDemands: number;
+  totalCollection: number;
+  pendingAmount: number;
+  overdueAmount: number;
+  todayCollection: number;
+  defaultersCount: number;
+  totalStudents: number;
+  demandsGenerated: number;
+  pendingGeneration: number;
+  lastGeneratedDate?: string | null;
 }
 
 export interface FeeHistoryRow {

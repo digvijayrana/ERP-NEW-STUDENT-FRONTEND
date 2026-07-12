@@ -1,98 +1,224 @@
-<section class="workspace">
+<section class="workspace fees-workspace">
   <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.invoices.length && !vm.feeHistory.length">
     <app-spinner [show]="true" label="Loading fee records..."></app-spinner>
   </div>
   <ng-container *ngIf="!vm.loading || vm.invoices.length || vm.feeHistory.length">
-  <form *ngIf="vm.can('fees', 'create')" [formGroup]="vm.feeDemandForm" (ngSubmit)="vm.generateFeeDemands()" class="panel span-6">
-    <div class="section-head"><div><p class="eyebrow">Fees</p><h3>Generate Monthly Demands</h3></div></div>
-    <p class="hint-text">Creates fee demands for all active students using class fee structure and bus assignment. Duplicates for the same month are skipped automatically.</p>
-    <div class="form-grid compact">
-      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
-      <label>Class (optional)<select formControlName="classRoom"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
-      <label>Fee month<select formControlName="month"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>
-      <label>Fee year<input type="number" formControlName="year" min="2020" max="2100"></label>
+
+  <!-- Dashboard summary cards -->
+  <div class="fee-summary-grid span-12" *ngIf="!vm.isPortalUser && vm.can('fees', 'view') && vm.feeSummary as s">
+    <div class="fee-summary-card">
+      <span class="fs-label">Total Demands</span>
+      <span class="fs-value">{{ s.totalDemands | number }}</span>
     </div>
-    <div class="form-actions">
+    <div class="fee-summary-card ok">
+      <span class="fs-label">Total Collection</span>
+      <span class="fs-value">{{ s.totalCollection | currency: 'INR':'symbol':'1.0-0' }}</span>
+    </div>
+    <div class="fee-summary-card warn">
+      <span class="fs-label">Pending Amount</span>
+      <span class="fs-value">{{ s.pendingAmount | currency: 'INR':'symbol':'1.0-0' }}</span>
+    </div>
+    <div class="fee-summary-card danger">
+      <span class="fs-label">Overdue Amount</span>
+      <span class="fs-value">{{ s.overdueAmount | currency: 'INR':'symbol':'1.0-0' }}</span>
+    </div>
+    <div class="fee-summary-card ok">
+      <span class="fs-label">Today's Collection</span>
+      <span class="fs-value">{{ s.todayCollection | currency: 'INR':'symbol':'1.0-0' }}</span>
+    </div>
+    <div class="fee-summary-card danger">
+      <span class="fs-label">Defaulters</span>
+      <span class="fs-value">{{ s.defaultersCount | number }}</span>
+    </div>
+  </div>
+
+  <!-- Generate Monthly Demands (compact) -->
+  <form *ngIf="vm.can('fees', 'create')" [formGroup]="vm.feeDemandForm" (ngSubmit)="vm.generateFeeDemands()" class="panel fee-gen-card span-12">
+    <div class="fee-gen-head">
+      <div>
+        <p class="eyebrow">Fees</p>
+        <h3>Generate Monthly Demands</h3>
+      </div>
       <button type="submit" class="primary-btn compact-submit" [disabled]="vm.feeDemandForm.invalid || vm.submitting">Generate Demands</button>
     </div>
+    <div class="fee-gen-grid">
+      <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.loadFeeSummary()"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label><span class="label-text">Class (optional)</span><select formControlName="classRoom" (change)="vm.loadFeeSummary()"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
+      <label><span class="label-text">Fee month</span><select formControlName="month" (change)="vm.loadFeeSummary()"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>
+      <label><span class="label-text">Fee year</span><input type="number" formControlName="year" min="2020" max="2100" (change)="vm.loadFeeSummary()"></label>
+    </div>
+    <div class="fee-gen-stats" *ngIf="vm.feeSummary as s">
+      <div class="fg-stat"><span class="fg-label">Total Students</span><span class="fg-value">{{ s.totalStudents | number }}</span></div>
+      <div class="fg-stat"><span class="fg-label">Demands Generated</span><span class="fg-value">{{ s.demandsGenerated | number }}</span></div>
+      <div class="fg-stat"><span class="fg-label">Pending Generation</span><span class="fg-value" [class.danger-text]="s.pendingGeneration > 0">{{ s.pendingGeneration | number }}</span></div>
+      <div class="fg-stat"><span class="fg-label">Last Generated</span><span class="fg-value">{{ s.lastGeneratedDate ? (s.lastGeneratedDate | date: 'dd MMM yyyy') : '—' }}</span></div>
+    </div>
+    <p class="fee-gen-confirm" *ngIf="vm.feeGenConfirmation">{{ vm.feeGenConfirmation }}</p>
   </form>
 
-  <form *ngIf="vm.can('fees', 'edit')" [formGroup]="vm.paymentForm" (ngSubmit)="vm.savePayment()" class="panel span-6">
+  <!-- Collect Payment (student search workflow) -->
+  <form *ngIf="vm.can('fees', 'edit')" [formGroup]="vm.paymentForm" (ngSubmit)="vm.savePayment()" class="panel collect-card span-12">
     <div class="section-head"><div><p class="eyebrow">Collection</p><h3>Collect Payment</h3></div></div>
-    <label>Fee demand
-      <select formControlName="invoiceId" (change)="vm.onPaymentInvoiceChange()">
-        <option value="">Select demand</option>
-        <option *ngFor="let invoice of vm.collectableInvoices()" [value]="invoice._id">
-          {{ invoice.invoiceNumber }} — {{ vm.studentName(invoice.student) }} — {{ vm.feePeriodLabel(invoice.feeMonth, invoice.feeYear) }} — Balance: {{ invoice.balanceAmount | currency: 'INR' }}
-        </option>
-      </select>
-    </label>
 
-    <div class="inv-details fee-breakdown" *ngIf="vm.selectedCollectionInvoice as inv">
-      <div class="inv-detail"><span class="inv-label">Tuition</span><span class="inv-value">{{ inv.tuitionFee || 0 | currency: 'INR' }}</span></div>
-      <div class="inv-detail"><span class="inv-label">Bus fee</span><span class="inv-value">{{ inv.busFee || 0 | currency: 'INR' }}</span></div>
-      <div class="inv-detail"><span class="inv-label">Previous pending</span><span class="inv-value">{{ inv.previousPending || 0 | currency: 'INR' }}</span></div>
-      <div class="inv-detail"><span class="inv-label">Total payable</span><span class="inv-value">{{ inv.totalAmount | currency: 'INR' }}</span></div>
-      <div class="inv-detail"><span class="inv-label">Balance due</span><span class="inv-value danger-text">{{ inv.balanceAmount | currency: 'INR' }}</span></div>
-    </div>
-
-    <div class="form-grid compact">
-      <label>Discount<input type="number" formControlName="discount" min="0"></label>
-      <label>Fine<input type="number" formControlName="fine" min="0"></label>
-      <label>Other charges<input type="number" formControlName="otherCharges" min="0"></label>
-      <label>Amount paying<input type="number" formControlName="amount" min="1"></label>
-      <label>Payment mode
-        <select formControlName="mode">
-          <option value="cash">Cash</option>
-          <option value="upi">UPI</option>
-          <option value="card">Card</option>
-          <option value="bank_transfer">Bank Transfer</option>
-          <option value="cheque">Cheque</option>
+    <div class="collect-filters">
+      <label><span class="label-text">Academic year</span>
+        <select [value]="vm.collectAcademicYear" (change)="vm.collectAcademicYear = $any($event.target).value">
+          <option value="">All years</option>
+          <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
         </select>
       </label>
+      <label><span class="label-text">Class (optional)</span>
+        <select [value]="vm.collectClassRoom" (change)="vm.collectClassRoom = $any($event.target).value">
+          <option value="">All classes</option>
+          <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+        </select>
+      </label>
+      <label class="collect-search-field"><span class="label-text">Search student</span>
+        <div class="collect-search">
+          <input type="text" placeholder="Name, admission no. or roll no." autocomplete="off"
+                 [value]="vm.collectStudentQuery"
+                 (input)="vm.onCollectStudentQuery($any($event.target).value)">
+          <button type="button" class="ghost small" *ngIf="vm.collectSelectedStudent" (click)="vm.clearCollectStudent()">Clear</button>
+          <div class="collect-search-results" *ngIf="vm.collectStudentResults.length && !vm.collectSelectedStudent">
+            <button type="button" class="collect-result" *ngFor="let student of vm.collectStudentResults" (click)="vm.selectCollectStudent(student)">
+              <span class="cr-name">{{ vm.studentName(student) }}</span>
+              <span class="cr-meta">{{ student.admissionNumber }}</span>
+            </button>
+          </div>
+          <div class="collect-search-empty" *ngIf="vm.collectSearching">Searching…</div>
+        </div>
+      </label>
     </div>
-    <label>Reference / Transaction No.<input formControlName="referenceNumber" placeholder="Optional"></label>
-    <button type="submit" [disabled]="vm.paymentForm.invalid || vm.submitting">Record Payment</button>
+
+    <ng-container *ngIf="vm.collectSelectedStudent as st">
+      <div class="collect-student-summary">
+        <div class="css-main">
+          <div class="css-avatar">{{ st.firstName.charAt(0) }}{{ (st.lastName || '').charAt(0) }}</div>
+          <div>
+            <div class="css-name">{{ vm.studentName(st) }}</div>
+            <div class="css-meta">{{ st.admissionNumber }}<span *ngIf="vm.collectStudentClassLabel"> · {{ vm.collectStudentClassLabel }}</span><span *ngIf="vm.collectStudentRoll"> · Roll {{ vm.collectStudentRoll }}</span></div>
+          </div>
+        </div>
+        <div class="css-stats">
+          <div class="css-stat"><span>Total Due</span><strong [class.danger-text]="vm.collectTotalDue > 0">{{ vm.collectTotalDue | currency: 'INR' }}</strong></div>
+          <div class="css-stat"><span>Pending demands</span><strong>{{ vm.collectPendingInvoices.length }}</strong></div>
+        </div>
+      </div>
+
+      <div class="pending-demands" *ngIf="!vm.collectInvoicesLoading; else loadingDemands">
+        <p class="hint-text" *ngIf="!vm.collectStudentInvoices.length">No fee demands found for this student.</p>
+        <div class="pending-demand-row" *ngFor="let invoice of vm.collectStudentInvoices"
+             [class.is-selected]="vm.paymentForm.get('invoiceId')?.value === invoice._id"
+             [class.is-paid]="invoice.balanceAmount <= 0">
+          <label class="pd-select">
+            <input type="radio" name="collectInvoice" [checked]="vm.paymentForm.get('invoiceId')?.value === invoice._id"
+                   [disabled]="invoice.balanceAmount <= 0" (change)="vm.selectCollectInvoice(invoice)">
+          </label>
+          <div class="pd-info">
+            <span class="pd-number">{{ invoice.invoiceNumber }}</span>
+            <span class="pd-period" *ngIf="invoice.feeMonth && invoice.feeYear">{{ vm.feePeriodLabel(invoice.feeMonth, invoice.feeYear) }}</span>
+          </div>
+          <div class="pd-amounts">
+            <span class="pd-total">{{ invoice.totalAmount | currency: 'INR' }}</span>
+            <span class="pd-balance" [class.danger-text]="invoice.balanceAmount > 0">Bal: {{ invoice.balanceAmount | currency: 'INR' }}</span>
+          </div>
+          <span class="status-badge small" [ngClass]="invoice.status">{{ invoice.status }}</span>
+        </div>
+      </div>
+      <ng-template #loadingDemands><p class="hint-text">Loading demands…</p></ng-template>
+
+      <!-- Payment section -->
+      <ng-container *ngIf="vm.collectSelectedInvoice as inv">
+        <div class="section-head compact" style="margin-top: 0.75rem;"><div><p class="eyebrow">Payment</p><h3>{{ inv.invoiceNumber }}</h3></div></div>
+        <div class="form-grid compact">
+          <label><span class="label-text">Discount</span><input type="number" formControlName="discount" min="0"></label>
+          <label><span class="label-text">Fine</span><input type="number" formControlName="fine" min="0"></label>
+          <label><span class="label-text">Other charges</span><input type="number" formControlName="otherCharges" min="0"></label>
+          <label><span class="label-text">Amount paying</span><input type="number" formControlName="amount" min="1"></label>
+          <label><span class="label-text">Payment mode</span>
+            <select formControlName="mode">
+              <option value="cash">Cash</option>
+              <option value="upi">UPI</option>
+              <option value="card">Card</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="cheque">Cheque</option>
+            </select>
+          </label>
+          <label><span class="label-text">Reference / Txn No.</span><input formControlName="referenceNumber" placeholder="Optional"></label>
+        </div>
+
+        <div class="payment-summary" *ngIf="vm.paymentBreakdown as b">
+          <div class="ps-row"><span>Total payable</span><strong>{{ b.total | currency: 'INR' }}</strong></div>
+          <div class="ps-row"><span>Discount</span><strong>- {{ b.discount | currency: 'INR' }}</strong></div>
+          <div class="ps-row"><span>Fine</span><strong>+ {{ b.fine | currency: 'INR' }}</strong></div>
+          <div class="ps-row"><span>Other charges</span><strong>+ {{ b.other | currency: 'INR' }}</strong></div>
+          <div class="ps-row net"><span>Net payable</span><strong>{{ b.netPayable | currency: 'INR' }}</strong></div>
+          <div class="ps-row"><span>Paying now</span><strong>{{ b.amount | currency: 'INR' }}</strong></div>
+          <div class="ps-row remaining"><span>Remaining balance</span><strong [class.danger-text]="b.remaining > 0">{{ b.remaining | currency: 'INR' }}</strong></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="primary-btn compact-submit" [disabled]="vm.paymentForm.invalid || vm.submitting">Record Payment</button>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <p class="collect-empty hint-text" *ngIf="!vm.collectSelectedStudent">Search and select a student to view pending fee demands and collect payment.</p>
   </form>
 
+  <!-- Fee Demands listing -->
   <section class="data-card span-12">
-    <div class="section-head">
+    <div class="section-head fee-list-head">
       <div>
         <p class="eyebrow">Invoices</p>
         <h3>{{ vm.isPortalUser ? 'My Fee Demands' : 'Fee Demands' }}</h3>
       </div>
-    </div>
-    <app-listing-toolbar
-      *ngIf="!vm.isPortalUser"
-      searchPlaceholder="Search invoice no, student name, or receipt..."
-      [searchValue]="vm.filters.invoiceSearch"
-      [loading]="vm.isListingLoading('invoices')"
-      (searchChange)="vm.updateListSearch('invoices', 'invoiceSearch', $event)"
-      (refresh)="vm.refreshListing('invoices')"
-      (exportCsv)="vm.exportInvoicesCsv()"
-      (exportPdf)="vm.exportInvoicesPdf()">
-      <div listing-filters class="listing-filters">
-        <select class="filter-select" [value]="vm.filters.invoiceStatus" (change)="vm.updateListFilter('invoices', 'invoiceStatus', $any($event.target).value)"><option value="">All status</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
-        <select class="filter-select" [value]="vm.filters.invoiceYear" (change)="vm.updateListFilter('invoices', 'invoiceYear', $any($event.target).value)">
-          <option value="">All years</option>
-          <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
-        </select>
-        <select class="filter-select" [value]="vm.filters.invoiceClass" (change)="vm.updateListFilter('invoices', 'invoiceClass', $any($event.target).value)">
-          <option value="">All classes</option>
-          <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
-        </select>
-        <select class="filter-select" [value]="vm.filters.invoiceMonth" (change)="vm.updateListFilter('invoices', 'invoiceMonth', $any($event.target).value)">
-          <option value="">All months</option>
-          <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option>
-        </select>
+      <div class="fee-list-actions" *ngIf="!vm.isPortalUser">
+        <button type="button" class="ghost small filter-toggle" (click)="vm.toggleInvoiceFilters()">
+          {{ vm.showInvoiceFilters ? 'Hide filters' : 'Filters' }}
+        </button>
+        <div class="view-toggle">
+          <button type="button" [class.active]="vm.invoiceView === 'card'" (click)="vm.setInvoiceView('card')">Cards</button>
+          <button type="button" [class.active]="vm.invoiceView === 'table'" (click)="vm.setInvoiceView('table')">Table</button>
+        </div>
       </div>
-    </app-listing-toolbar>
+    </div>
+
+    <!-- Collapsible advanced filter bar -->
+    <div class="filter-bar" *ngIf="!vm.isPortalUser && vm.showInvoiceFilters">
+      <div class="filter-bar-grid">
+        <label><span class="label-text">Search</span>
+          <input type="text" placeholder="Invoice no, student, receipt…" [value]="vm.filters.invoiceSearch" (input)="vm.updateListSearch('invoices', 'invoiceSearch', $any($event.target).value)">
+        </label>
+        <label><span class="label-text">Status</span>
+          <select [value]="vm.filters.invoiceStatus" (change)="vm.updateListFilter('invoices', 'invoiceStatus', $any($event.target).value)"><option value="">All status</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select>
+        </label>
+        <label><span class="label-text">Academic year</span>
+          <select [value]="vm.filters.invoiceYear" (change)="vm.updateListFilter('invoices', 'invoiceYear', $any($event.target).value)"><option value="">All years</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select>
+        </label>
+        <label><span class="label-text">Class &amp; section</span>
+          <select [value]="vm.filters.invoiceClass" (change)="vm.updateListFilter('invoices', 'invoiceClass', $any($event.target).value)"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select>
+        </label>
+        <label><span class="label-text">Month</span>
+          <select [value]="vm.filters.invoiceMonth" (change)="vm.updateListFilter('invoices', 'invoiceMonth', $any($event.target).value)"><option value="">All months</option><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select>
+        </label>
+      </div>
+      <div class="filter-bar-actions">
+        <button type="button" class="ghost small" (click)="vm.resetInvoiceFilters()">Reset filters</button>
+        <button type="button" class="ghost small" (click)="vm.exportInvoicesCsv()">Export CSV</button>
+        <button type="button" class="ghost small" (click)="vm.exportInvoicesPdf()">Export PDF</button>
+      </div>
+    </div>
+
+    <!-- Portal-only simple status filter -->
     <div class="toolbar" *ngIf="vm.isPortalUser">
       <select class="filter-select" [value]="vm.filters.invoiceStatus" (change)="vm.updateListFilter('invoices', 'invoiceStatus', $any($event.target).value)"><option value="">All status</option><option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option></select>
     </div>
 
     <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('invoices')">
-    <div class="invoice-cards" *ngIf="!vm.isListingLoading('invoices') || vm.sortedInvoices.length">
+
+    <!-- Card view -->
+    <div class="invoice-cards compact" *ngIf="(vm.isPortalUser || vm.invoiceView === 'card') && (!vm.isListingLoading('invoices') || vm.sortedInvoices.length)">
       <div *ngFor="let invoice of vm.paged('invoices', vm.sortedInvoices)" class="invoice-card clickable-card" (click)="vm.openInvoiceDetail(invoice)" title="Click to view full invoice">
         <div class="inv-header">
           <div class="inv-number">{{ invoice.invoiceNumber }}</div>
@@ -100,67 +226,93 @@
         </div>
         <div class="inv-student">{{ vm.studentName(invoice.student) }}</div>
         <div class="inv-meta" *ngIf="invoice.feeMonth && invoice.feeYear">{{ vm.feePeriodLabel(invoice.feeMonth, invoice.feeYear) }}</div>
-        <div class="inv-details">
-          <div class="inv-detail"><span class="inv-label">Tuition</span><span class="inv-value">{{ invoice.tuitionFee || 0 | currency: 'INR' }}</span></div>
-          <div class="inv-detail"><span class="inv-label">Bus</span><span class="inv-value">{{ invoice.busFee || 0 | currency: 'INR' }}</span></div>
-          <div class="inv-detail"><span class="inv-label">Total</span><span class="inv-value">{{ invoice.totalAmount | currency: 'INR' }}</span></div>
-          <div class="inv-detail"><span class="inv-label">Paid</span><span class="inv-value success-text">{{ invoice.paidAmount | currency: 'INR' }}</span></div>
-          <div class="inv-detail"><span class="inv-label">Balance</span><span class="inv-value" [class.danger-text]="invoice.balanceAmount > 0">{{ invoice.balanceAmount | currency: 'INR' }}</span></div>
-        </div>
-        <div class="payment-chips" *ngIf="invoice.payments?.length">
-          <div class="payment-chip" *ngFor="let payment of invoice.payments">
-            <span>{{ payment.receiptNumber }} — {{ payment.amount | currency: 'INR' }}</span>
-            <span class="status-badge small" [ngClass]="payment.status || 'active'">{{ payment.status || 'active' }}</span>
-            <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openReceiptPdf(invoice._id, payment._id!)">Receipt PDF</button>
-            <button *ngIf="vm.can('fees', 'edit') && payment._id && payment.status !== 'void' && !payment.locked" type="button" class="ghost small danger-text" (click)="$event.stopPropagation(); vm.voidFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Void</button>
-            <button *ngIf="vm.can('fees', 'unlock') && payment._id && payment.locked" type="button" class="ghost small" (click)="$event.stopPropagation(); vm.unlockFeeReceipt(invoice._id, payment._id!, payment.receiptNumber)">Unlock</button>
-          </div>
+        <div class="inv-mini-details">
+          <span>Total <strong>{{ invoice.totalAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></span>
+          <span>Paid <strong class="success-text">{{ invoice.paidAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></span>
+          <span>Balance <strong [class.danger-text]="invoice.balanceAmount > 0">{{ invoice.balanceAmount | currency: 'INR':'symbol':'1.0-0' }}</strong></span>
         </div>
         <div class="inv-footer">
           <span class="inv-due">Due: {{ invoice.dueDate | date: 'dd MMM yyyy' }}</span>
           <div class="inv-footer-actions">
-            <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoiceDetail(invoice)">View</button>
-            <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoicePdf(invoice._id)">Demand PDF</button>
+            <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoicePdf(invoice._id)">PDF</button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Table view -->
+    <div class="table-wrap sticky-header" *ngIf="!vm.isPortalUser && vm.invoiceView === 'table' && (!vm.isListingLoading('invoices') || vm.sortedInvoices.length)">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Student</th>
+            <th>Period</th>
+            <th>Total</th>
+            <th>Paid</th>
+            <th>Balance</th>
+            <th>Status</th>
+            <th>Due</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let invoice of vm.paged('invoices', vm.sortedInvoices)" class="clickable-row" (click)="vm.openInvoiceDetail(invoice)">
+            <td>{{ invoice.invoiceNumber }}</td>
+            <td>{{ vm.studentName(invoice.student) }}</td>
+            <td>{{ vm.feePeriodLabel(invoice.feeMonth, invoice.feeYear) || '—' }}</td>
+            <td>{{ invoice.totalAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+            <td class="success-text">{{ invoice.paidAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+            <td [class.danger-text]="invoice.balanceAmount > 0">{{ invoice.balanceAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+            <td><span class="status-badge" [ngClass]="invoice.status">{{ invoice.status }}</span></td>
+            <td>{{ invoice.dueDate | date: 'dd MMM yyyy' }}</td>
+            <td class="action-cell">
+              <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoiceDetail(invoice)">View</button>
+              <button type="button" class="ghost small" (click)="$event.stopPropagation(); vm.openInvoicePdf(invoice._id)">PDF</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <app-table-skeleton *ngIf="vm.isListingLoading('invoices') && !vm.sortedInvoices.length" [columns]="4" [rows]="4"></app-table-skeleton>
     </div>
     <app-empty-state *ngIf="!vm.isListingLoading('invoices') && !vm.sortedInvoices.length" [title]="vm.isPortalUser ? 'No fee demands' : 'No fee demands found'" [message]="vm.isPortalUser ? 'No fee demands found for your account.' : 'Adjust filters or generate monthly demands to get started.'"></app-empty-state>
     <app-pagination-bar [vm]="vm" listKey="invoices" [items]="vm.sortedInvoices"></app-pagination-bar>
   </section>
 
+  <!-- Fee Payment History -->
   <section class="data-card span-12">
-    <div class="section-head">
+    <div class="section-head fee-list-head">
       <div>
         <p class="eyebrow">History</p>
         <h3>{{ vm.isPortalUser ? 'My Payment History' : 'Fee Payment History' }}</h3>
       </div>
-    </div>
-    <app-listing-toolbar
-      *ngIf="!vm.isPortalUser"
-      searchPlaceholder="Search receipt, invoice, or student..."
-      [searchValue]="vm.filters.feeHistorySearch"
-      [loading]="vm.isListingLoading('feeHistory')"
-      (searchChange)="vm.updateListSearch('feeHistory', 'feeHistorySearch', $event)"
-      (refresh)="vm.refreshListing('feeHistory')"
-      (exportCsv)="vm.exportFeeHistoryCsv()"
-      (exportPdf)="vm.exportFeeHistoryPdf()">
-      <div listing-filters class="listing-filters">
-        <select class="filter-select" [value]="vm.filters.feeHistoryStatus" (change)="vm.updateListFilter('feeHistory', 'feeHistoryStatus', $any($event.target).value)">
-          <option value="">All status</option>
-          <option value="paid">Paid</option>
-          <option value="partial">Partial</option>
-          <option value="unpaid">Unpaid</option>
-          <option value="void">Void</option>
-        </select>
-        <select class="filter-select" [value]="vm.filters.feeHistoryClass" (change)="vm.updateListFilter('feeHistory', 'feeHistoryClass', $any($event.target).value)">
-          <option value="">All classes</option>
-          <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
-        </select>
+      <div class="fee-list-actions" *ngIf="!vm.isPortalUser">
+        <button type="button" class="ghost small filter-toggle" (click)="vm.toggleFeeHistoryFilters()">
+          {{ vm.showFeeHistoryFilters ? 'Hide filters' : 'Filters' }}
+        </button>
       </div>
-    </app-listing-toolbar>
+    </div>
+
+    <div class="filter-bar" *ngIf="!vm.isPortalUser && vm.showFeeHistoryFilters">
+      <div class="filter-bar-grid">
+        <label><span class="label-text">Search</span>
+          <input type="text" placeholder="Receipt, invoice or student…" [value]="vm.filters.feeHistorySearch" (input)="vm.updateListSearch('feeHistory', 'feeHistorySearch', $any($event.target).value)">
+        </label>
+        <label><span class="label-text">Status</span>
+          <select [value]="vm.filters.feeHistoryStatus" (change)="vm.updateListFilter('feeHistory', 'feeHistoryStatus', $any($event.target).value)"><option value="">All status</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option><option value="void">Void</option></select>
+        </label>
+        <label><span class="label-text">Class &amp; section</span>
+          <select [value]="vm.filters.feeHistoryClass" (change)="vm.updateListFilter('feeHistory', 'feeHistoryClass', $any($event.target).value)"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select>
+        </label>
+      </div>
+      <div class="filter-bar-actions">
+        <button type="button" class="ghost small" (click)="vm.exportFeeHistoryCsv()">Export CSV</button>
+        <button type="button" class="ghost small" (click)="vm.exportFeeHistoryPdf()">Export PDF</button>
+      </div>
+    </div>
+
     <div class="toolbar" *ngIf="vm.isPortalUser">
       <select class="filter-select" [value]="vm.filters.feeHistoryStatus" (change)="vm.updateListFilter('feeHistory', 'feeHistoryStatus', $any($event.target).value)">
         <option value="">All status</option>
@@ -169,6 +321,7 @@
         <option value="unpaid">Unpaid</option>
       </select>
     </div>
+
     <div class="listing-table-panel" [class.is-refreshing]="vm.isListingLoading('feeHistory')">
     <div class="table-wrap sticky-header" *ngIf="!vm.isListingLoading('feeHistory') || vm.sortedFeeHistory.length">
       <table>
@@ -255,6 +408,8 @@
             <span>{{ payment.receiptNumber }} — {{ payment.amount | currency: 'INR' }}<small *ngIf="payment.paidAt"> · {{ payment.paidAt | date: 'dd MMM yyyy' }}</small></span>
             <span class="status-badge small" [ngClass]="payment.status || 'active'">{{ payment.status || 'active' }}</span>
             <button *ngIf="payment._id && payment.status !== 'void'" type="button" class="ghost small" (click)="vm.openReceiptPdf(inv._id, payment._id!)">Receipt PDF</button>
+            <button *ngIf="vm.can('fees', 'edit') && payment._id && payment.status !== 'void' && !payment.locked" type="button" class="ghost small danger-text" (click)="vm.voidFeeReceipt(inv._id, payment._id!, payment.receiptNumber)">Void</button>
+            <button *ngIf="vm.can('fees', 'unlock') && payment._id && payment.locked" type="button" class="ghost small" (click)="vm.unlockFeeReceipt(inv._id, payment._id!, payment.receiptNumber)">Unlock</button>
           </div>
         </div>
         <ng-template #noInvPayments><p class="hint-text">No payments recorded on this demand yet.</p></ng-template>

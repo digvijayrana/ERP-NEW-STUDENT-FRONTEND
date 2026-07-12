@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -478,8 +478,9 @@ export class AppComponent implements OnInit {
   });
 
   teacherForm = this.fb.group({
-    employeeCode: ['', Validators.required],
+    employeeCode: [''],
     firstName: ['', Validators.required],
+    middleName: [''],
     lastName: [''],
     phone: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     email: [''],
@@ -518,6 +519,7 @@ export class AppComponent implements OnInit {
   admissionForm = this.fb.group({
     admissionNumber: [''],
     firstName: ['', Validators.required],
+    middleName: [''],
     lastName: [''],
     gender: ['male', Validators.required],
     dateOfBirth: ['', Validators.required],
@@ -1729,6 +1731,7 @@ export class AppComponent implements OnInit {
     this.admissionForm.reset({
       admissionNumber: '',
       firstName: '',
+      middleName: '',
       lastName: '',
       gender: 'male',
       dateOfBirth: '',
@@ -1801,6 +1804,8 @@ export class AppComponent implements OnInit {
         this.loadListing('invoices');
         this.loadListing('feeHistory');
         this.loadCollectableInvoices();
+        this.loadFeeSummary();
+        if (!this.collectAcademicYear) this.collectAcademicYear = this.activeAcademicYear?._id || '';
       }
     }
     if (tab === 'payroll' && this.can('payroll', 'view')) this.loadListing('payroll');
@@ -2230,6 +2235,7 @@ export class AppComponent implements OnInit {
     this.teacherForm.reset({
       employeeCode: '',
       firstName: '',
+      middleName: '',
       lastName: '',
       phone: '',
       email: '',
@@ -2254,6 +2260,7 @@ export class AppComponent implements OnInit {
     this.teacherForm.patchValue({
       employeeCode: teacher.employeeCode,
       firstName: teacher.firstName,
+      middleName: teacher.middleName || '',
       lastName: teacher.lastName || '',
       phone: teacher.phone,
       email: teacher.email || '',
@@ -2273,6 +2280,24 @@ export class AppComponent implements OnInit {
 
   closeTeacherProfile(): void {
     this.viewingTeacher = null;
+  }
+
+  /** Authenticated avatar URL for a teacher's uploaded profile photo (or null). */
+  teacherPhotoSrc(teacher?: Teacher | null): string | null {
+    if (!teacher?._id || !teacher.documents?.photo?.url) return null;
+    return this.api.teacherDocumentImageUrl(teacher._id, 'photo');
+  }
+
+  // Collapsible add-forms for teacher experience / education.
+  showTeacherExpForm = false;
+  showTeacherEduForm = false;
+
+  toggleTeacherExpForm(): void {
+    this.showTeacherExpForm = !this.showTeacherExpForm;
+  }
+
+  toggleTeacherEduForm(): void {
+    this.showTeacherEduForm = !this.showTeacherEduForm;
   }
 
   teacherExpForm = { instituteName: '', designation: '', fromDate: '', toDate: '', description: '' };
@@ -2545,6 +2570,7 @@ export class AppComponent implements OnInit {
       const payload = {
         admissionNumber: value.admissionNumber,
         firstName: value.firstName,
+        middleName: value.middleName || undefined,
         lastName: value.lastName,
         gender: value.gender,
         dateOfBirth: value.dateOfBirth,
@@ -2602,6 +2628,7 @@ export class AppComponent implements OnInit {
     const payload = {
       student: {
         firstName: value.firstName,
+        middleName: value.middleName || undefined,
         lastName: value.lastName,
         gender: value.gender,
         dateOfBirth: value.dateOfBirth,
@@ -2704,6 +2731,7 @@ export class AppComponent implements OnInit {
     this.admissionForm.patchValue({
       admissionNumber: student.admissionNumber,
       firstName: student.firstName,
+      middleName: student.middleName || '',
       lastName: student.lastName || '',
       gender: student.gender,
       dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
@@ -3009,6 +3037,180 @@ export class AppComponent implements OnInit {
       },
       error: () => { this.collectableInvoiceOptions = []; }
     });
+  }
+
+  // ── Fees dashboard summary + generation stats ──
+  feeSummary: FeeSummary | null = null;
+
+  loadFeeSummary(): void {
+    if (this.isPortalUser || !this.can('fees', 'view')) return;
+    const params: Record<string, string> = {};
+    const year = this.feeDemandForm.get('academicYear')?.value || this.activeAcademicYear?._id;
+    if (year) params['academicYear'] = String(year);
+    const cls = this.feeDemandForm.get('classRoom')?.value;
+    if (cls) params['classRoom'] = String(cls);
+    const month = this.feeDemandForm.get('month')?.value;
+    if (month) params['feeMonth'] = String(month);
+    const feeYear = this.feeDemandForm.get('year')?.value;
+    if (feeYear) params['feeYear'] = String(feeYear);
+    this.api.feeSummary(params).subscribe({
+      next: (summary) => { this.feeSummary = summary; },
+      error: () => { this.feeSummary = null; }
+    });
+  }
+
+  // ── Fee Demands view + collapsible filters ──
+  invoiceView: 'card' | 'table' = 'card';
+  showInvoiceFilters = false;
+  showFeeHistoryFilters = false;
+
+  setInvoiceView(view: 'card' | 'table'): void {
+    this.invoiceView = view;
+  }
+
+  toggleInvoiceFilters(): void {
+    this.showInvoiceFilters = !this.showInvoiceFilters;
+  }
+
+  toggleFeeHistoryFilters(): void {
+    this.showFeeHistoryFilters = !this.showFeeHistoryFilters;
+  }
+
+  resetInvoiceFilters(): void {
+    (['invoiceSearch', 'invoiceStatus', 'invoiceYear', 'invoiceClass', 'invoiceMonth'] as const)
+      .forEach((key) => this.updateListFilter('invoices', key, ''));
+  }
+
+  // ── Fee collection: student-search workflow ──
+  collectAcademicYear = '';
+  collectClassRoom = '';
+  collectStudentQuery = '';
+  collectStudentResults: Student[] = [];
+  collectSearching = false;
+  collectSelectedStudent: Student | null = null;
+  collectStudentInvoices: FeeInvoice[] = [];
+  collectInvoicesLoading = false;
+  private collectSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onCollectStudentQuery(term: string): void {
+    this.collectStudentQuery = term;
+    this.collectSelectedStudent = null;
+    if (this.collectSearchTimer) clearTimeout(this.collectSearchTimer);
+    if (term.trim().length < 2) {
+      this.collectStudentResults = [];
+      return;
+    }
+    this.collectSearchTimer = setTimeout(() => this.searchCollectStudents(), 300);
+  }
+
+  private searchCollectStudents(): void {
+    this.collectSearching = true;
+    const params: Record<string, string | number> = {
+      search: this.collectStudentQuery.trim(),
+      status: 'active',
+      page: 1,
+      pageSize: 12
+    };
+    if (this.collectAcademicYear) params['academicYear'] = this.collectAcademicYear;
+    if (this.collectClassRoom) params['classRoom'] = this.collectClassRoom;
+    this.api.students(params).subscribe({
+      next: (res) => { this.collectStudentResults = res.data; this.collectSearching = false; },
+      error: () => { this.collectStudentResults = []; this.collectSearching = false; }
+    });
+  }
+
+  selectCollectStudent(student: Student): void {
+    this.collectSelectedStudent = student;
+    this.collectStudentResults = [];
+    this.collectStudentQuery = `${this.studentName(student)} (${student.admissionNumber})`;
+    this.paymentForm.patchValue({ invoiceId: '' });
+    this.loadStudentPendingInvoices(student._id);
+  }
+
+  clearCollectStudent(): void {
+    this.collectSelectedStudent = null;
+    this.collectStudentInvoices = [];
+    this.collectStudentResults = [];
+    this.collectStudentQuery = '';
+    this.paymentForm.reset({
+      invoiceId: '',
+      amount: 0,
+      mode: PAYMENT_MODES.CASH,
+      referenceNumber: '',
+      discount: 0,
+      fine: 0,
+      otherCharges: 0
+    });
+  }
+
+  private loadStudentPendingInvoices(studentId: string): void {
+    this.collectInvoicesLoading = true;
+    this.api.invoices({ student: studentId, page: 1, pageSize: 100 }).subscribe({
+      next: (res) => {
+        this.collectStudentInvoices = res.data.filter((invoice) => invoice.status !== 'cancelled');
+        this.collectInvoicesLoading = false;
+      },
+      error: () => { this.collectStudentInvoices = []; this.collectInvoicesLoading = false; }
+    });
+  }
+
+  get collectPendingInvoices(): FeeInvoice[] {
+    return this.collectStudentInvoices.filter((invoice) => invoice.balanceAmount > 0);
+  }
+
+  get collectTotalDue(): number {
+    return this.collectStudentInvoices.reduce((sum, invoice) => sum + (invoice.balanceAmount || 0), 0);
+  }
+
+  get collectStudentClassLabel(): string {
+    const student = this.collectSelectedStudent;
+    if (!student) return '';
+    const enrollment = student.enrollments?.find((e) => e.status === 'studying') || student.enrollments?.[0];
+    const room = enrollment?.classRoom;
+    if (room && typeof room !== 'string') return `${room.name}-${room.section}`;
+    return '';
+  }
+
+  get collectStudentRoll(): string {
+    const student = this.collectSelectedStudent;
+    if (!student) return '';
+    const enrollment = student.enrollments?.find((e) => e.status === 'studying') || student.enrollments?.[0];
+    return enrollment?.rollNumber || '';
+  }
+
+  selectCollectInvoice(invoice: FeeInvoice): void {
+    this.paymentForm.patchValue({
+      invoiceId: invoice._id,
+      amount: invoice.balanceAmount || 0,
+      discount: invoice.discount || 0,
+      fine: invoice.fine || 0,
+      otherCharges: invoice.otherCharges || 0
+    });
+  }
+
+  get collectSelectedInvoice(): FeeInvoice | undefined {
+    const id = this.paymentForm.get('invoiceId')?.value;
+    if (!id) return undefined;
+    return this.collectStudentInvoices.find((invoice) => invoice._id === id)
+      || this.invoices.find((invoice) => invoice._id === id);
+  }
+
+  // Live payment breakdown that recalculates as the cashier edits discount/fine/other.
+  get paymentBreakdown(): { total: number; discount: number; fine: number; other: number; netPayable: number; amount: number; remaining: number } {
+    const invoice = this.collectSelectedInvoice;
+    const value = this.paymentForm.getRawValue();
+    const discount = Number(value.discount) || 0;
+    const fine = Number(value.fine) || 0;
+    const other = Number(value.otherCharges) || 0;
+    const amount = Number(value.amount) || 0;
+    if (!invoice) {
+      return { total: 0, discount, fine, other, netPayable: 0, amount, remaining: 0 };
+    }
+    const baseComponents = (invoice.tuitionFee || 0) + (invoice.busFee || 0) + (invoice.previousPending || 0);
+    const adjustedTotal = baseComponents + other + fine - discount;
+    const netPayable = Math.max(adjustedTotal - (invoice.paidAmount || 0), 0);
+    const remaining = Math.max(netPayable - amount, 0);
+    return { total: Math.max(adjustedTotal, 0), discount, fine, other, netPayable, amount, remaining };
   }
 
   private listingKeysForRole(): ListKey[] {
@@ -3388,8 +3590,16 @@ export class AppComponent implements OnInit {
       year: value.year
     };
     if (value.classRoom) payload['classRoom'] = value.classRoom;
-    this.submit(this.api.generateFeeDemands(payload), 'Monthly fee demands generated', undefined);
+    this.submit(this.api.generateFeeDemands(payload), 'Monthly fee demands generated', undefined, (response) => {
+      const result = response as { created?: number; skipped?: number };
+      this.feeGenConfirmation = `Generated ${result?.created ?? 0} new demand(s)`
+        + (result?.skipped ? `, skipped ${result.skipped} existing.` : '.');
+      this.loadFeeSummary();
+      this.loadCollectableInvoices();
+    });
   }
+
+  feeGenConfirmation = '';
 
   savePayment(): void {
     if (!this.can('fees', 'edit')) {
@@ -3397,6 +3607,7 @@ export class AppComponent implements OnInit {
       return;
     }
     const value = this.paymentForm.getRawValue();
+    const studentId = this.collectSelectedStudent?._id;
     this.submit(
       this.api.addPayment(value.invoiceId || '', {
         amount: value.amount,
@@ -3407,7 +3618,21 @@ export class AppComponent implements OnInit {
         otherCharges: value.otherCharges
       }),
       'Payment recorded and receipt generated',
-      this.paymentForm
+      undefined,
+      () => {
+        this.paymentForm.reset({
+          invoiceId: '',
+          amount: 0,
+          mode: PAYMENT_MODES.CASH,
+          referenceNumber: '',
+          discount: 0,
+          fine: 0,
+          otherCharges: 0
+        });
+        this.loadFeeSummary();
+        this.loadCollectableInvoices();
+        if (studentId) this.loadStudentPendingInvoices(studentId);
+      }
     );
   }
 
@@ -5460,7 +5685,7 @@ export class AppComponent implements OnInit {
 
   teacherName(teacher?: Teacher | string): string {
     if (!teacher || typeof teacher === 'string') return 'Not assigned';
-    return `${teacher.firstName} ${teacher.lastName || ''}`.trim();
+    return [teacher.firstName, teacher.middleName, teacher.lastName].filter(Boolean).join(' ').trim();
   }
 
   className(classRoom?: ClassRoom | string): string {
@@ -5495,7 +5720,7 @@ export class AppComponent implements OnInit {
 
   studentName(student?: Student | string): string {
     if (!student || typeof student === 'string') return '';
-    return `${student.firstName} ${student.lastName || ''}`.trim();
+    return [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ').trim();
   }
 
   payrollTeacherName(teacher?: Teacher | string): string {

@@ -16,4 +16,10 @@ body {
 body {
   background: var(--bg);
   font-family: var(--font);
+  font-size: var(--text-body);
+}
+
+/* Slightly reduce the global type scale for a denser, more compact enterprise feel. */
+html {
+  font-size: 93.75%;
 }

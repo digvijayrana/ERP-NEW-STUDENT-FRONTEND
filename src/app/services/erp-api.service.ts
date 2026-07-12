@@ -203,6 +203,12 @@ export class ErpApiService {
     return `${this.baseUrl}/teachers/${teacherId}/documents/${docType}/file${suffix}`;
   }
 
+  // Authenticated image URL usable directly in <img src> (token via query param).
+  teacherDocumentImageUrl(teacherId: string, docType: string): string {
+    const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
+    return `${this.baseUrl}/teachers/${teacherId}/documents/${docType}/file?access_token=${encodeURIComponent(token)}`;
+  }
+
   getTeacherDocumentUrl(teacherId: string, docType: string): Observable<{ url: string }> {
     return this.http.get<{ url: string }>(`${this.baseUrl}/teachers/${teacherId}/documents/${docType}/url`, this.options());
   }
@@ -302,6 +308,16 @@ export class ErpApiService {
 
   invoices(params?: ListQueryParams): Observable<ApiSuccessResponse<FeeInvoice[]>> {
     return this.http.get<ApiSuccessResponse<FeeInvoice[]>>(`${this.baseUrl}/fees/invoices`, this.listOptions(params));
+  }
+
+  feeSummary(params?: Record<string, string>): Observable<import('../core/models').FeeSummary> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<import('../core/models').FeeSummary>(`${this.baseUrl}/fees/summary`, { ...this.options(), params: httpParams });
   }
 
   generateFeeDemands(payload: Record<string, unknown>): Observable<{ created: number; skipped: number }> {
