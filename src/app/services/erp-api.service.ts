@@ -20,6 +20,7 @@ import {
   ExamSubmission,
   FeeInvoice,
   FeeHistoryRow,
+  FeeStructure,
   BusRoute,
   BusRegistration,
   BusReportRow,
@@ -322,6 +323,19 @@ export class ErpApiService {
 
   generateFeeDemands(payload: Record<string, unknown>): Observable<{ created: number; skipped: number }> {
     return this.http.post<{ created: number; skipped: number }>(`${this.baseUrl}/fees/demands/generate`, payload, this.options());
+  }
+
+  feeStructureForClass(academicYear: string, classRoom: string): Observable<FeeStructure | null> {
+    let httpParams = new HttpParams().set('academicYear', academicYear).set('classRoom', classRoom);
+    return this.http.get<FeeStructure | null>(`${this.baseUrl}/fees/structures/for-class`, { ...this.options(), params: httpParams });
+  }
+
+  saveFeeStructure(payload: Record<string, unknown>): Observable<FeeStructure> {
+    return this.http.put<FeeStructure>(`${this.baseUrl}/fees/structures`, payload, this.options());
+  }
+
+  deleteFeeStructure(id: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/fees/structures/${id}`, this.options());
   }
 
   previewFeeDemand(params: Record<string, string>): Observable<Record<string, unknown>> {

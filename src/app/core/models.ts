@@ -103,11 +103,13 @@ export interface FeeInvoice {
   dueDate: string;
   feeMonth?: number;
   feeYear?: number;
+  billingCycle?: string;
   tuitionFee?: number;
   busFee?: number;
   otherCharges?: number;
   previousPending?: number;
   items: Array<{ label: string; amount: number }>;
+  feeComponents?: Array<{ key: string; label: string; amount: number }>;
   discount: number;
   fine: number;
   payments: FeePayment[];
@@ -130,6 +132,25 @@ export interface FeeSummary {
   demandsGenerated: number;
   pendingGeneration: number;
   lastGeneratedDate?: string | null;
+}
+
+export type FeeFrequency = 'one_time' | 'monthly' | 'quarterly' | 'half_yearly' | 'yearly';
+
+export interface FeeStructureComponent {
+  key: string;
+  label: string;
+  amount: number;
+  frequency: FeeFrequency;
+  newAdmissionOnly?: boolean;
+}
+
+export interface FeeStructure {
+  _id?: string;
+  academicYear: AcademicYear | string;
+  classRoom: ClassRoom | string;
+  components: FeeStructureComponent[];
+  status?: string;
+  updatedAt?: string;
 }
 
 export interface FeeHistoryRow {

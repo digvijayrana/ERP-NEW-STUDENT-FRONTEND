@@ -32,6 +32,81 @@
     </div>
   </div>
 
+  <!-- Fee Structure definition (admission / registration / tuition / bus / lab / custom) -->
+  <section *ngIf="vm.can('fees', 'create')" class="panel fee-structure-card span-12">
+    <div class="fee-gen-head">
+      <div>
+        <p class="eyebrow">Configuration</p>
+        <h3>Fee Structure</h3>
+      </div>
+      <button type="button" class="ghost small filter-toggle" (click)="vm.toggleFeeStructure()">
+        {{ vm.showFeeStructure ? 'Hide' : 'Configure' }}
+      </button>
+    </div>
+
+    <ng-container *ngIf="vm.showFeeStructure">
+      <p class="hint-text">Break the fee into components per class. Each amount is per its frequency (e.g. a quarterly ₹3,000 fee = ₹1,000/month). When you generate demands, the chosen billing cycle decides how many months are billed. One-time items (like admission) bill only once for new admissions.</p>
+
+      <div class="fee-gen-grid">
+        <label><span class="label-text">Academic year</span>
+          <select [value]="vm.feeStructureYear" (change)="vm.feeStructureYear = $any($event.target).value; vm.loadFeeStructure()">
+            <option value="">Select year</option>
+            <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+          </select>
+        </label>
+        <label><span class="label-text">Class &amp; section</span>
+          <select [value]="vm.feeStructureClass" (change)="vm.feeStructureClass = $any($event.target).value; vm.loadFeeStructure()">
+            <option value="">Select class</option>
+            <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+          </select>
+        </label>
+      </div>
+
+      <ng-container *ngIf="vm.feeStructureYear && vm.feeStructureClass">
+        <div class="fee-preset-row">
+          <span class="fee-preset-label">Add component:</span>
+          <button *ngFor="let preset of vm.feeComponentPresets" type="button" class="ghost small" (click)="vm.addFeeComponentPreset(preset)">+ {{ preset.label }}</button>
+          <button type="button" class="ghost small" (click)="vm.addCustomFeeComponent()">+ Custom</button>
+        </div>
+
+        <div class="fee-structure-table" *ngIf="vm.feeStructureComponents.length; else noComponents">
+          <div class="fsc-head">
+            <span>Component</span>
+            <span>Amount (₹)</span>
+            <span>Frequency</span>
+            <span>New admission only</span>
+            <span></span>
+          </div>
+          <div class="fsc-row" *ngFor="let component of vm.feeStructureComponents; let i = index">
+            <input class="fsc-label" type="text" placeholder="Component name" [(ngModel)]="component.label" [ngModelOptions]="{ standalone: true }">
+            <input class="fsc-amount" type="number" min="0" [(ngModel)]="component.amount" [ngModelOptions]="{ standalone: true }">
+            <select class="fsc-freq" [(ngModel)]="component.frequency" [ngModelOptions]="{ standalone: true }" (change)="vm.onFeeComponentFrequencyChange(component)">
+              <option *ngFor="let opt of vm.feeFrequencyOptions" [value]="opt.value">{{ opt.label }}</option>
+            </select>
+            <label class="fsc-check">
+              <input type="checkbox" [(ngModel)]="component.newAdmissionOnly" [ngModelOptions]="{ standalone: true }" [disabled]="component.frequency !== 'one_time'">
+              <span>Once</span>
+            </label>
+            <button type="button" class="ghost small danger-text" (click)="vm.removeFeeComponent(i)" aria-label="Remove">&times;</button>
+          </div>
+          <div class="fsc-total">
+            <span>Total per full cycle</span>
+            <strong>{{ vm.feeStructureTotal | currency: 'INR' }}</strong>
+          </div>
+        </div>
+        <ng-template #noComponents>
+          <p class="hint-text" *ngIf="!vm.feeStructureLoading">No components yet. Use the buttons above to add admission, tuition, bus, lab or custom fees.</p>
+          <p class="hint-text" *ngIf="vm.feeStructureLoading">Loading fee structure…</p>
+        </ng-template>
+
+        <div class="form-actions">
+          <button type="button" class="ghost" *ngIf="vm.feeStructureId" (click)="vm.deleteFeeStructure()">Delete structure</button>
+          <button type="button" class="primary-btn compact-submit" [disabled]="vm.feeStructureSaving" (click)="vm.saveFeeStructure()">Save structure</button>
+        </div>
+      </ng-container>
+    </ng-container>
+  </section>
+
   <!-- Generate Monthly Demands (compact) -->
   <form *ngIf="vm.can('fees', 'create')" [formGroup]="vm.feeDemandForm" (ngSubmit)="vm.generateFeeDemands()" class="panel fee-gen-card span-12">
     <div class="fee-gen-head">
@@ -44,9 +119,31 @@
     <div class="fee-gen-grid">
       <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.loadFeeSummary()"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
       <label><span class="label-text">Class (optional)</span><select formControlName="classRoom" (change)="vm.loadFeeSummary()"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
-      <label><span class="label-text">Fee month</span><select formControlName="month" (change)="vm.loadFeeSummary()"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>
+      <label><span class="label-text">Billing cycle</span><select formControlName="cycle"><option *ngFor="let opt of vm.feeFrequencyOptions" [value]="opt.value" [disabled]="opt.value === 'one_time'">{{ opt.label }}</option></select></label>
+      <label><span class="label-text">From month</span><select formControlName="month" (change)="vm.loadFeeSummary()"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>
       <label><span class="label-text">Fee year</span><input type="number" formControlName="year" min="2020" max="2100" (change)="vm.loadFeeSummary()"></label>
     </div>
+    <div class="fee-gen-target">
+      <label class="collect-search-field"><span class="label-text">Student (optional — leave blank for whole class/year)</span>
+        <div class="collect-search">
+          <input type="text" placeholder="Search name, admission no. or roll no." autocomplete="off"
+                 [value]="vm.genStudentQuery"
+                 (input)="vm.onGenStudentQuery($any($event.target).value)">
+          <button type="button" class="ghost small" *ngIf="vm.genSelectedStudent" (click)="vm.clearGenStudent()">Clear</button>
+          <div class="collect-search-results" *ngIf="vm.genStudentResults.length && !vm.genSelectedStudent">
+            <button type="button" class="collect-result" *ngFor="let student of vm.genStudentResults" (click)="vm.selectGenStudent(student)">
+              <span class="cr-name">{{ vm.studentName(student) }}</span>
+              <span class="cr-meta">{{ student.admissionNumber }}</span>
+            </button>
+          </div>
+          <div class="collect-search-empty" *ngIf="vm.genSearching">Searching…</div>
+        </div>
+      </label>
+      <p class="fee-gen-target-note hint-text" *ngIf="vm.genSelectedStudent">
+        Demands will be generated only for <strong>{{ vm.studentName(vm.genSelectedStudent) }}</strong>.
+      </p>
+    </div>
+    <p class="fee-cycle-hint hint-text">Billing cycle decides how many months each demand covers — a quarterly demand bills 3 months of recurring fees, half-yearly 6, yearly 12. One-time items (like admission) bill only once.</p>
     <div class="fee-gen-stats" *ngIf="vm.feeSummary as s">
       <div class="fg-stat"><span class="fg-label">Total Students</span><span class="fg-value">{{ s.totalStudents | number }}</span></div>
       <div class="fg-stat"><span class="fg-label">Demands Generated</span><span class="fg-value">{{ s.demandsGenerated | number }}</span></div>
@@ -131,9 +228,9 @@
       <ng-container *ngIf="vm.collectSelectedInvoice as inv">
         <div class="section-head compact" style="margin-top: 0.75rem;"><div><p class="eyebrow">Payment</p><h3>{{ inv.invoiceNumber }}</h3></div></div>
         <div class="form-grid compact">
-          <label><span class="label-text">Discount</span><input type="number" formControlName="discount" min="0"></label>
-          <label><span class="label-text">Fine</span><input type="number" formControlName="fine" min="0"></label>
-          <label><span class="label-text">Other charges</span><input type="number" formControlName="otherCharges" min="0"></label>
+          <label><span class="label-text">Discount</span><input type="number" formControlName="discount" min="0" (input)="vm.onCollectAdjustmentChange()"></label>
+          <label><span class="label-text">Fine</span><input type="number" formControlName="fine" min="0" (input)="vm.onCollectAdjustmentChange()"></label>
+          <label><span class="label-text">Other charges</span><input type="number" formControlName="otherCharges" min="0" (input)="vm.onCollectAdjustmentChange()"></label>
           <label><span class="label-text">Amount paying</span><input type="number" formControlName="amount" min="1"></label>
           <label><span class="label-text">Payment mode</span>
             <select formControlName="mode">
@@ -380,6 +477,7 @@
       <div class="admission-modal-body">
         <div class="inv-header" style="margin-bottom: 0.75rem;">
           <span class="inv-due">Due: {{ inv.dueDate | date: 'dd MMM yyyy' }}</span>
+          <span class="chip-value" *ngIf="inv.billingCycle && inv.billingCycle !== 'monthly'">{{ vm.feeCycleLabel(inv.billingCycle) }}</span>
           <span class="status-badge" [ngClass]="inv.status">{{ inv.status }}</span>
         </div>
 

@@ -3,9 +3,9 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
-import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS } from './core/constants';
+import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, FEE_COMPONENT_PRESETS, FEE_FREQUENCY_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
 import { ClassesPageComponent } from './pages/classes-page/classes-page.component';
 import { DashboardPageComponent } from './pages/dashboard-page/dashboard-page.component';
@@ -558,6 +558,7 @@ export class AppComponent implements OnInit {
   feeDemandForm = this.fb.group({
     academicYear: ['', Validators.required],
     classRoom: [''],
+    cycle: ['monthly', Validators.required],
     month: [new Date().getMonth() + 1, Validators.required],
     year: [new Date().getFullYear(), Validators.required]
   });
@@ -3059,6 +3060,138 @@ export class AppComponent implements OnInit {
     });
   }
 
+  // ── Fee structure definition (admin builds per class + year) ──
+  readonly feeComponentPresets = FEE_COMPONENT_PRESETS;
+  readonly feeFrequencyOptions = FEE_FREQUENCY_OPTIONS;
+  showFeeStructure = false;
+  feeStructureYear = '';
+  feeStructureClass = '';
+  feeStructureComponents: FeeStructureComponent[] = [];
+  feeStructureId: string | null = null;
+  feeStructureLoading = false;
+  feeStructureSaving = false;
+
+  toggleFeeStructure(): void {
+    this.showFeeStructure = !this.showFeeStructure;
+    if (this.showFeeStructure && !this.feeStructureYear) {
+      this.feeStructureYear = this.feeDemandForm.get('academicYear')?.value || this.activeAcademicYear?._id || '';
+    }
+  }
+
+  loadFeeStructure(): void {
+    if (!this.feeStructureYear || !this.feeStructureClass) {
+      this.feeStructureComponents = [];
+      this.feeStructureId = null;
+      return;
+    }
+    this.feeStructureLoading = true;
+    this.api.feeStructureForClass(this.feeStructureYear, this.feeStructureClass).subscribe({
+      next: (structure) => {
+        this.feeStructureComponents = (structure?.components || []).map((component) => ({ ...component }));
+        this.feeStructureId = structure?._id || null;
+        this.feeStructureLoading = false;
+      },
+      error: () => {
+        this.feeStructureComponents = [];
+        this.feeStructureId = null;
+        this.feeStructureLoading = false;
+      }
+    });
+  }
+
+  addFeeComponentPreset(preset: { key: string; label: string; frequency: string; newAdmissionOnly: boolean }): void {
+    if (this.feeStructureComponents.some((component) => component.key === preset.key)) {
+      this.toast.error(`${preset.label} is already added`);
+      return;
+    }
+    this.feeStructureComponents.push({
+      key: preset.key,
+      label: preset.label,
+      amount: 0,
+      frequency: preset.frequency as FeeStructureComponent['frequency'],
+      newAdmissionOnly: preset.newAdmissionOnly
+    });
+  }
+
+  addCustomFeeComponent(): void {
+    this.feeStructureComponents.push({
+      key: `custom_${Date.now()}`,
+      label: '',
+      amount: 0,
+      frequency: 'monthly',
+      newAdmissionOnly: false
+    });
+  }
+
+  removeFeeComponent(index: number): void {
+    this.feeStructureComponents.splice(index, 1);
+  }
+
+  onFeeComponentFrequencyChange(component: FeeStructureComponent): void {
+    if (component.frequency !== 'one_time') component.newAdmissionOnly = false;
+  }
+
+  get feeStructureTotal(): number {
+    return this.feeStructureComponents.reduce((sum, component) => sum + (Number(component.amount) || 0), 0);
+  }
+
+  feeCycleLabel(value?: string): string {
+    return this.feeFrequencyOptions.find((opt) => opt.value === value)?.label || 'Monthly';
+  }
+
+  saveFeeStructure(): void {
+    if (!this.can('fees', 'create')) {
+      this.toast.error('You do not have permission to configure fee structures');
+      return;
+    }
+    if (!this.feeStructureYear || !this.feeStructureClass) {
+      this.toast.error('Select an academic year and class first');
+      return;
+    }
+    const components = this.feeStructureComponents
+      .map((component) => ({
+        key: component.key,
+        label: (component.label || '').trim(),
+        amount: Math.max(Number(component.amount) || 0, 0),
+        frequency: component.frequency,
+        newAdmissionOnly: component.frequency === 'one_time' ? !!component.newAdmissionOnly : false
+      }))
+      .filter((component) => component.label);
+
+    this.feeStructureSaving = true;
+    this.api.saveFeeStructure({
+      academicYear: this.feeStructureYear,
+      classRoom: this.feeStructureClass,
+      components
+    }).subscribe({
+      next: (structure) => {
+        this.feeStructureId = structure?._id || null;
+        this.feeStructureSaving = false;
+        this.toast.success('Fee structure saved');
+      },
+      error: (error) => {
+        this.feeStructureSaving = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  deleteFeeStructure(): void {
+    if (!this.feeStructureId) {
+      this.feeStructureComponents = [];
+      return;
+    }
+    if (!confirm('Delete this fee structure? Existing demands will not change.')) return;
+    this.api.deleteFeeStructure(this.feeStructureId).subscribe({
+      next: () => {
+        this.feeStructureComponents = [];
+        this.feeStructureId = null;
+        this.toast.success('Fee structure deleted');
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
   // ── Fee Demands view + collapsible filters ──
   invoiceView: 'card' | 'table' = 'card';
   showInvoiceFilters = false;
@@ -3186,6 +3319,16 @@ export class AppComponent implements OnInit {
       fine: invoice.fine || 0,
       otherCharges: invoice.otherCharges || 0
     });
+    // Align the amount with the freshly computed net payable in case adjustments differ.
+    this.onCollectAdjustmentChange();
+  }
+
+  // When the cashier edits discount/fine/other charges, keep "Amount paying" in sync
+  // with the recalculated net payable. Without this the server rejects the payment
+  // ("Payment exceeds balance due") because a discount lowers the balance after the fact.
+  onCollectAdjustmentChange(): void {
+    const netPayable = this.paymentBreakdown.netPayable;
+    this.paymentForm.patchValue({ amount: netPayable }, { emitEvent: false });
   }
 
   get collectSelectedInvoice(): FeeInvoice | undefined {
@@ -3578,6 +3721,67 @@ export class AppComponent implements OnInit {
     });
   }
 
+  // ── Generate demands: optional single-student targeting ──
+  genStudentQuery = '';
+  genStudentResults: Student[] = [];
+  genSearching = false;
+  genSelectedStudent: Student | null = null;
+  private genSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onGenStudentQuery(term: string): void {
+    this.genStudentQuery = term;
+    this.genSelectedStudent = null;
+    if (this.genSearchTimer) clearTimeout(this.genSearchTimer);
+    if (term.trim().length < 2) {
+      this.genStudentResults = [];
+      return;
+    }
+    this.genSearchTimer = setTimeout(() => this.searchGenStudents(), 300);
+  }
+
+  private searchGenStudents(): void {
+    this.genSearching = true;
+    const params: Record<string, string | number> = {
+      search: this.genStudentQuery.trim(),
+      status: 'active',
+      page: 1,
+      pageSize: 12
+    };
+    const ay = this.feeDemandForm.get('academicYear')?.value;
+    const cls = this.feeDemandForm.get('classRoom')?.value;
+    if (ay) params['academicYear'] = String(ay);
+    if (cls) params['classRoom'] = String(cls);
+    this.api.students(params).subscribe({
+      next: (res) => { this.genStudentResults = res.data; this.genSearching = false; },
+      error: () => { this.genStudentResults = []; this.genSearching = false; }
+    });
+  }
+
+  selectGenStudent(student: Student): void {
+    this.genSelectedStudent = student;
+    this.genStudentResults = [];
+    this.genStudentQuery = `${this.studentName(student)} (${student.admissionNumber})`;
+    // Auto-fill academic year / class from the student's active enrollment for convenience.
+    const enrollment = student.enrollments?.find((e) => e.status === 'studying') || student.enrollments?.[0];
+    if (enrollment) {
+      const ayId = typeof enrollment.academicYear === 'string' ? enrollment.academicYear : enrollment.academicYear?._id;
+      const clsId = typeof enrollment.classRoom === 'string' ? enrollment.classRoom : enrollment.classRoom?._id;
+      const patch: Record<string, string> = {};
+      if (ayId) patch['academicYear'] = ayId;
+      if (clsId) patch['classRoom'] = clsId;
+      if (Object.keys(patch).length) {
+        this.feeDemandForm.patchValue(patch);
+        this.loadFeeSummary();
+      }
+    }
+  }
+
+  clearGenStudent(): void {
+    this.genSelectedStudent = null;
+    this.genStudentResults = [];
+    this.genStudentQuery = '';
+  }
+
   generateFeeDemands(): void {
     if (!this.can('fees', 'create')) {
       this.message = 'You do not have permission to generate fee demands';
@@ -3586,13 +3790,17 @@ export class AppComponent implements OnInit {
     const value = this.feeDemandForm.getRawValue();
     const payload: Record<string, unknown> = {
       academicYear: value.academicYear,
+      cycle: value.cycle,
       month: value.month,
       year: value.year
     };
     if (value.classRoom) payload['classRoom'] = value.classRoom;
-    this.submit(this.api.generateFeeDemands(payload), 'Monthly fee demands generated', undefined, (response) => {
+    if (this.genSelectedStudent) payload['student'] = this.genSelectedStudent._id;
+    const cycleLabel = this.feeFrequencyOptions.find((opt) => opt.value === value.cycle)?.label || 'Monthly';
+    const targetLabel = this.genSelectedStudent ? ` for ${this.studentName(this.genSelectedStudent)}` : '';
+    this.submit(this.api.generateFeeDemands(payload), `${cycleLabel} fee demands generated`, undefined, (response) => {
       const result = response as { created?: number; skipped?: number };
-      this.feeGenConfirmation = `Generated ${result?.created ?? 0} new demand(s)`
+      this.feeGenConfirmation = `Generated ${result?.created ?? 0} ${cycleLabel.toLowerCase()} demand(s)${targetLabel}`
         + (result?.skipped ? `, skipped ${result.skipped} existing.` : '.');
       this.loadFeeSummary();
       this.loadCollectableInvoices();

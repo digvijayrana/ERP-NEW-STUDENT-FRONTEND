@@ -75,6 +75,24 @@ export const PAYMENT_MODES = {
   CHEQUE: 'cheque'
 } as const;
 
+// Fee structure component presets an admin can add to a class fee structure.
+export const FEE_COMPONENT_PRESETS = [
+  { key: 'admission', label: 'Admission Fee', frequency: 'one_time', newAdmissionOnly: true },
+  { key: 'registration', label: 'Registration Fee', frequency: 'one_time', newAdmissionOnly: false },
+  { key: 'tuition', label: 'Tuition Fee', frequency: 'monthly', newAdmissionOnly: false },
+  { key: 'bus', label: 'Bus Fee', frequency: 'monthly', newAdmissionOnly: false },
+  { key: 'lab', label: 'Lab Fee', frequency: 'monthly', newAdmissionOnly: false }
+] as const;
+
+// Billing cadence options for a fee component (also the parent submission frequency).
+export const FEE_FREQUENCY_OPTIONS = [
+  { value: 'one_time', label: 'One time' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'half_yearly', label: 'Half yearly' },
+  { value: 'yearly', label: 'Yearly' }
+] as const;
+
 export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
