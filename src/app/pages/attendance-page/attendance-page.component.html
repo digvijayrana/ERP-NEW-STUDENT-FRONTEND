@@ -40,7 +40,7 @@
       <span class="status-badge" [ngClass]="vm.attendanceRegisterWorkflow">{{ vm.attendanceRegisterWorkflow }}</span>
     </div>
     <form [formGroup]="vm.attendanceForm" class="form-grid compact" (ngSubmit)="vm.loadAttendanceRegister()">
-      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label>Academic year<select formControlName="academicYear"><option value="">Select year</option><option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option></select></label>
       <label>Class<select formControlName="classRoom"><option value="">Select class</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
       <label>Date<input type="date" formControlName="date" [max]="today | date:'yyyy-MM-dd'"></label>
       <div class="form-actions inline">

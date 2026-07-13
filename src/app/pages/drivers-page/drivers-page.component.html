@@ -1,0 +1,297 @@
+<section class="workspace">
+  <div class="page-spinner-wrap" *ngIf="vm.loading && !vm.vehicles.length">
+    <app-spinner [show]="true" label="Loading drivers & fleet..."></app-spinner>
+  </div>
+  <ng-container *ngIf="!vm.loading || vm.vehicles.length">
+
+  <!-- Drivers summary -->
+  <div class="fee-summary-grid span-12" *ngIf="vm.can('drivers', 'view')">
+    <div class="fee-summary-card">
+      <span class="fs-label">Vehicles</span>
+      <span class="fs-value">{{ vm.vehicles.length | number }}</span>
+    </div>
+    <div class="fee-summary-card ok">
+      <span class="fs-label">Active vehicles</span>
+      <span class="fs-value">{{ vm.activeVehicles.length | number }}</span>
+    </div>
+    <div class="fee-summary-card warn" *ngIf="vm.driverSalaryRegister">
+      <span class="fs-label">Salaries pending</span>
+      <span class="fs-value">{{ vm.driverSalaryRegister.totals.unpaidCount }}</span>
+    </div>
+    <div class="fee-summary-card" *ngIf="vm.driverSalaryRegister">
+      <span class="fs-label">Paid this period</span>
+      <span class="fs-value">{{ vm.driverSalaryRegister.totals.paidAmount | currency:'INR' }}</span>
+    </div>
+  </div>
+
+  <!-- Vehicles & drivers -->
+  <section class="data-card span-12" *ngIf="vm.can('drivers', 'view')">
+    <div class="section-head">
+      <div><p class="eyebrow">Fleet</p><h3>Vehicles &amp; drivers</h3></div>
+      <button *ngIf="vm.can('drivers', 'create')" type="button" class="primary-btn new-admission-btn" (click)="vm.openVehicleForm()">
+        <span class="btn-plus" aria-hidden="true">+</span> Register vehicle
+      </button>
+    </div>
+    <div class="table-wrap sticky-header">
+      <table>
+        <thead><tr>
+          <th>Vehicle</th><th>Driver</th><th>Salary</th><th>Documents</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let vehicle of vm.vehicles">
+            <td>
+              <strong>{{ vehicle.vehicleNumber }}</strong>
+              <br><span class="muted">{{ vehicle.model || '—' }} · {{ vehicle.type || 'bus' }} · {{ vehicle.capacity || 0 }} seats</span>
+            </td>
+            <td>
+              <div class="driver-cell">
+                <img *ngIf="vehicle.documents?.driverPhoto?.url" class="driver-avatar" [src]="vm.vehicleDocImageUrl(vehicle._id, 'driverPhoto')" alt="driver">
+                <span *ngIf="!vehicle.documents?.driverPhoto?.url" class="driver-avatar placeholder">{{ (vehicle.driverName || '?').charAt(0) }}</span>
+                <span>
+                  {{ vehicle.driverName || '—' }}
+                  <br><span class="muted">{{ vehicle.driverMobile || '' }}</span>
+                </span>
+              </div>
+            </td>
+            <td>{{ (vehicle.driverSalary || 0) | currency: 'INR' }}</td>
+            <td>
+              <div class="vehicle-doc-tags">
+                <span class="doc-tag" [ngClass]="vm.vehicleExpiryStatus(vehicle.registrationExpiry)" *ngIf="vehicle.registrationExpiry" title="Registration">RC {{ vehicle.registrationExpiry | date: 'dd MMM yy' }}</span>
+                <span class="doc-tag" [ngClass]="vm.vehicleExpiryStatus(vehicle.insuranceExpiry)" *ngIf="vehicle.insuranceExpiry" title="Insurance">INS {{ vehicle.insuranceExpiry | date: 'dd MMM yy' }}</span>
+                <span class="doc-tag" [ngClass]="vm.vehicleExpiryStatus(vehicle.pollutionExpiry)" *ngIf="vehicle.pollutionExpiry" title="Pollution">PUC {{ vehicle.pollutionExpiry | date: 'dd MMM yy' }}</span>
+                <span class="doc-tag" [ngClass]="vm.vehicleExpiryStatus(vehicle.fitnessExpiry)" *ngIf="vehicle.fitnessExpiry" title="Fitness">FIT {{ vehicle.fitnessExpiry | date: 'dd MMM yy' }}</span>
+                <span class="doc-tag" [ngClass]="vm.vehicleExpiryStatus(vehicle.licenseExpiry)" *ngIf="vehicle.licenseExpiry" title="Driver license">DL {{ vehicle.licenseExpiry | date: 'dd MMM yy' }}</span>
+                <span class="muted" *ngIf="!vehicle.registrationExpiry && !vehicle.insuranceExpiry && !vehicle.pollutionExpiry && !vehicle.fitnessExpiry && !vehicle.licenseExpiry">—</span>
+              </div>
+            </td>
+            <td><span class="status-badge" [ngClass]="vehicle.status">{{ vehicle.status }}</span></td>
+            <td>
+              <div class="table-actions">
+                <app-action-btn type="view" (clicked)="vm.openVehicleView(vehicle)"></app-action-btn>
+                <app-action-btn *ngIf="vm.can('drivers', 'edit')" type="edit" (clicked)="vm.editVehicle(vehicle)"></app-action-btn>
+                <app-action-btn *ngIf="vm.can('drivers', 'deactivate')" type="delete" (clicked)="vm.deleteVehicle(vehicle)"></app-action-btn>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.vehicles.length">
+            <td colspan="6"><app-empty-state title="No vehicles" message="Click “Register vehicle” to add a vehicle with driver details."></app-empty-state></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Driver salaries -->
+  <section class="data-card span-12" *ngIf="vm.can('drivers', 'view')">
+    <div class="section-head">
+      <div><p class="eyebrow">Payroll</p><h3>Driver salaries</h3></div>
+      <div class="salary-filters">
+        <select class="filter-select" [(ngModel)]="vm.driverSalaryMonth" (ngModelChange)="vm.loadDriverSalaries()" aria-label="Month">
+          <option *ngFor="let m of vm.driverSalaryMonthOptions" [value]="m">{{ m }}</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="vm.driverSalaryYear" (ngModelChange)="vm.loadDriverSalaries()" aria-label="Year">
+          <option *ngFor="let y of vm.driverSalaryYearOptions" [value]="y">{{ y }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="fee-summary-grid" *ngIf="vm.driverSalaryRegister">
+      <div class="fee-summary-card"><span class="fs-label">Drivers</span><span class="fs-value">{{ vm.driverSalaryRegister.totals.drivers }}</span></div>
+      <div class="fee-summary-card ok"><span class="fs-label">Paid</span><span class="fs-value">{{ vm.driverSalaryRegister.totals.paidCount }}</span></div>
+      <div class="fee-summary-card warn"><span class="fs-label">Pending</span><span class="fs-value">{{ vm.driverSalaryRegister.totals.unpaidCount }}</span></div>
+      <div class="fee-summary-card"><span class="fs-label">Paid amount</span><span class="fs-value">{{ vm.driverSalaryRegister.totals.paidAmount | currency:'INR' }}</span></div>
+      <div class="fee-summary-card"><span class="fs-label">Pending amount</span><span class="fs-value">{{ vm.driverSalaryRegister.totals.pendingAmount | currency:'INR' }}</span></div>
+    </div>
+    <div class="table-wrap sticky-header">
+      <table>
+        <thead><tr>
+          <th>Driver</th><th>Vehicle</th><th>Salary</th><th>Status</th><th>Paid on</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let row of vm.driverSalaryRegister?.rows">
+            <td>{{ row.driverName || '—' }}<br><span class="muted">{{ row.driverMobile }}</span></td>
+            <td>{{ row.vehicleNumber }}</td>
+            <td>{{ (row.payment?.amount ?? row.salaryAmount) | currency:'INR' }}</td>
+            <td><span class="status-badge" [ngClass]="row.status === 'paid' ? 'active' : 'inactive'">{{ row.status }}</span></td>
+            <td>{{ row.payment?.paidOn ? (row.payment?.paidOn | date: 'dd MMM yyyy') : '—' }}</td>
+            <td>
+              <div class="table-actions">
+                <button *ngIf="row.status === 'unpaid' && vm.can('drivers', 'edit')" type="button" class="ghost small" (click)="vm.openDriverSalaryForm(row)">Record payment</button>
+                <button *ngIf="row.status === 'paid' && vm.can('drivers', 'edit')" type="button" class="ghost small danger-text" (click)="vm.revertDriverSalary(row)">Revert</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!vm.driverSalaryRegister?.rows?.length">
+            <td colspan="6"><app-empty-state title="No drivers" message="Register a vehicle with driver details to track salaries."></app-empty-state></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Vehicle create/edit modal -->
+  <div class="admission-overlay" *ngIf="(vm.can('drivers', 'create') || vm.can('drivers', 'edit')) && vm.showVehicleForm" (click)="vm.closeVehicleForm()">
+    <div class="admission-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Fleet</p>
+          <h3>{{ vm.editingVehicleId ? 'Update vehicle' : 'Register vehicle' }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeVehicleForm()" aria-label="Close">&times;</button>
+      </div>
+      <form [formGroup]="vm.vehicleForm" (ngSubmit)="vm.saveVehicle()">
+        <div class="admission-modal-body">
+          <p class="eyebrow">Vehicle details</p>
+          <div class="form-grid compact">
+            <label><span class="label-text">Vehicle number</span><input formControlName="vehicleNumber" placeholder="KA-01-AB-1234"></label>
+            <label><span class="label-text">Model</span><input formControlName="model" placeholder="Tata Starbus"></label>
+            <label><span class="label-text">Type</span>
+              <select formControlName="type">
+                <option value="bus">Bus</option>
+                <option value="van">Van</option>
+                <option value="car">Car</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label><span class="label-text">Capacity</span><input type="number" formControlName="capacity" min="1"></label>
+            <label><span class="label-text">Registration expiry</span><input type="date" formControlName="registrationExpiry"></label>
+            <label><span class="label-text">Insurance expiry</span><input type="date" formControlName="insuranceExpiry"></label>
+            <label><span class="label-text">Pollution (PUC) expiry</span><input type="date" formControlName="pollutionExpiry"></label>
+            <label><span class="label-text">Fitness expiry</span><input type="date" formControlName="fitnessExpiry"></label>
+          </div>
+
+          <p class="eyebrow" style="margin-top: var(--space-4)">Driver details</p>
+          <div class="form-grid compact">
+            <label><span class="label-text">Driver name</span><input formControlName="driverName"></label>
+            <label><span class="label-text">Driver mobile</span><input formControlName="driverMobile" maxlength="10" pattern="\d{10}" inputmode="numeric" placeholder="10-digit mobile"></label>
+            <label class="span-2"><span class="label-text">Address</span><input formControlName="driverAddress" placeholder="Residential address"></label>
+            <label><span class="label-text">License number</span><input formControlName="licenseNumber"></label>
+            <label><span class="label-text">License expiry</span><input type="date" formControlName="licenseExpiry"></label>
+            <label><span class="label-text">Monthly salary</span><input type="number" formControlName="driverSalary" min="0"></label>
+            <label><span class="label-text">Joining date</span><input type="date" formControlName="joiningDate"></label>
+            <label><span class="label-text">Status</span>
+              <select formControlName="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <label class="span-2"><span class="label-text">Notes</span><input formControlName="notes" placeholder="Optional remarks"></label>
+          </div>
+
+          <p class="eyebrow" style="margin-top: var(--space-4)">Driver documents <span class="req-note">(all required)</span></p>
+          <div class="vehicle-doc-grid">
+            <div class="vehicle-doc-upload" *ngFor="let doc of vm.vehicleDocTypes">
+              <span class="vehicle-doc-title">{{ doc.label }} <span class="req-star">*</span></span>
+              <label class="doc-upload-label">
+                <input type="file" accept="image/jpeg,image/png,application/pdf" (change)="vm.onVehicleDocSelected(doc.key, $event)" hidden>
+                <span class="btn-plus" aria-hidden="true">+</span>
+                {{ vm.vehicleDocSelectedName(doc.key) || (vm.editingVehicleHasDoc(doc.key) ? 'Replace file' : 'Choose file') }}
+              </label>
+              <div class="vehicle-doc-status">
+                <span class="doc-tag ok" *ngIf="vm.vehicleDocSelectedName(doc.key)">New file selected</span>
+                <ng-container *ngIf="!vm.vehicleDocSelectedName(doc.key)">
+                  <button type="button" class="ghost small" *ngIf="vm.editingVehicleHasDoc(doc.key)" (click)="vm.openVehicleDoc(vm.editingVehicleId, doc.key)">View uploaded</button>
+                  <span class="muted" *ngIf="!vm.editingVehicleHasDoc(doc.key)">No file yet</span>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="admission-modal-footer">
+          <button type="button" class="ghost" (click)="vm.closeVehicleForm()">Cancel</button>
+          <button type="submit" class="primary-btn" [disabled]="vm.vehicleForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingVehicleId ? 'Update vehicle' : 'Register vehicle') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Record driver salary modal -->
+  <div class="admission-overlay" *ngIf="vm.showDriverSalaryForm && vm.driverSalaryTarget" (click)="vm.closeDriverSalaryForm()">
+    <div class="admission-modal small" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Driver salary</p>
+          <h3>Record salary — {{ vm.driverSalaryTarget?.driverName || vm.driverSalaryTarget?.vehicleNumber }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeDriverSalaryForm()" aria-label="Close">&times;</button>
+      </div>
+      <form [formGroup]="vm.driverSalaryForm" (ngSubmit)="vm.saveDriverSalary()">
+        <div class="admission-modal-body">
+          <p class="hint-text">Period: {{ vm.driverSalaryMonth }}/{{ vm.driverSalaryYear }} · Vehicle {{ vm.driverSalaryTarget?.vehicleNumber }}</p>
+          <div class="form-grid compact">
+            <label><span class="label-text">Amount</span><input type="number" formControlName="amount" min="0"></label>
+            <label><span class="label-text">Mode</span>
+              <select formControlName="mode">
+                <option value="cash">Cash</option>
+                <option value="bank">Bank transfer</option>
+                <option value="upi">UPI</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </label>
+            <label><span class="label-text">Reference no</span><input formControlName="referenceNumber" placeholder="Txn / cheque no"></label>
+            <label><span class="label-text">Paid on</span><input type="date" formControlName="paidOn"></label>
+            <label class="span-2"><span class="label-text">Notes</span><input formControlName="notes" placeholder="Optional"></label>
+          </div>
+        </div>
+        <div class="admission-modal-footer">
+          <button type="button" class="ghost" (click)="vm.closeDriverSalaryForm()">Cancel</button>
+          <button type="submit" class="primary-btn" [disabled]="vm.driverSalaryForm.invalid || vm.submitting">{{ vm.saveButtonLabel('Record payment') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View vehicle & driver modal -->
+  <div class="admission-overlay" *ngIf="vm.viewingVehicle" (click)="vm.closeVehicleView()">
+    <div class="admission-modal" (click)="$event.stopPropagation()">
+      <div class="admission-modal-header">
+        <div>
+          <p class="eyebrow">Vehicle &amp; driver</p>
+          <h3>{{ vm.viewingVehicle?.vehicleNumber }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="vm.closeVehicleView()" aria-label="Close">&times;</button>
+      </div>
+      <div class="admission-modal-body">
+        <p class="eyebrow">Vehicle details</p>
+        <div class="detail-grid">
+          <div><span>Model</span><strong>{{ vm.viewingVehicle?.model || '—' }}</strong></div>
+          <div><span>Type</span><strong>{{ vm.viewingVehicle?.type || 'bus' }}</strong></div>
+          <div><span>Capacity</span><strong>{{ vm.viewingVehicle?.capacity || 0 }}</strong></div>
+          <div><span>Status</span><strong>{{ vm.viewingVehicle?.status }}</strong></div>
+          <div><span>Registration expiry</span><strong>{{ vm.viewingVehicle?.registrationExpiry ? (vm.viewingVehicle?.registrationExpiry | date:'dd MMM yyyy') : '—' }}</strong></div>
+          <div><span>Insurance expiry</span><strong>{{ vm.viewingVehicle?.insuranceExpiry ? (vm.viewingVehicle?.insuranceExpiry | date:'dd MMM yyyy') : '—' }}</strong></div>
+          <div><span>Pollution expiry</span><strong>{{ vm.viewingVehicle?.pollutionExpiry ? (vm.viewingVehicle?.pollutionExpiry | date:'dd MMM yyyy') : '—' }}</strong></div>
+          <div><span>Fitness expiry</span><strong>{{ vm.viewingVehicle?.fitnessExpiry ? (vm.viewingVehicle?.fitnessExpiry | date:'dd MMM yyyy') : '—' }}</strong></div>
+        </div>
+
+        <p class="eyebrow" style="margin-top: var(--space-4)">Driver details</p>
+        <div class="detail-grid">
+          <div><span>Name</span><strong>{{ vm.viewingVehicle?.driverName || '—' }}</strong></div>
+          <div><span>Mobile</span><strong>{{ vm.viewingVehicle?.driverMobile || '—' }}</strong></div>
+          <div class="span-2"><span>Address</span><strong>{{ vm.viewingVehicle?.driverAddress || '—' }}</strong></div>
+          <div><span>License no</span><strong>{{ vm.viewingVehicle?.licenseNumber || '—' }}</strong></div>
+          <div><span>License expiry</span><strong>{{ vm.viewingVehicle?.licenseExpiry ? (vm.viewingVehicle?.licenseExpiry | date:'dd MMM yyyy') : '—' }}</strong></div>
+          <div><span>Monthly salary</span><strong>{{ (vm.viewingVehicle?.driverSalary || 0) | currency:'INR' }}</strong></div>
+          <div><span>Joining date</span><strong>{{ vm.viewingVehicle?.joiningDate ? (vm.viewingVehicle?.joiningDate | date:'dd MMM yyyy') : '—' }}</strong></div>
+        </div>
+
+        <p class="eyebrow" style="margin-top: var(--space-4)">Driver documents</p>
+        <div class="vehicle-doc-grid">
+          <div class="vehicle-doc-upload" *ngFor="let doc of vm.vehicleDocTypes">
+            <span class="vehicle-doc-title">{{ doc.label }}</span>
+            <ng-container *ngIf="vm.vehicleHasDoc(vm.viewingVehicle, doc.key)">
+              <img class="vehicle-doc-thumb" [src]="vm.vehicleDocImageUrl(vm.viewingVehicle._id, doc.key)" alt="{{ doc.label }}">
+              <button type="button" class="ghost small" (click)="vm.openVehicleDoc(vm.viewingVehicle._id, doc.key)">View / download</button>
+            </ng-container>
+            <span class="muted" *ngIf="!vm.vehicleHasDoc(vm.viewingVehicle, doc.key)">Not uploaded</span>
+          </div>
+        </div>
+      </div>
+      <div class="admission-modal-footer">
+        <button type="button" class="ghost" (click)="vm.closeVehicleView()">Close</button>
+        <button *ngIf="vm.can('drivers', 'edit')" type="button" class="primary-btn" (click)="vm.editVehicle(vm.viewingVehicle); vm.closeVehicleView()">Edit vehicle</button>
+      </div>
+    </div>
+  </div>
+
+  </ng-container>
+</section>

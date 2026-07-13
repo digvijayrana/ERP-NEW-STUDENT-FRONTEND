@@ -51,7 +51,7 @@
         <label><span class="label-text">Academic year</span>
           <select [value]="vm.feeStructureYear" (change)="vm.feeStructureYear = $any($event.target).value; vm.loadFeeStructure()">
             <option value="">Select year</option>
-            <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+            <option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option>
           </select>
         </label>
         <label><span class="label-text">Class &amp; section</span>
@@ -117,7 +117,7 @@
       <button type="submit" class="primary-btn compact-submit" [disabled]="vm.feeDemandForm.invalid || vm.submitting">Generate Demands</button>
     </div>
     <div class="fee-gen-grid">
-      <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.loadFeeSummary()"><option value="">Select year</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+      <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.loadFeeSummary()"><option value="">Select year</option><option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option></select></label>
       <label><span class="label-text">Class (optional)</span><select formControlName="classRoom" (change)="vm.loadFeeSummary()"><option value="">All classes</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
       <label><span class="label-text">Billing cycle</span><select formControlName="cycle"><option *ngFor="let opt of vm.feeFrequencyOptions" [value]="opt.value" [disabled]="opt.value === 'one_time'">{{ opt.label }}</option></select></label>
       <label><span class="label-text">From month</span><select formControlName="month" (change)="vm.loadFeeSummary()"><option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">{{ vm.getMonthName(m) }}</option></select></label>

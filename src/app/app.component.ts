@@ -18,6 +18,7 @@ import { StudentsPageComponent } from './pages/students-page/students-page.compo
 import { TeachersPageComponent } from './pages/teachers-page/teachers-page.component';
 import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
 import { TransportPageComponent } from './pages/transport-page/transport-page.component';
+import { DriversPageComponent } from './pages/drivers-page/drivers-page.component';
 import { ReportsPageComponent } from './pages/reports-page/reports-page.component';
 import { UsersPageComponent } from './pages/users-page/users-page.component';
 import { SpinnerComponent } from './shared/spinner.component';
@@ -32,9 +33,9 @@ import { ConfirmDialogService } from './services/confirm-dialog.service';
 import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, applyDefaultListSort, sortItems, SortDirection } from './core/listing.util';
 import { environment } from '../environments/environment';
 
-type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
 type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'dashboardActivities' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
-type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
 
 type HolidayRow = { _id: string; date: string; name: string; description?: string };
 type PermissionSchema = { modules: string[]; actions: string[] };
@@ -124,6 +125,7 @@ interface AdminRefreshRequests {
     ExamsPageComponent,
     StudentProfilePageComponent,
     TransportPageComponent,
+    DriversPageComponent,
     ReportsPageComponent,
     UsersPageComponent,
     SpinnerComponent,
@@ -407,6 +409,7 @@ export class AppComponent implements OnInit {
     { key: 'teachers', label: 'Teachers', icon: 'teachers', roles: ['admin', 'teacher'] },
     { key: 'fees', label: 'Fees', icon: 'fees', roles: ['admin', 'student', 'parent'] },
     { key: 'transport', label: 'Bus', icon: 'transport', roles: ['admin'] },
+    { key: 'drivers', label: 'Drivers', icon: 'drivers', roles: ['admin'] },
     { key: 'payroll', label: 'Payroll', icon: 'payroll', roles: ['admin'] },
     { key: 'attendance', label: 'Attendance', icon: 'attendance', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'timetable', label: 'Timetable', icon: 'timetable', roles: ['admin', 'teacher', 'student', 'parent'] },
@@ -798,6 +801,15 @@ export class AppComponent implements OnInit {
     return year.isActive ? 'active' : 'draft';
   }
 
+  /**
+   * Academic years available when CREATING records (admissions, classes, bus
+   * registrations, fee demands). Closed sessions are excluded here — they remain
+   * in list/report filters (vm.years) so historical data can still be fetched.
+   */
+  get openYears(): AcademicYear[] {
+    return this.years.filter((year) => this.yearStatus(year) !== 'closed');
+  }
+
   applyActiveYearDefaults(): void {
     const active = this.activeAcademicYear;
     if (!active) return;
@@ -859,6 +871,7 @@ export class AppComponent implements OnInit {
       teachers: 'Teacher management',
       fees: 'Fee collection',
       transport: 'Bus management',
+      drivers: 'Drivers & fleet',
       payroll: 'Payroll processing',
       promotion: 'Student promotions',
       attendance: 'Attendance tracking',
@@ -1870,9 +1883,12 @@ export class AppComponent implements OnInit {
     if (tab === 'transport' && this.can('transport', 'view')) {
       this.loadListing('busRoutes');
       this.loadListing('busRegistrations');
+      if (this.can('drivers', 'view')) this.loadVehicles();
+      this.loadBusReport();
+    }
+    if (tab === 'drivers' && this.can('drivers', 'view')) {
       this.loadVehicles();
       this.loadDriverSalaries();
-      this.loadBusReport();
     }
     if (tab === 'attendance' && this.can('attendance', 'view')) {
       if (!this.isPortalUser) this.loadListing('attendance');
@@ -2171,6 +2187,39 @@ export class AppComponent implements OnInit {
 
   // Tuition is locked to the Fee Structure when one is already defined for the class.
   classTuitionLocked = false;
+
+  /**
+   * Fee is defined once per class (name) and shared across all its sections.
+   * When another section of the same class + academic year already has a fee,
+   * return it so the new section inherits the same amount.
+   */
+  get classFeeSiblingFee(): number | null {
+    const name = (this.classForm.get('name')?.value || '').toString().trim();
+    const yearId = this.classForm.get('academicYear')?.value;
+    if (!name || !yearId) return null;
+    const sibling = this.classes.find((c) => {
+      const cYear = typeof c.academicYear === 'string' ? c.academicYear : c.academicYear?._id;
+      return (
+        c.name === name &&
+        cYear === yearId &&
+        c._id !== this.editingClassId &&
+        Number(c.monthlyFee) > 0
+      );
+    });
+    return sibling ? Number(sibling.monthlyFee) : null;
+  }
+
+  /** When true, the monthly-fee input is hidden because the class already has a fee. */
+  get classFeeInherited(): boolean {
+    return !this.editingClassId && this.classFeeSiblingFee !== null;
+  }
+
+  onClassSelectionChange(): void {
+    const inherited = this.classFeeInherited ? this.classFeeSiblingFee : null;
+    if (inherited !== null) {
+      this.classForm.patchValue({ monthlyFee: inherited });
+    }
+  }
 
   private loadClassTuitionLock(academicYear: string, classRoom: string): void {
     this.classTuitionLocked = false;
@@ -4117,7 +4166,7 @@ export class AppComponent implements OnInit {
   }
 
   loadVehicles(): void {
-    if (!this.can('transport', 'view')) return;
+    if (!this.can('drivers', 'view')) return;
     this.safeRefresh(this.api.vehicles({ page: 1, pageSize: 200 }).pipe(map((r) => r.data)), [] as Vehicle[]).subscribe((rows) => {
       this.vehicles = rows;
     });
@@ -4151,7 +4200,7 @@ export class AppComponent implements OnInit {
   }
 
   saveVehicle(): void {
-    if (!this.can('transport', 'create') && !this.can('transport', 'edit')) return;
+    if (!this.can('drivers', 'create') && !this.can('drivers', 'edit')) return;
     if (this.vehicleForm.invalid) {
       this.vehicleForm.markAllAsTouched();
       return;
@@ -4213,12 +4262,12 @@ export class AppComponent implements OnInit {
   }
 
   toggleVehicleStatus(id: string): void {
-    if (!this.can('transport', 'edit')) return;
+    if (!this.can('drivers', 'edit')) return;
     this.submit(this.api.toggleVehicleStatus(id), 'Vehicle status updated', undefined, () => this.loadVehicles());
   }
 
   async deleteVehicle(vehicle: Vehicle): Promise<void> {
-    if (!this.can('transport', 'deactivate')) return;
+    if (!this.can('drivers', 'deactivate')) return;
     const ok = await this.confirmAction({
       message: `Remove vehicle ${vehicle.vehicleNumber}? It will no longer be selectable for routes.`,
       title: 'Remove vehicle',
@@ -4271,7 +4320,7 @@ export class AppComponent implements OnInit {
   driverSalaryTarget: DriverSalaryRegisterRow | null = null;
 
   loadDriverSalaries(): void {
-    if (!this.can('transport', 'view')) return;
+    if (!this.can('drivers', 'view')) return;
     this.api.driverSalaryRegister(this.driverSalaryMonth, this.driverSalaryYear).subscribe({
       next: (register) => (this.driverSalaryRegister = register),
       error: () => (this.driverSalaryRegister = null)
@@ -4279,7 +4328,7 @@ export class AppComponent implements OnInit {
   }
 
   openDriverSalaryForm(row: DriverSalaryRegisterRow): void {
-    if (!this.can('transport', 'edit')) return;
+    if (!this.can('drivers', 'edit')) return;
     this.driverSalaryTarget = row;
     this.driverSalaryForm.reset({
       amount: row.salaryAmount || 0,
@@ -4315,7 +4364,7 @@ export class AppComponent implements OnInit {
   }
 
   async revertDriverSalary(row: DriverSalaryRegisterRow): Promise<void> {
-    if (!this.can('transport', 'edit') || !row.payment?._id) return;
+    if (!this.can('drivers', 'edit') || !row.payment?._id) return;
     const ok = await this.confirmAction({
       message: `Revert the recorded salary for ${row.driverName || row.vehicleNumber} (${this.driverSalaryMonth}/${this.driverSalaryYear})?`,
       title: 'Revert salary payment',

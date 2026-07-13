@@ -26,6 +26,7 @@ export type ErpModule =
   | 'exams'
   | 'reports'
   | 'transport'
+  | 'drivers'
   | 'governance';
 
 export interface ModulePermissions {
@@ -50,6 +51,7 @@ export const TAB_MODULE_MAP: Record<string, ErpModule> = {
   fees: 'fees',
   payroll: 'payroll',
   transport: 'transport',
+  drivers: 'drivers',
   promotion: 'students',
   attendance: 'attendance',
   timetable: 'timetable',

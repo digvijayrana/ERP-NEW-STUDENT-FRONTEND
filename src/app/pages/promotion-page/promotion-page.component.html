@@ -32,7 +32,7 @@
           <label>To academic year
             <select formControlName="toAcademicYear">
               <option value="">Select year</option>
-              <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+              <option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option>
             </select>
           </label>
         </div>

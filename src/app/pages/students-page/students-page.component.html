@@ -273,7 +273,7 @@
           <fieldset class="form-section">
             <legend>Academic</legend>
             <div class="form-grid">
-              <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.onAdmissionClassChange()"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
+              <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.onAdmissionClassChange()"><option value="">Select</option><option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
               <label><span class="label-text">Class</span>
                 <select formControlName="classRoom" (change)="vm.onAdmissionClassChange()">
                   <option value="">Select active class with available seats</option>

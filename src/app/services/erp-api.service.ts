@@ -598,46 +598,46 @@ export class ErpApiService {
   }
 
   vehicles(params?: ListQueryParams): Observable<ApiSuccessResponse<Vehicle[]>> {
-    return this.http.get<ApiSuccessResponse<Vehicle[]>>(`${this.baseUrl}/transport/vehicles`, this.listOptions(params));
+    return this.http.get<ApiSuccessResponse<Vehicle[]>>(`${this.baseUrl}/drivers/vehicles`, this.listOptions(params));
   }
 
   createVehicle(payload: FormData): Observable<Vehicle> {
-    return this.http.post<Vehicle>(`${this.baseUrl}/transport/vehicles`, payload, this.options());
+    return this.http.post<Vehicle>(`${this.baseUrl}/drivers/vehicles`, payload, this.options());
   }
 
   updateVehicle(id: string, payload: FormData): Observable<Vehicle> {
-    return this.http.patch<Vehicle>(`${this.baseUrl}/transport/vehicles/${id}`, payload, this.options());
+    return this.http.patch<Vehicle>(`${this.baseUrl}/drivers/vehicles/${id}`, payload, this.options());
   }
 
   vehicleDocumentImageUrl(vehicleId: string, docType: string): string {
     const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
-    return `${this.baseUrl}/transport/vehicles/${vehicleId}/documents/${docType}/file?access_token=${encodeURIComponent(token)}`;
+    return `${this.baseUrl}/drivers/vehicles/${vehicleId}/documents/${docType}/file?access_token=${encodeURIComponent(token)}`;
   }
 
   vehicleDocumentFileUrl(vehicleId: string, docType: string, download = false): string {
     const token = localStorage.getItem(APP_CONSTANTS.LOCAL_STORAGE_TOKEN_KEY) || '';
     const dl = download ? '&download=1' : '';
-    return `${this.baseUrl}/transport/vehicles/${vehicleId}/documents/${docType}/file?access_token=${encodeURIComponent(token)}${dl}`;
+    return `${this.baseUrl}/drivers/vehicles/${vehicleId}/documents/${docType}/file?access_token=${encodeURIComponent(token)}${dl}`;
   }
 
   toggleVehicleStatus(id: string): Observable<Vehicle> {
-    return this.http.post<Vehicle>(`${this.baseUrl}/transport/vehicles/${id}/toggle-status`, {}, this.options());
+    return this.http.post<Vehicle>(`${this.baseUrl}/drivers/vehicles/${id}/toggle-status`, {}, this.options());
   }
 
   deleteVehicle(id: string): Observable<unknown> {
-    return this.http.delete(`${this.baseUrl}/transport/vehicles/${id}`, this.options());
+    return this.http.delete(`${this.baseUrl}/drivers/vehicles/${id}`, this.options());
   }
 
   driverSalaryRegister(month: number, year: number): Observable<DriverSalaryRegister> {
-    return this.http.get<DriverSalaryRegister>(`${this.baseUrl}/transport/driver-salaries/register?month=${month}&year=${year}`, this.options());
+    return this.http.get<DriverSalaryRegister>(`${this.baseUrl}/drivers/driver-salaries/register?month=${month}&year=${year}`, this.options());
   }
 
   payDriverSalary(payload: Record<string, unknown>): Observable<DriverSalaryPayment> {
-    return this.http.post<DriverSalaryPayment>(`${this.baseUrl}/transport/driver-salaries`, payload, this.options());
+    return this.http.post<DriverSalaryPayment>(`${this.baseUrl}/drivers/driver-salaries`, payload, this.options());
   }
 
   revertDriverSalary(id: string): Observable<unknown> {
-    return this.http.delete(`${this.baseUrl}/transport/driver-salaries/${id}`, this.options());
+    return this.http.delete(`${this.baseUrl}/drivers/driver-salaries/${id}`, this.options());
   }
 
   busRegistrations(params?: ListQueryParams): Observable<ApiSuccessResponse<BusRegistration[]>> {

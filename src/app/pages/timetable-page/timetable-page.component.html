@@ -112,7 +112,7 @@
           <label class="required"><span class="label-text">Academic year</span>
             <select formControlName="academicYear">
               <option value="">Select</option>
-              <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+              <option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option>
             </select>
           </label>
           <label class="required"><span class="label-text">Day</span>

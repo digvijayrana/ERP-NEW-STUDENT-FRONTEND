@@ -16,7 +16,7 @@
     <label>Book reference<input formControlName="bookReference" placeholder="NCERT Class 8"></label>
     <label>Additional context<textarea formControlName="additionalContext" rows="2" placeholder="Focus on word problems"></textarea></label>
     <label>Upload chapter PDF (optional)<input type="file" accept="application/pdf" (change)="vm.onExamPdfFile($event)"></label>
-    <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option></select></label>
+    <label>Academic year<select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option></select></label>
     <label>Class<select formControlName="classRoom"><option value="">Select</option><option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option></select></label>
     <label>Difficulty<select formControlName="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></label>
     <label>Question count<input type="number" formControlName="questionCount" min="3" max="20"></label>
