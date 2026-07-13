@@ -20,7 +20,7 @@ export const LIST_FILTER_KEYS: Record<string, string[]> = {
   feeHistory: ['feeHistorySearch', 'feeHistoryStatus', 'feeHistoryClass'],
   payroll: ['payrollSearch', 'payrollStatus'],
   busRoutes: ['busRouteSearch', 'busRouteStatus'],
-  busRegistrations: ['busRegYear', 'busRegRoute', 'busRegStatus', 'busRegSearch'],
+  busRegistrations: ['busRegYear', 'busRegRoute', 'busRegClass', 'busRegStatus', 'busRegSearch'],
   profileExams: ['profileExamSearch'],
   profileFees: ['profileFeeSearch', 'profileFeeStatus'],
   attendance: ['attendanceSearch', 'attendanceStatus', 'attendanceClass', 'attendanceYear'],

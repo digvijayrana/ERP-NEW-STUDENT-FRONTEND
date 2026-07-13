@@ -115,8 +115,11 @@
       <label class="required"><span class="label-text">Academic year</span><select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id" [disabled]="vm.yearStatus(year) === 'closed'">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container><ng-container *ngIf="vm.yearStatus(year) === 'closed'"> (Closed)</ng-container></option></select></label>
       <app-field-error [control]="vm.classForm.get('academicYear')" label="Academic year"></app-field-error>
       <label><span class="label-text">Class teacher</span><select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
-      <label class="required"><span class="label-text">Monthly tuition fee</span><input type="number" formControlName="monthlyFee" min="0"></label>
+      <label class="required"><span class="label-text">Monthly tuition fee</span>
+        <input type="number" formControlName="monthlyFee" min="0" [readonly]="vm.classTuitionLocked" [class.readonly-field]="vm.classTuitionLocked">
+      </label>
       <label class="required"><span class="label-text">Status</span><select formControlName="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+      <p class="span-full hint-text" *ngIf="vm.classTuitionLocked">Tuition is set by the Fee Structure for this class and can be changed there.</p>
     </div>
     <div class="form-actions">
       <button type="submit" [disabled]="vm.classForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingClassId ? 'Update class' : 'Save class') }}</button>

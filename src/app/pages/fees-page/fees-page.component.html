@@ -244,6 +244,11 @@
           <label><span class="label-text">Reference / Txn No.</span><input formControlName="referenceNumber" placeholder="Optional"></label>
         </div>
 
+        <label class="inline collect-onetime-toggle" *ngIf="vm.collectHasOneTimeFees">
+          <input type="checkbox" [(ngModel)]="vm.collectIncludeAdmissionFees" [ngModelOptions]="{ standalone: true }" (ngModelChange)="vm.onToggleAdmissionFees()">
+          Include admission &amp; registration fee ({{ vm.collectOneTimeFeesTotal | currency: 'INR' }})
+        </label>
+
         <div class="payment-summary" *ngIf="vm.paymentBreakdown as b">
           <div class="ps-row"><span>Total payable</span><strong>{{ b.total | currency: 'INR' }}</strong></div>
           <div class="ps-row"><span>Discount</span><strong>- {{ b.discount | currency: 'INR' }}</strong></div>

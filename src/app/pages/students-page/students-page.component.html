@@ -273,9 +273,9 @@
           <fieldset class="form-section">
             <legend>Academic</legend>
             <div class="form-grid">
-              <label><span class="label-text">Academic year</span><select formControlName="academicYear"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
+              <label><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.onAdmissionClassChange()"><option value="">Select</option><option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
               <label><span class="label-text">Class</span>
-                <select formControlName="classRoom">
+                <select formControlName="classRoom" (change)="vm.onAdmissionClassChange()">
                   <option value="">Select active class with available seats</option>
                   <option *ngFor="let room of vm.admissionClassOptions" [value]="room._id">
                     {{ room.name }}-{{ room.section }} · {{ vm.getClassAvailableCapacity(room) }} seats · {{ room.monthlyFee | currency:'INR' }}/mo
@@ -283,6 +283,20 @@
                 </select>
               </label>
               <label><span class="label-text">Roll no</span><input formControlName="rollNumber"></label>
+              <div class="span-full admission-fee-preview" *ngIf="vm.admissionFeePreview">
+                <div class="afp-head">
+                  <span class="afp-title">Fee auto-attached on admission</span>
+                  <span class="afp-total">{{ vm.admissionFeePreviewTotal | currency:'INR' }}</span>
+                </div>
+                <div class="afp-rows">
+                  <div class="afp-row" *ngFor="let c of vm.admissionFeePreview.components">
+                    <span>{{ c.label }}<span class="muted" *ngIf="c.newAdmissionOnly"> · one-time</span></span>
+                    <span>{{ c.amount | currency:'INR' }}</span>
+                  </div>
+                </div>
+                <p class="hint-text" *ngIf="!vm.admissionFeePreview.components?.length">No fee structure defined for this class — the class monthly fee will be applied.</p>
+              </div>
+              <p class="span-full hint-text" *ngIf="!vm.admissionFeePreview && vm.admissionFeePreviewLoading">Loading class fee structure…</p>
               <label><span class="label-text">Student status</span><input formControlName="studentStatus"></label>
               <label class="span-full"><span class="label-text">Transfer from another school?</span>
                 <select formControlName="hasPreviousSchool">

@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, WorkflowNotification } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, Vehicle, WorkflowNotification, FeeStructure, DriverSalaryRegister, DriverSalaryRegisterRow } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, FEE_COMPONENT_PRESETS, FEE_FREQUENCY_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -201,6 +201,7 @@ export class AppComponent implements OnInit {
   busRegistrations: BusRegistration[] = [];
   busReportRows: BusReportRow[] = [];
   busRouteStops: BusStop[] = [];
+  vehicles: Vehicle[] = [];
   editingBusRouteId = '';
   editingBusRegistrationId = '';
   transportReportType = 'route-wise';
@@ -563,6 +564,31 @@ export class AppComponent implements OnInit {
     year: [new Date().getFullYear(), Validators.required]
   });
 
+  admissionFeePreview: FeeStructure | null = null;
+  admissionFeePreviewLoading = false;
+
+  get admissionFeePreviewTotal(): number {
+    return (this.admissionFeePreview?.components || []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  }
+
+  onAdmissionClassChange(): void {
+    const academicYear = this.admissionForm.get('academicYear')?.value || '';
+    const classRoom = this.admissionForm.get('classRoom')?.value || '';
+    this.admissionFeePreview = null;
+    if (!academicYear || !classRoom) return;
+    this.admissionFeePreviewLoading = true;
+    this.api.feeStructureForClass(academicYear, classRoom).subscribe({
+      next: (structure) => {
+        this.admissionFeePreview = structure;
+        this.admissionFeePreviewLoading = false;
+      },
+      error: () => {
+        this.admissionFeePreview = null;
+        this.admissionFeePreviewLoading = false;
+      }
+    });
+  }
+
   paymentForm = this.fb.group({
     invoiceId: ['', Validators.required],
     amount: [0, [Validators.required, Validators.min(1)]],
@@ -576,13 +602,42 @@ export class AppComponent implements OnInit {
   busRouteForm = this.fb.group({
     routeName: ['', Validators.required],
     routeCode: ['', Validators.required],
+    vehicle: [''],
     vehicleNumber: ['', Validators.required],
     driverName: ['', Validators.required],
-    driverMobile: ['', Validators.required],
+    driverMobile: ['', [Validators.required, Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)]],
     capacity: [40, [Validators.required, Validators.min(1)]],
     feeType: ['stop_based', Validators.required],
     fixedMonthlyFee: [0, Validators.min(0)],
     status: ['active', Validators.required]
+  });
+
+  vehicleForm = this.fb.group({
+    vehicleNumber: ['', Validators.required],
+    model: [''],
+    type: ['bus', Validators.required],
+    capacity: [40, [Validators.required, Validators.min(1)]],
+    registrationExpiry: [''],
+    insuranceExpiry: [''],
+    pollutionExpiry: [''],
+    fitnessExpiry: [''],
+    driverName: [''],
+    driverMobile: ['', Validators.pattern(APP_CONSTANTS.PHONE_PATTERN)],
+    driverAddress: [''],
+    licenseNumber: [''],
+    licenseExpiry: [''],
+    driverSalary: [0, Validators.min(0)],
+    joiningDate: [''],
+    notes: [''],
+    status: ['active', Validators.required]
+  });
+
+  driverSalaryForm = this.fb.group({
+    amount: [0, [Validators.required, Validators.min(0)]],
+    mode: ['cash', Validators.required],
+    referenceNumber: [''],
+    paidOn: [new Date().toISOString().slice(0, 10), Validators.required],
+    notes: ['']
   });
 
   busRegistrationForm = this.fb.group({
@@ -1769,6 +1824,8 @@ export class AppComponent implements OnInit {
     });
     const active = this.activeAcademicYear;
     if (active?._id) this.admissionForm.patchValue({ academicYear: active._id });
+    this.admissionFeePreview = null;
+    this.admissionFeePreviewLoading = false;
   }
 
   closeStudentDocuments(): void {
@@ -1813,6 +1870,8 @@ export class AppComponent implements OnInit {
     if (tab === 'transport' && this.can('transport', 'view')) {
       this.loadListing('busRoutes');
       this.loadListing('busRegistrations');
+      this.loadVehicles();
+      this.loadDriverSalaries();
       this.loadBusReport();
     }
     if (tab === 'attendance' && this.can('attendance', 'view')) {
@@ -2107,6 +2166,26 @@ export class AppComponent implements OnInit {
       : this.api.createClass(this.classForm.getRawValue());
     this.submit(request, this.editingClassId ? 'Class updated' : 'Class saved', this.classForm);
     this.editingClassId = '';
+    this.classTuitionLocked = false;
+  }
+
+  // Tuition is locked to the Fee Structure when one is already defined for the class.
+  classTuitionLocked = false;
+
+  private loadClassTuitionLock(academicYear: string, classRoom: string): void {
+    this.classTuitionLocked = false;
+    if (!academicYear || !classRoom) return;
+    this.api.feeStructureForClass(academicYear, classRoom).subscribe({
+      next: (structure) => {
+        const tuition = (structure?.components || []).filter((c) => c.key === 'tuition');
+        if (tuition.length) {
+          const total = tuition.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+          this.classForm.patchValue({ monthlyFee: total });
+          this.classTuitionLocked = true;
+        }
+      },
+      error: () => (this.classTuitionLocked = false)
+    });
   }
 
   editClass(room: ClassRoom): void {
@@ -2115,15 +2194,17 @@ export class AppComponent implements OnInit {
       return;
     }
     this.editingClassId = room._id;
+    const academicYearId = typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id || '';
     this.classForm.patchValue({
       name: room.name,
       section: room.section,
       capacity: room.capacity || APP_CONSTANTS.DEFAULT_CAPACITY,
-      academicYear: typeof room.academicYear === 'string' ? room.academicYear : room.academicYear?._id,
+      academicYear: academicYearId,
       classTeacher: typeof room.classTeacher === 'string' ? room.classTeacher : room.classTeacher?._id || '',
       monthlyFee: room.monthlyFee,
       status: room.status || 'active'
     });
+    this.loadClassTuitionLock(academicYearId, room._id);
     this.message = `Editing class ${room.name}-${room.section}`;
   }
 
@@ -3311,7 +3392,10 @@ export class AppComponent implements OnInit {
     return enrollment?.rollNumber || '';
   }
 
+  collectIncludeAdmissionFees = true;
+
   selectCollectInvoice(invoice: FeeInvoice): void {
+    this.collectIncludeAdmissionFees = true;
     this.paymentForm.patchValue({
       invoiceId: invoice._id,
       amount: invoice.balanceAmount || 0,
@@ -3320,6 +3404,29 @@ export class AppComponent implements OnInit {
       otherCharges: invoice.otherCharges || 0
     });
     // Align the amount with the freshly computed net payable in case adjustments differ.
+    this.onCollectAdjustmentChange();
+  }
+
+  // Admission + registration are one-time fees; the cashier can waive them at collection.
+  get collectOneTimeFeesTotal(): number {
+    const invoice = this.collectSelectedInvoice;
+    if (!invoice?.feeComponents) return 0;
+    return invoice.feeComponents
+      .filter((c) => c.key === 'admission' || c.key === 'registration')
+      .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  }
+
+  get collectHasOneTimeFees(): boolean {
+    return this.collectOneTimeFeesTotal > 0;
+  }
+
+  onToggleAdmissionFees(): void {
+    const invoice = this.collectSelectedInvoice;
+    if (!invoice) return;
+    const baseOther = invoice.otherCharges || 0;
+    const oneTime = this.collectOneTimeFeesTotal;
+    const newOther = this.collectIncludeAdmissionFees ? baseOther : Math.max(baseOther - oneTime, 0);
+    this.paymentForm.patchValue({ otherCharges: newOther });
     this.onCollectAdjustmentChange();
   }
 
@@ -3493,6 +3600,7 @@ export class AppComponent implements OnInit {
     if (key === 'busRegistrations') {
       if (this.filters.busRegYear) query.academicYear = this.filters.busRegYear;
       if (this.filters.busRegRoute) query.route = this.filters.busRegRoute;
+      if (this.filters.busRegClass) query.classRoom = this.filters.busRegClass;
       if (this.filters.busRegStatus) query.status = this.filters.busRegStatus;
       if (this.filters.busRegSearch) query.search = this.filters.busRegSearch;
     }
@@ -3894,6 +4002,20 @@ export class AppComponent implements OnInit {
     this.busRouteStops = this.busRouteStops.filter((_, i) => i !== index);
   }
 
+  // ── Bus route create/edit modal ──
+  showBusRouteForm = false;
+
+  openBusRouteForm(): void {
+    this.resetBusRouteForm();
+    this.message = '';
+    this.showBusRouteForm = true;
+  }
+
+  closeBusRouteForm(): void {
+    this.showBusRouteForm = false;
+    this.resetBusRouteForm();
+  }
+
   resetBusRouteForm(): void {
     this.editingBusRouteId = '';
     this.busRouteStops = [];
@@ -3918,7 +4040,7 @@ export class AppComponent implements OnInit {
     const request = this.editingBusRouteId
       ? this.api.updateBusRoute(this.editingBusRouteId, payload)
       : this.api.createBusRoute(payload);
-    this.submit(request, this.editingBusRouteId ? 'Bus route updated' : 'Bus route created');
+    this.submit(request, this.editingBusRouteId ? 'Bus route updated' : 'Bus route created', undefined, () => this.closeBusRouteForm());
   }
 
   editBusRoute(route: BusRoute): void {
@@ -3927,6 +4049,7 @@ export class AppComponent implements OnInit {
     this.busRouteForm.patchValue({
       routeName: route.routeName,
       routeCode: route.routeCode,
+      vehicle: typeof route.vehicle === 'string' ? route.vehicle : route.vehicle?._id || '',
       vehicleNumber: route.vehicleNumber,
       driverName: route.driverName,
       driverMobile: route.driverMobile,
@@ -3935,11 +4058,295 @@ export class AppComponent implements OnInit {
       fixedMonthlyFee: route.fixedMonthlyFee,
       status: route.status
     });
+    this.message = `Editing ${route.routeCode}`;
+    this.showBusRouteForm = true;
   }
 
   toggleBusRouteStatus(id: string): void {
     if (!this.can('transport', 'edit')) return;
     this.submit(this.api.toggleBusRouteStatus(id), 'Route status updated');
+  }
+
+  onRouteVehicleChange(vehicleId: string): void {
+    this.busRouteForm.patchValue({ vehicle: vehicleId });
+    if (!vehicleId) return;
+    const vehicle = this.vehicles.find((v) => v._id === vehicleId);
+    if (!vehicle) return;
+    this.busRouteForm.patchValue({
+      vehicleNumber: vehicle.vehicleNumber || '',
+      driverName: vehicle.driverName || '',
+      driverMobile: vehicle.driverMobile || '',
+      capacity: vehicle.capacity || this.busRouteForm.get('capacity')?.value || 40
+    });
+  }
+
+  // ── Vehicles & drivers ──
+  showVehicleForm = false;
+  editingVehicleId = '';
+  editingVehicle: Vehicle | null = null;
+  readonly vehicleDocTypes: Array<{ key: 'driverPhoto' | 'driverAadhaar' | 'driverLicensePhoto'; label: string }> = [
+    { key: 'driverPhoto', label: 'Driver photo' },
+    { key: 'driverAadhaar', label: 'Driver Aadhaar card' },
+    { key: 'driverLicensePhoto', label: 'Driver license photo' }
+  ];
+  vehicleDocFiles: { driverPhoto: File | null; driverAadhaar: File | null; driverLicensePhoto: File | null } = {
+    driverPhoto: null,
+    driverAadhaar: null,
+    driverLicensePhoto: null
+  };
+
+  onVehicleDocSelected(docType: 'driverPhoto' | 'driverAadhaar' | 'driverLicensePhoto', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.vehicleDocFiles[docType] = input.files?.[0] || null;
+  }
+
+  vehicleDocSelectedName(docType: 'driverPhoto' | 'driverAadhaar' | 'driverLicensePhoto'): string {
+    return this.vehicleDocFiles[docType]?.name || '';
+  }
+
+  editingVehicleHasDoc(docType: 'driverPhoto' | 'driverAadhaar' | 'driverLicensePhoto'): boolean {
+    return !!this.editingVehicle?.documents?.[docType]?.url;
+  }
+
+  vehicleDocImageUrl(vehicleId: string, docType: string): string {
+    return this.api.vehicleDocumentImageUrl(vehicleId, docType);
+  }
+
+  openVehicleDoc(vehicleId: string, docType: string): void {
+    window.open(this.api.vehicleDocumentFileUrl(vehicleId, docType), '_blank');
+  }
+
+  loadVehicles(): void {
+    if (!this.can('transport', 'view')) return;
+    this.safeRefresh(this.api.vehicles({ page: 1, pageSize: 200 }).pipe(map((r) => r.data)), [] as Vehicle[]).subscribe((rows) => {
+      this.vehicles = rows;
+    });
+  }
+
+  get activeVehicles(): Vehicle[] {
+    return this.vehicles.filter((v) => v.status === 'active');
+  }
+
+  openVehicleForm(): void {
+    this.resetVehicleForm();
+    this.message = '';
+    this.showVehicleForm = true;
+  }
+
+  closeVehicleForm(): void {
+    this.showVehicleForm = false;
+    this.resetVehicleForm();
+  }
+
+  resetVehicleForm(): void {
+    this.editingVehicleId = '';
+    this.editingVehicle = null;
+    this.vehicleDocFiles = { driverPhoto: null, driverAadhaar: null, driverLicensePhoto: null };
+    this.vehicleForm.reset({
+      type: 'bus',
+      capacity: 40,
+      driverSalary: 0,
+      status: 'active'
+    });
+  }
+
+  saveVehicle(): void {
+    if (!this.can('transport', 'create') && !this.can('transport', 'edit')) return;
+    if (this.vehicleForm.invalid) {
+      this.vehicleForm.markAllAsTouched();
+      return;
+    }
+
+    const missing = this.vehicleDocTypes.filter(
+      (doc) => !this.vehicleDocFiles[doc.key] && !this.editingVehicleHasDoc(doc.key)
+    );
+    if (missing.length) {
+      this.toast.error(`${missing.map((d) => d.label).join(', ')} ${missing.length > 1 ? 'are' : 'is'} required`);
+      return;
+    }
+
+    const value = this.vehicleForm.getRawValue() as Record<string, unknown>;
+    const formData = new FormData();
+    Object.entries(value).forEach(([field, fieldValue]) => {
+      if (fieldValue !== null && fieldValue !== undefined) formData.append(field, String(fieldValue));
+    });
+    this.vehicleDocTypes.forEach((doc) => {
+      const file = this.vehicleDocFiles[doc.key];
+      if (file) formData.append(doc.key, file);
+    });
+
+    const request = this.editingVehicleId
+      ? this.api.updateVehicle(this.editingVehicleId, formData)
+      : this.api.createVehicle(formData);
+    this.submit(request, this.editingVehicleId ? 'Vehicle updated' : 'Vehicle registered', undefined, () => {
+      this.closeVehicleForm();
+      this.loadVehicles();
+    });
+  }
+
+  editVehicle(vehicle: Vehicle): void {
+    this.editingVehicleId = vehicle._id;
+    this.editingVehicle = vehicle;
+    this.vehicleDocFiles = { driverPhoto: null, driverAadhaar: null, driverLicensePhoto: null };
+    const dateOnly = (value?: string) => (value ? String(value).slice(0, 10) : '');
+    this.vehicleForm.reset({
+      vehicleNumber: vehicle.vehicleNumber || '',
+      model: vehicle.model || '',
+      type: vehicle.type || 'bus',
+      capacity: vehicle.capacity || 40,
+      registrationExpiry: dateOnly(vehicle.registrationExpiry),
+      insuranceExpiry: dateOnly(vehicle.insuranceExpiry),
+      pollutionExpiry: dateOnly(vehicle.pollutionExpiry),
+      fitnessExpiry: dateOnly(vehicle.fitnessExpiry),
+      driverName: vehicle.driverName || '',
+      driverMobile: vehicle.driverMobile || '',
+      driverAddress: vehicle.driverAddress || '',
+      licenseNumber: vehicle.licenseNumber || '',
+      licenseExpiry: dateOnly(vehicle.licenseExpiry),
+      driverSalary: vehicle.driverSalary || 0,
+      joiningDate: dateOnly(vehicle.joiningDate),
+      notes: vehicle.notes || '',
+      status: vehicle.status || 'active'
+    });
+    this.message = `Editing ${vehicle.vehicleNumber}`;
+    this.showVehicleForm = true;
+  }
+
+  toggleVehicleStatus(id: string): void {
+    if (!this.can('transport', 'edit')) return;
+    this.submit(this.api.toggleVehicleStatus(id), 'Vehicle status updated', undefined, () => this.loadVehicles());
+  }
+
+  async deleteVehicle(vehicle: Vehicle): Promise<void> {
+    if (!this.can('transport', 'deactivate')) return;
+    const ok = await this.confirmAction({
+      message: `Remove vehicle ${vehicle.vehicleNumber}? It will no longer be selectable for routes.`,
+      title: 'Remove vehicle',
+      danger: true,
+      confirmLabel: 'Remove'
+    });
+    if (!ok) return;
+    this.submit(this.api.deleteVehicle(vehicle._id), 'Vehicle removed', undefined, () => this.loadVehicles());
+  }
+
+  vehicleExpiryStatus(date?: string): 'expired' | 'soon' | 'ok' | 'none' {
+    if (!date) return 'none';
+    const target = new Date(date).getTime();
+    if (Number.isNaN(target)) return 'none';
+    const now = Date.now();
+    const days = Math.floor((target - now) / (1000 * 60 * 60 * 24));
+    if (days < 0) return 'expired';
+    if (days <= 30) return 'soon';
+    return 'ok';
+  }
+
+  vehicleHasExpiryAlert(vehicle: Vehicle): boolean {
+    return [vehicle.registrationExpiry, vehicle.insuranceExpiry, vehicle.pollutionExpiry, vehicle.fitnessExpiry, vehicle.licenseExpiry]
+      .some((date) => {
+        const status = this.vehicleExpiryStatus(date);
+        return status === 'expired' || status === 'soon';
+      });
+  }
+
+  // ── View vehicle & driver details ──
+  viewingVehicle: Vehicle | null = null;
+
+  openVehicleView(vehicle: Vehicle): void {
+    this.viewingVehicle = vehicle;
+  }
+
+  closeVehicleView(): void {
+    this.viewingVehicle = null;
+  }
+
+  vehicleHasDoc(vehicle: Vehicle | null, docType: 'driverPhoto' | 'driverAadhaar' | 'driverLicensePhoto'): boolean {
+    return !!vehicle?.documents?.[docType]?.url;
+  }
+
+  // ── Driver salary tracking ──
+  driverSalaryRegister: DriverSalaryRegister | null = null;
+  driverSalaryMonth = new Date().getMonth() + 1;
+  driverSalaryYear = new Date().getFullYear();
+  showDriverSalaryForm = false;
+  driverSalaryTarget: DriverSalaryRegisterRow | null = null;
+
+  loadDriverSalaries(): void {
+    if (!this.can('transport', 'view')) return;
+    this.api.driverSalaryRegister(this.driverSalaryMonth, this.driverSalaryYear).subscribe({
+      next: (register) => (this.driverSalaryRegister = register),
+      error: () => (this.driverSalaryRegister = null)
+    });
+  }
+
+  openDriverSalaryForm(row: DriverSalaryRegisterRow): void {
+    if (!this.can('transport', 'edit')) return;
+    this.driverSalaryTarget = row;
+    this.driverSalaryForm.reset({
+      amount: row.salaryAmount || 0,
+      mode: 'cash',
+      referenceNumber: '',
+      paidOn: new Date().toISOString().slice(0, 10),
+      notes: ''
+    });
+    this.showDriverSalaryForm = true;
+  }
+
+  closeDriverSalaryForm(): void {
+    this.showDriverSalaryForm = false;
+    this.driverSalaryTarget = null;
+  }
+
+  saveDriverSalary(): void {
+    if (!this.driverSalaryTarget || this.driverSalaryForm.invalid) {
+      this.driverSalaryForm.markAllAsTouched();
+      return;
+    }
+    const value = this.driverSalaryForm.getRawValue();
+    const payload = {
+      vehicle: this.driverSalaryTarget.vehicle,
+      month: this.driverSalaryMonth,
+      year: this.driverSalaryYear,
+      ...value
+    };
+    this.submit(this.api.payDriverSalary(payload), 'Salary payment recorded', undefined, () => {
+      this.closeDriverSalaryForm();
+      this.loadDriverSalaries();
+    });
+  }
+
+  async revertDriverSalary(row: DriverSalaryRegisterRow): Promise<void> {
+    if (!this.can('transport', 'edit') || !row.payment?._id) return;
+    const ok = await this.confirmAction({
+      message: `Revert the recorded salary for ${row.driverName || row.vehicleNumber} (${this.driverSalaryMonth}/${this.driverSalaryYear})?`,
+      title: 'Revert salary payment',
+      danger: true,
+      confirmLabel: 'Revert'
+    });
+    if (!ok) return;
+    this.submit(this.api.revertDriverSalary(row.payment._id), 'Salary payment reverted', undefined, () => this.loadDriverSalaries());
+  }
+
+  get driverSalaryMonthOptions(): number[] {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+
+  get driverSalaryYearOptions(): number[] {
+    const current = new Date().getFullYear();
+    return [current + 1, current, current - 1, current - 2];
+  }
+
+  // ── Bus registration create/edit modal ──
+  showBusRegForm = false;
+
+  openBusRegForm(): void {
+    this.resetBusRegistrationForm();
+    this.message = '';
+    this.showBusRegForm = true;
+  }
+
+  closeBusRegForm(): void {
+    this.showBusRegForm = false;
+    this.resetBusRegistrationForm();
   }
 
   resetBusRegistrationForm(): void {
@@ -4022,11 +4429,12 @@ export class AppComponent implements OnInit {
     const request = this.editingBusRegistrationId
       ? this.api.updateBusRegistration(this.editingBusRegistrationId, payload)
       : this.api.createBusRegistration(payload);
-    this.submit(request, this.editingBusRegistrationId ? 'Bus registration updated' : 'Student registered for bus service');
+    this.submit(request, this.editingBusRegistrationId ? 'Bus registration updated' : 'Student registered for bus service', undefined, () => this.closeBusRegForm());
   }
 
   editBusRegistration(reg: BusRegistration): void {
     this.editingBusRegistrationId = reg._id;
+    this.showBusRegForm = true;
     const studentId = typeof reg.student === 'string' ? reg.student : reg.student?._id;
     const yearId = typeof reg.academicYear === 'string' ? reg.academicYear : reg.academicYear?._id;
     const routeId = typeof reg.route === 'string' ? reg.route : reg.route?._id;

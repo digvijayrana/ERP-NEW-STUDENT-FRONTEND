@@ -184,6 +184,7 @@ export interface BusRoute {
   _id: string;
   routeName: string;
   routeCode: string;
+  vehicle?: Vehicle | string;
   vehicleNumber: string;
   driverName: string;
   driverMobile: string;
@@ -194,6 +195,80 @@ export interface BusRoute {
   stops: BusStop[];
   assignedCount?: number;
   availableCapacity?: number;
+}
+
+export interface Vehicle {
+  _id: string;
+  vehicleNumber: string;
+  model?: string;
+  type?: 'bus' | 'van' | 'car' | 'other';
+  capacity?: number;
+  registrationExpiry?: string;
+  insuranceExpiry?: string;
+  pollutionExpiry?: string;
+  fitnessExpiry?: string;
+  driverName?: string;
+  driverMobile?: string;
+  driverAddress?: string;
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  driverSalary?: number;
+  joiningDate?: string;
+  notes?: string;
+  documents?: {
+    driverPhoto?: VehicleDocument;
+    driverAadhaar?: VehicleDocument;
+    driverLicensePhoto?: VehicleDocument;
+  };
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VehicleDocument {
+  url?: string;
+  storageKey?: string;
+  originalName?: string;
+  uploadedAt?: string;
+}
+
+export interface DriverSalaryPayment {
+  _id: string;
+  vehicle: Vehicle | string;
+  driverName?: string;
+  month: number;
+  year: number;
+  amount: number;
+  mode?: string;
+  referenceNumber?: string;
+  paidOn?: string;
+  notes?: string;
+  status?: string;
+}
+
+export interface DriverSalaryRegisterRow {
+  vehicle: string;
+  vehicleNumber: string;
+  driverName: string;
+  driverMobile: string;
+  salaryAmount: number;
+  status: 'paid' | 'unpaid';
+  payment: DriverSalaryPayment | null;
+}
+
+export interface DriverSalaryRegister {
+  month: number;
+  year: number;
+  totals: {
+    month: number;
+    year: number;
+    drivers: number;
+    paidCount: number;
+    unpaidCount: number;
+    paidAmount: number;
+    pendingAmount: number;
+  };
+  rows: DriverSalaryRegisterRow[];
 }
 
 export interface BusRegistration {
