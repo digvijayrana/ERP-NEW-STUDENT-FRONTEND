@@ -45,7 +45,7 @@
     </div>
 
     <ng-container *ngIf="vm.showFeeStructure">
-      <p class="hint-text">Break the fee into components per class. Each amount is per its frequency (e.g. a quarterly ₹3,000 fee = ₹1,000/month). When you generate demands, the chosen billing cycle decides how many months are billed. One-time items (like admission) bill only once for new admissions.</p>
+      <p class="hint-text">Define the fee once per class (e.g. Class V). Every section of that class (A, B, C…) automatically inherits the same structure — including admission, registration, tuition and any other components. When you later create a section, the fee id is linked in the background.</p>
 
       <div class="fee-gen-grid">
         <label><span class="label-text">Academic year</span>
@@ -54,15 +54,15 @@
             <option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option>
           </select>
         </label>
-        <label><span class="label-text">Class &amp; section</span>
-          <select [value]="vm.feeStructureClass" (change)="vm.feeStructureClass = $any($event.target).value; vm.loadFeeStructure()">
+        <label><span class="label-text">Class</span>
+          <select [value]="vm.feeStructureClassName" (change)="vm.feeStructureClassName = $any($event.target).value; vm.loadFeeStructure()">
             <option value="">Select class</option>
-            <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+            <option *ngFor="let name of vm.classNameOptions" [value]="name">{{ name }}</option>
           </select>
         </label>
       </div>
 
-      <ng-container *ngIf="vm.feeStructureYear && vm.feeStructureClass">
+      <ng-container *ngIf="vm.feeStructureYear && vm.feeStructureClassName">
         <div class="fee-preset-row">
           <span class="fee-preset-label">Add component:</span>
           <button *ngFor="let preset of vm.feeComponentPresets" type="button" class="ghost small" (click)="vm.addFeeComponentPreset(preset)">+ {{ preset.label }}</button>
@@ -90,7 +90,7 @@
             <button type="button" class="ghost small danger-text" (click)="vm.removeFeeComponent(i)" aria-label="Remove">&times;</button>
           </div>
           <div class="fsc-total">
-            <span>Total per full cycle</span>
+            <span>Total for Class {{ vm.feeStructureClassName }} (all sections)</span>
             <strong>{{ vm.feeStructureTotal | currency: 'INR' }}</strong>
           </div>
         </div>

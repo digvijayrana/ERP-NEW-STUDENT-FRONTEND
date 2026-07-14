@@ -101,7 +101,7 @@ export const MONTH_NAMES = [
 // Selectable class levels and sections used across class configuration.
 export const CLASS_NAME_OPTIONS = [
   'Nursery', 'LKG', 'UKG',
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
+  'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'
 ] as const;
 
 export const SECTION_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;

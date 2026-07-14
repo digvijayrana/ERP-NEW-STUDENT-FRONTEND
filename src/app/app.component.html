@@ -237,21 +237,76 @@
       </button>
     </div>
 
-    <app-dashboard-page *ngIf="activeTab === 'dashboard'" [vm]="pageVm"></app-dashboard-page>
-    <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
-    <app-classes-page *ngIf="activeTab === 'classes'" [vm]="pageVm"></app-classes-page>
-    <app-teachers-page *ngIf="activeTab === 'teachers'" [vm]="pageVm"></app-teachers-page>
-    <app-fees-page *ngIf="activeTab === 'fees'" [vm]="pageVm"></app-fees-page>
-    <app-transport-page *ngIf="activeTab === 'transport'" [vm]="pageVm"></app-transport-page>
-    <app-drivers-page *ngIf="activeTab === 'drivers'" [vm]="pageVm"></app-drivers-page>
-    <app-reports-page *ngIf="activeTab === 'reports'" [vm]="pageVm"></app-reports-page>
-    <app-payroll-page *ngIf="activeTab === 'payroll'" [vm]="pageVm"></app-payroll-page>
-    <app-promotion-page *ngIf="activeTab === 'promotion'" [vm]="pageVm"></app-promotion-page>
-    <app-attendance-page *ngIf="activeTab === 'attendance'" [vm]="pageVm"></app-attendance-page>
-    <app-timetable-page *ngIf="activeTab === 'timetable'" [vm]="pageVm"></app-timetable-page>
-    <app-exams-page *ngIf="activeTab === 'exams'" [vm]="pageVm"></app-exams-page>
-    <app-student-profile-page *ngIf="activeTab === 'profile'" [vm]="pageVm"></app-student-profile-page>
-    <app-users-page *ngIf="activeTab === 'users'" [vm]="pageVm"></app-users-page>
+    <!--
+      Route-less lazy loading. This app has no Angular Router (navigation is
+      state-based via `activeTab`), so each feature page is code-split into its
+      own on-demand chunk with @defer instead of loadComponent(). The inner
+      *ngIf preserves the original show/hide-on-tab-switch behavior exactly.
+      Preloading strategy:
+        - Dashboard: renders immediately on login (default tab).
+        - Students / Fees / Attendance: `prefetch on idle` -> chunks download in
+          the background so they open instantly (frequently-used modules).
+        - Every other module: loads only on demand (when its tab is opened).
+    -->
+    @defer (when activeTab === 'dashboard') {
+      <app-dashboard-page *ngIf="activeTab === 'dashboard'" [vm]="pageVm"></app-dashboard-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'students'; prefetch on idle) {
+      <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'classes') {
+      <app-classes-page *ngIf="activeTab === 'classes'" [vm]="pageVm"></app-classes-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'teachers') {
+      <app-teachers-page *ngIf="activeTab === 'teachers'" [vm]="pageVm"></app-teachers-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'fees'; prefetch on idle) {
+      <app-fees-page *ngIf="activeTab === 'fees'" [vm]="pageVm"></app-fees-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'transport') {
+      <app-transport-page *ngIf="activeTab === 'transport'" [vm]="pageVm"></app-transport-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'drivers') {
+      <app-drivers-page *ngIf="activeTab === 'drivers'" [vm]="pageVm"></app-drivers-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'reports') {
+      <app-reports-page *ngIf="activeTab === 'reports'" [vm]="pageVm"></app-reports-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'payroll') {
+      <app-payroll-page *ngIf="activeTab === 'payroll'" [vm]="pageVm"></app-payroll-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'promotion') {
+      <app-promotion-page *ngIf="activeTab === 'promotion'" [vm]="pageVm"></app-promotion-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'attendance'; prefetch on idle) {
+      <app-attendance-page *ngIf="activeTab === 'attendance'" [vm]="pageVm"></app-attendance-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'timetable') {
+      <app-timetable-page *ngIf="activeTab === 'timetable'" [vm]="pageVm"></app-timetable-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'exams') {
+      <app-exams-page *ngIf="activeTab === 'exams'" [vm]="pageVm"></app-exams-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'profile') {
+      <app-student-profile-page *ngIf="activeTab === 'profile'" [vm]="pageVm"></app-student-profile-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'users') {
+      <app-users-page *ngIf="activeTab === 'users'" [vm]="pageVm"></app-users-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
   </section>
 
   <!-- My Profile Modal -->

@@ -2183,57 +2183,79 @@ export class AppComponent implements OnInit {
     this.submit(request, this.editingClassId ? 'Class updated' : 'Class saved', this.classForm);
     this.editingClassId = '';
     this.classTuitionLocked = false;
+    this.classFeeStructure = null;
   }
 
-  // Tuition is locked to the Fee Structure when one is already defined for the class.
+  // ── Class-level fee structure (defined once per class name, shared by every section) ──
+  classFeeStructure: FeeStructure | null = null;
+  classFeeStructureLoading = false;
+  // Tuition is locked/auto-filled when a class-level Fee Structure defines it.
   classTuitionLocked = false;
 
+  private readonly monthlyFactor: Record<string, number> = {
+    monthly: 1,
+    quarterly: 1 / 3,
+    half_yearly: 1 / 6,
+    yearly: 1 / 12,
+    one_time: 0
+  };
+
+  /** Full per-cycle total of the class fee structure (e.g. ₹5,000 incl. admission etc.). */
+  get classFeeStructureTotal(): number {
+    return (this.classFeeStructure?.components || []).reduce(
+      (sum, component) => sum + (Number(component.amount) || 0),
+      0
+    );
+  }
+
+  /** Monthly-equivalent tuition implied by the class fee structure. */
+  get classFeeMonthlyTuition(): number {
+    const monthly = (this.classFeeStructure?.components || [])
+      .filter((component) => component.key === 'tuition')
+      .reduce(
+        (sum, component) =>
+          sum + Math.max(Number(component.amount) || 0, 0) * (this.monthlyFactor[component.frequency] ?? 1),
+        0
+      );
+    return Math.round(monthly);
+  }
+
+  /** True once a class-level fee structure has been found for the chosen class + year. */
+  get classHasFeeStructure(): boolean {
+    return !!this.classFeeStructure && (this.classFeeStructure.components?.length || 0) > 0;
+  }
+
+  /** When true the manual monthly-fee input is hidden (fee comes from the structure). */
+  get classFeeInherited(): boolean {
+    return this.classHasFeeStructure;
+  }
+
   /**
-   * Fee is defined once per class (name) and shared across all its sections.
-   * When another section of the same class + academic year already has a fee,
-   * return it so the new section inherits the same amount.
+   * When a class name + academic year are chosen, look up the class-level fee
+   * structure. If found, the section inherits it automatically: the monthly
+   * tuition is filled in and, on save, the backend attaches the structure id.
    */
-  get classFeeSiblingFee(): number | null {
+  onClassSelectionChange(): void {
     const name = (this.classForm.get('name')?.value || '').toString().trim();
     const yearId = this.classForm.get('academicYear')?.value;
-    if (!name || !yearId) return null;
-    const sibling = this.classes.find((c) => {
-      const cYear = typeof c.academicYear === 'string' ? c.academicYear : c.academicYear?._id;
-      return (
-        c.name === name &&
-        cYear === yearId &&
-        c._id !== this.editingClassId &&
-        Number(c.monthlyFee) > 0
-      );
-    });
-    return sibling ? Number(sibling.monthlyFee) : null;
-  }
-
-  /** When true, the monthly-fee input is hidden because the class already has a fee. */
-  get classFeeInherited(): boolean {
-    return !this.editingClassId && this.classFeeSiblingFee !== null;
-  }
-
-  onClassSelectionChange(): void {
-    const inherited = this.classFeeInherited ? this.classFeeSiblingFee : null;
-    if (inherited !== null) {
-      this.classForm.patchValue({ monthlyFee: inherited });
-    }
-  }
-
-  private loadClassTuitionLock(academicYear: string, classRoom: string): void {
+    this.classFeeStructure = null;
     this.classTuitionLocked = false;
-    if (!academicYear || !classRoom) return;
-    this.api.feeStructureForClass(academicYear, classRoom).subscribe({
+    if (!name || !yearId) return;
+
+    this.classFeeStructureLoading = true;
+    this.api.feeStructureForClass(yearId, { className: name }).subscribe({
       next: (structure) => {
-        const tuition = (structure?.components || []).filter((c) => c.key === 'tuition');
-        if (tuition.length) {
-          const total = tuition.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-          this.classForm.patchValue({ monthlyFee: total });
+        this.classFeeStructure = structure && (structure.components?.length || 0) > 0 ? structure : null;
+        this.classFeeStructureLoading = false;
+        if (this.classFeeStructure) {
+          this.classForm.patchValue({ monthlyFee: this.classFeeMonthlyTuition });
           this.classTuitionLocked = true;
         }
       },
-      error: () => (this.classTuitionLocked = false)
+      error: () => {
+        this.classFeeStructure = null;
+        this.classFeeStructureLoading = false;
+      }
     });
   }
 
@@ -2253,7 +2275,7 @@ export class AppComponent implements OnInit {
       monthlyFee: room.monthlyFee,
       status: room.status || 'active'
     });
-    this.loadClassTuitionLock(academicYearId, room._id);
+    this.onClassSelectionChange();
     this.message = `Editing class ${room.name}-${room.section}`;
   }
 
@@ -3195,7 +3217,7 @@ export class AppComponent implements OnInit {
   readonly feeFrequencyOptions = FEE_FREQUENCY_OPTIONS;
   showFeeStructure = false;
   feeStructureYear = '';
-  feeStructureClass = '';
+  feeStructureClassName = '';
   feeStructureComponents: FeeStructureComponent[] = [];
   feeStructureId: string | null = null;
   feeStructureLoading = false;
@@ -3209,13 +3231,13 @@ export class AppComponent implements OnInit {
   }
 
   loadFeeStructure(): void {
-    if (!this.feeStructureYear || !this.feeStructureClass) {
+    if (!this.feeStructureYear || !this.feeStructureClassName) {
       this.feeStructureComponents = [];
       this.feeStructureId = null;
       return;
     }
     this.feeStructureLoading = true;
-    this.api.feeStructureForClass(this.feeStructureYear, this.feeStructureClass).subscribe({
+    this.api.feeStructureForClass(this.feeStructureYear, { className: this.feeStructureClassName }).subscribe({
       next: (structure) => {
         this.feeStructureComponents = (structure?.components || []).map((component) => ({ ...component }));
         this.feeStructureId = structure?._id || null;
@@ -3274,7 +3296,7 @@ export class AppComponent implements OnInit {
       this.toast.error('You do not have permission to configure fee structures');
       return;
     }
-    if (!this.feeStructureYear || !this.feeStructureClass) {
+    if (!this.feeStructureYear || !this.feeStructureClassName) {
       this.toast.error('Select an academic year and class first');
       return;
     }
@@ -3291,13 +3313,15 @@ export class AppComponent implements OnInit {
     this.feeStructureSaving = true;
     this.api.saveFeeStructure({
       academicYear: this.feeStructureYear,
-      classRoom: this.feeStructureClass,
+      className: this.feeStructureClassName,
       components
     }).subscribe({
       next: (structure) => {
         this.feeStructureId = structure?._id || null;
         this.feeStructureSaving = false;
-        this.toast.success('Fee structure saved');
+        this.toast.success(`Fee structure saved for Class ${this.feeStructureClassName}. It will apply to all sections.`);
+        // Refresh class list so linked sections reflect the new monthly fee.
+        if (this.can('classes', 'view')) this.loadListing('classes');
       },
       error: (error) => {
         this.feeStructureSaving = false;

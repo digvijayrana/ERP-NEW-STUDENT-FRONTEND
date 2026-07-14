@@ -31,7 +31,11 @@
                   "maximumError": "1MB"
                 }
               ],
+              "optimization": true,
               "outputHashing": "all",
+              "namedChunks": true,
+              "extractLicenses": true,
+              "sourceMap": false,
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",

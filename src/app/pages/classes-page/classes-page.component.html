@@ -115,12 +115,30 @@
       <label class="required"><span class="label-text">Academic year</span><select formControlName="academicYear" (change)="vm.onClassSelectionChange()"><option value="">Select</option><option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}<ng-container *ngIf="vm.yearStatus(year) === 'active'"> (Active)</ng-container></option></select></label>
       <app-field-error [control]="vm.classForm.get('academicYear')" label="Academic year"></app-field-error>
       <label><span class="label-text">Class teacher</span><select formControlName="classTeacher"><option value="">None</option><option *ngFor="let teacher of vm.teachers" [value]="teacher._id" [disabled]="vm.isTeacherAssignedToAnotherClass(teacher._id)">{{ vm.classTeacherOptionLabel(teacher) }}</option></select></label>
-      <label class="required" *ngIf="!vm.classFeeInherited"><span class="label-text">Monthly tuition fee</span>
-        <input type="number" formControlName="monthlyFee" min="0" [readonly]="vm.classTuitionLocked" [class.readonly-field]="vm.classTuitionLocked">
-      </label>
+      <!-- <label class="required" *ngIf="!vm.classHasFeeStructure"><span class="label-text">Monthly tuition fee</span>
+        <input type="number" formControlName="monthlyFee" min="0">
+      </label> -->
       <label class="required"><span class="label-text">Status</span><select formControlName="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
-      <p class="span-full hint-text" *ngIf="vm.classFeeInherited">Fee for <strong>{{ vm.classForm.get('name')?.value }}</strong> is shared across all sections ({{ vm.classFeeSiblingFee | currency: 'INR' }}/mo) and is attached automatically.</p>
-      <p class="span-full hint-text" *ngIf="!vm.classFeeInherited && vm.classTuitionLocked">Tuition is set by the Fee Structure for this class and can be changed there.</p>
+
+      <div class="span-full admission-fee-preview" *ngIf="vm.classFeeStructureLoading">
+        <p class="hint-text">Looking up Class {{ vm.classForm.get('name')?.value }} fee structure…</p>
+      </div>
+
+      <div class="span-full admission-fee-preview" *ngIf="!vm.classFeeStructureLoading && vm.classHasFeeStructure">
+        <div class="afp-head">
+          <span class="afp-title">Fee structure attached — Class {{ vm.classForm.get('name')?.value }}</span>
+          <span class="afp-total">{{ vm.classFeeStructureTotal | currency: 'INR' }}</span>
+        </div>
+        <div class="afp-rows">
+          <div class="afp-row" *ngFor="let c of vm.classFeeStructure?.components">
+            <span>{{ c.label }} <em class="muted">({{ vm.feeCycleLabel(c.frequency) }})</em></span>
+            <span>{{ c.amount | currency: 'INR' }}</span>
+          </div>
+        </div>
+        <p class="hint-text">Fee id is linked in the background. Applies to section <strong>{{ vm.classForm.get('section')?.value || '…' }}</strong> and every other section of Class {{ vm.classForm.get('name')?.value }}. Monthly tuition: {{ vm.classFeeMonthlyTuition | currency: 'INR' }}/mo.</p>
+      </div>
+
+      <p class="span-full hint-text" *ngIf="!vm.classFeeStructureLoading && !vm.classHasFeeStructure && vm.classForm.get('name')?.value && vm.classForm.get('academicYear')?.value">No fee structure found for Class {{ vm.classForm.get('name')?.value }}. Define one in <strong>Fees → Fee Structure</strong>, or enter a monthly tuition above. Once a structure is saved, every new section of this class will inherit it automatically.</p>
     </div>
     <div class="form-actions">
       <button type="submit" [disabled]="vm.classForm.invalid || vm.submitting">{{ vm.saveButtonLabel(vm.editingClassId ? 'Update class' : 'Save class') }}</button>

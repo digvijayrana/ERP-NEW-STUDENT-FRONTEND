@@ -328,8 +328,15 @@ export class ErpApiService {
     return this.http.post<{ created: number; skipped: number }>(`${this.baseUrl}/fees/demands/generate`, payload, this.options());
   }
 
-  feeStructureForClass(academicYear: string, classRoom: string): Observable<FeeStructure | null> {
-    let httpParams = new HttpParams().set('academicYear', academicYear).set('classRoom', classRoom);
+  feeStructureForClass(
+    academicYear: string,
+    target: { className?: string; classRoom?: string } | string
+  ): Observable<FeeStructure | null> {
+    // Backward compatible: a bare string is treated as a classRoom id.
+    const params = typeof target === 'string' ? { classRoom: target } : target;
+    let httpParams = new HttpParams().set('academicYear', academicYear);
+    if (params.className) httpParams = httpParams.set('className', params.className);
+    if (params.classRoom) httpParams = httpParams.set('classRoom', params.classRoom);
     return this.http.get<FeeStructure | null>(`${this.baseUrl}/fees/structures/for-class`, { ...this.options(), params: httpParams });
   }
 

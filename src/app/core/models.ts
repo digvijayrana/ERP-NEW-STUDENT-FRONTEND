@@ -42,6 +42,7 @@ export interface ClassRoom {
   academicYear: AcademicYear | string;
   classTeacher?: Teacher | string;
   subjects?: Array<{ name: string; teacher: Teacher | string }>;
+  feeStructure?: FeeStructure | string;
   status?: 'active' | 'inactive';
   studentCount?: number;
   availableCapacity?: number;
@@ -147,7 +148,10 @@ export interface FeeStructureComponent {
 export interface FeeStructure {
   _id?: string;
   academicYear: AcademicYear | string;
-  classRoom: ClassRoom | string;
+  /** Class-level structures are keyed by class name (applies to all sections). */
+  className?: string;
+  /** Legacy per-section structures (kept for backward compatibility). */
+  classRoom?: ClassRoom | string;
   components: FeeStructureComponent[];
   status?: string;
   updatedAt?: string;
