@@ -4200,6 +4200,17 @@ export class AppComponent implements OnInit {
     return this.vehicles.filter((v) => v.status === 'active');
   }
 
+  /** Tomorrow as YYYY-MM-DD — expiry date inputs must not allow today or past. */
+  get minExpiryDate(): string {
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yyyy = tomorrow.getFullYear();
+    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const dd = String(tomorrow.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   openVehicleForm(): void {
     this.resetVehicleForm();
     this.message = '';
@@ -4239,6 +4250,17 @@ export class AppComponent implements OnInit {
     }
 
     const value = this.vehicleForm.getRawValue() as Record<string, unknown>;
+    const expiryFields = ['registrationExpiry', 'insuranceExpiry', 'pollutionExpiry', 'fitnessExpiry', 'licenseExpiry'];
+    const minExpiry = this.minExpiryDate;
+    const invalidExpiry = expiryFields.find((field) => {
+      const raw = value[field];
+      return raw && String(raw) < minExpiry;
+    });
+    if (invalidExpiry) {
+      this.toast.error('Expiry dates must be a future date (today or past dates are not allowed)');
+      return;
+    }
+
     const formData = new FormData();
     Object.entries(value).forEach(([field, fieldValue]) => {
       if (fieldValue !== null && fieldValue !== undefined) formData.append(field, String(fieldValue));
@@ -4254,6 +4276,8 @@ export class AppComponent implements OnInit {
     this.submit(request, this.editingVehicleId ? 'Vehicle updated' : 'Vehicle registered', undefined, () => {
       this.closeVehicleForm();
       this.loadVehicles();
+      // Bus routes store a copy of driver details — refresh so Transport reflects the change.
+      if (this.can('transport', 'view')) this.loadListing('busRoutes');
     });
   }
 

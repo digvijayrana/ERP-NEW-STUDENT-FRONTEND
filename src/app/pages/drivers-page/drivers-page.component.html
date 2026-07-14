@@ -153,10 +153,10 @@
               </select>
             </label>
             <label><span class="label-text">Capacity</span><input type="number" formControlName="capacity" min="1"></label>
-            <label><span class="label-text">Registration expiry</span><input type="date" formControlName="registrationExpiry"></label>
-            <label><span class="label-text">Insurance expiry</span><input type="date" formControlName="insuranceExpiry"></label>
-            <label><span class="label-text">Pollution (PUC) expiry</span><input type="date" formControlName="pollutionExpiry"></label>
-            <label><span class="label-text">Fitness expiry</span><input type="date" formControlName="fitnessExpiry"></label>
+            <label><span class="label-text">Registration expiry</span><input type="date" formControlName="registrationExpiry" [min]="vm.minExpiryDate"></label>
+            <label><span class="label-text">Insurance expiry</span><input type="date" formControlName="insuranceExpiry" [min]="vm.minExpiryDate"></label>
+            <label><span class="label-text">Pollution (PUC) expiry</span><input type="date" formControlName="pollutionExpiry" [min]="vm.minExpiryDate"></label>
+            <label><span class="label-text">Fitness expiry</span><input type="date" formControlName="fitnessExpiry" [min]="vm.minExpiryDate"></label>
           </div>
 
           <p class="eyebrow" style="margin-top: var(--space-4)">Driver details</p>
@@ -165,7 +165,7 @@
             <label><span class="label-text">Driver mobile</span><input formControlName="driverMobile" maxlength="10" pattern="\d{10}" inputmode="numeric" placeholder="10-digit mobile"></label>
             <label class="span-2"><span class="label-text">Address</span><input formControlName="driverAddress" placeholder="Residential address"></label>
             <label><span class="label-text">License number</span><input formControlName="licenseNumber"></label>
-            <label><span class="label-text">License expiry</span><input type="date" formControlName="licenseExpiry"></label>
+            <label><span class="label-text">License expiry</span><input type="date" formControlName="licenseExpiry" [min]="vm.minExpiryDate"></label>
             <label><span class="label-text">Monthly salary</span><input type="number" formControlName="driverSalary" min="0"></label>
             <label><span class="label-text">Joining date</span><input type="date" formControlName="joiningDate"></label>
             <label><span class="label-text">Status</span>
