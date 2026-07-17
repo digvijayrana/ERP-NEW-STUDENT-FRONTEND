@@ -1,0 +1,31 @@
+<div class="adm-chat-root">
+  <button type="button" class="adm-chat-fab" (click)="toggle()" [attr.aria-expanded]="open" aria-label="Open admission assistant">
+    <span *ngIf="!open">Ask admissions</span>
+    <span *ngIf="open">Close</span>
+  </button>
+
+  <section class="adm-chat-panel" *ngIf="open" role="dialog" aria-label="AI Admission Assistant">
+    <header class="adm-chat-head">
+      <div>
+        <p class="eyebrow">AI Admission Assistant</p>
+        <strong>Chat with us</strong>
+      </div>
+    </header>
+
+    <div class="adm-chat-body">
+      <div class="adm-bubble" *ngFor="let m of messages" [class.user]="m.role === 'user'" [class.bot]="m.role === 'assistant'">
+        <pre>{{ m.text }}</pre>
+      </div>
+      <p class="muted" *ngIf="sending">Thinking…</p>
+    </div>
+
+    <div class="adm-suggestions">
+      <button type="button" class="chip" *ngFor="let s of suggestions" (click)="sendSuggestion(s)">{{ s }}</button>
+    </div>
+
+    <form class="adm-chat-input" (ngSubmit)="send()">
+      <input type="text" [(ngModel)]="draft" name="draft" placeholder="Ask about fees, age eligibility…" autocomplete="off">
+      <button type="submit" class="primary-btn compact-submit" [disabled]="sending || !draft.trim()">Send</button>
+    </form>
+  </section>
+</div>

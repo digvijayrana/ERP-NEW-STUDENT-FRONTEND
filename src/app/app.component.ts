@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableRow, UserRole, Vehicle, WorkflowNotification, FeeStructure, DriverSalaryRegister, DriverSalaryRegisterRow } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, AdmissionAssistantDashboard, AdmissionLead, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeePredictionDashboard, FeePredictionRow, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableGeneratorDashboard, TimetablePeriodDef, TimetablePlanSlot, TimetableRow, UserRole, Vehicle, WorkflowNotification, FeeStructure, DriverSalaryRegister, DriverSalaryRegisterRow } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, FEE_COMPONENT_PRESETS, FEE_FREQUENCY_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -19,11 +19,15 @@ import { TeachersPageComponent } from './pages/teachers-page/teachers-page.compo
 import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
 import { TransportPageComponent } from './pages/transport-page/transport-page.component';
 import { DriversPageComponent } from './pages/drivers-page/drivers-page.component';
+import { FeePredictionPageComponent } from './pages/fee-prediction-page/fee-prediction-page.component';
+import { AdmissionAssistantPageComponent } from './pages/admission-assistant-page/admission-assistant-page.component';
+import { TimetableGeneratorPageComponent } from './pages/timetable-generator-page/timetable-generator-page.component';
 import { ReportsPageComponent } from './pages/reports-page/reports-page.component';
 import { UsersPageComponent } from './pages/users-page/users-page.component';
 import { SpinnerComponent } from './shared/spinner.component';
 import { ToastContainerComponent } from './shared/toast-container.component';
 import { ConfirmDialogComponent } from './shared/confirm-dialog.component';
+import { AdmissionChatbotComponent } from './shared/admission-chatbot/admission-chatbot.component';
 import { ErpApiService } from './services/erp-api.service';
 import { ListingStateService } from './services/listing-state.service';
 import { SessionContextService } from './services/session-context.service';
@@ -33,9 +37,9 @@ import { ConfirmDialogService } from './services/confirm-dialog.service';
 import { exportRowsToCsv, exportRowsToPdf, LIST_FILTER_KEYS, applyDefaultListSort, sortItems, SortDirection } from './core/listing.util';
 import { environment } from '../environments/environment';
 
-type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+type TabKey = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'fee-prediction' | 'admission-assistant' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'timetable-generator' | 'exams' | 'profile' | 'users' | 'reports';
 type ListKey = 'dashboardStudents' | 'dashboardAttendance' | 'dashboardTeachers' | 'dashboardPayroll' | 'dashboardTimetable' | 'dashboardActivities' | 'students' | 'classes' | 'years' | 'teachers' | 'invoices' | 'feeHistory' | 'busRoutes' | 'busRegistrations' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'examResults' | 'users' | 'profileExams' | 'profileFees';
-type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'exams' | 'profile' | 'users' | 'reports';
+type TabIcon = 'dashboard' | 'students' | 'classes' | 'teachers' | 'fees' | 'fee-prediction' | 'admission-assistant' | 'transport' | 'drivers' | 'payroll' | 'promotion' | 'attendance' | 'timetable' | 'timetable-generator' | 'exams' | 'profile' | 'users' | 'reports';
 
 type HolidayRow = { _id: string; date: string; name: string; description?: string };
 type PermissionSchema = { modules: string[]; actions: string[] };
@@ -118,6 +122,9 @@ interface AdminRefreshRequests {
     ClassesPageComponent,
     TeachersPageComponent,
     FeesPageComponent,
+    FeePredictionPageComponent,
+    AdmissionAssistantPageComponent,
+    TimetableGeneratorPageComponent,
     PayrollPageComponent,
     PromotionPageComponent,
     AttendancePageComponent,
@@ -130,7 +137,8 @@ interface AdminRefreshRequests {
     UsersPageComponent,
     SpinnerComponent,
     ToastContainerComponent,
-    ConfirmDialogComponent
+    ConfirmDialogComponent,
+    AdmissionChatbotComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
@@ -405,14 +413,17 @@ export class AppComponent implements OnInit {
   readonly allTabs: Array<{ key: TabKey; label: string; icon: TabIcon; roles: UserRole[] }> = [
     { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'students', label: 'Students', icon: 'students', roles: ['admin', 'teacher'] },
+    { key: 'admission-assistant', label: 'Admissions AI', icon: 'admission-assistant', roles: ['admin'] },
     { key: 'classes', label: 'Classes & Sections', icon: 'classes', roles: ['admin', 'teacher'] },
     { key: 'teachers', label: 'Teachers', icon: 'teachers', roles: ['admin', 'teacher'] },
     { key: 'fees', label: 'Fees', icon: 'fees', roles: ['admin', 'student', 'parent'] },
+    { key: 'fee-prediction', label: 'Fee Prediction', icon: 'fee-prediction', roles: ['admin', 'accountant'] },
     { key: 'transport', label: 'Bus', icon: 'transport', roles: ['admin'] },
     { key: 'drivers', label: 'Drivers', icon: 'drivers', roles: ['admin'] },
     { key: 'payroll', label: 'Payroll', icon: 'payroll', roles: ['admin'] },
     { key: 'attendance', label: 'Attendance', icon: 'attendance', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'timetable', label: 'Timetable', icon: 'timetable', roles: ['admin', 'teacher', 'student', 'parent'] },
+    { key: 'timetable-generator', label: 'Timetable AI', icon: 'timetable-generator', roles: ['admin', 'teacher'] },
     { key: 'exams', label: 'AI Exams', icon: 'exams', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'profile', label: 'Student Profile', icon: 'profile', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'promotion', label: 'Promotions', icon: 'promotion', roles: ['admin'] },
@@ -867,15 +878,18 @@ export class AppComponent implements OnInit {
     const titles: Record<TabKey, string> = {
       dashboard: 'Overview & insights',
       students: 'Student admissions',
+      'admission-assistant': 'AI admission CRM',
       classes: 'Classes & academic years',
       teachers: 'Teacher management',
       fees: 'Fee collection',
+      'fee-prediction': 'AI fee prediction',
       transport: 'Bus management',
       drivers: 'Drivers & fleet',
       payroll: 'Payroll processing',
       promotion: 'Student promotions',
       attendance: 'Attendance tracking',
       timetable: 'Class schedules',
+      'timetable-generator': 'AI timetable generator',
       exams: 'AI-powered unit tests',
       profile: 'Student profile & AI insights',
       users: 'Users & access control',
@@ -1878,6 +1892,15 @@ export class AppComponent implements OnInit {
         this.loadFeeSummary();
         if (!this.collectAcademicYear) this.collectAcademicYear = this.activeAcademicYear?._id || '';
       }
+    }
+    if (tab === 'fee-prediction' && this.can('fee_prediction', 'view')) {
+      this.loadFeePredictions();
+    }
+    if (tab === 'admission-assistant' && this.can('admission_assistant', 'view')) {
+      this.loadAdmissionAssistant();
+    }
+    if (tab === 'timetable-generator' && this.can('timetable_generator', 'view')) {
+      this.loadTimetableGenerator();
     }
     if (tab === 'payroll' && this.can('payroll', 'view')) this.loadListing('payroll');
     if (tab === 'transport' && this.can('transport', 'view')) {
@@ -3195,6 +3218,15 @@ export class AppComponent implements OnInit {
   // ── Fees dashboard summary + generation stats ──
   feeSummary: FeeSummary | null = null;
 
+  // ── AI Fee Prediction ──
+  feePredDashboard: FeePredictionDashboard | null = null;
+  feePredLoading = false;
+  feePredSending = false;
+  feePredYear = '';
+  feePredClass = '';
+  feePredSelectedIds: string[] = [];
+  feePredReminders: FeePredictionRow[] = [];
+
   loadFeeSummary(): void {
     if (this.isPortalUser || !this.can('fees', 'view')) return;
     const params: Record<string, string> = {};
@@ -3209,6 +3241,524 @@ export class AppComponent implements OnInit {
     this.api.feeSummary(params).subscribe({
       next: (summary) => { this.feeSummary = summary; },
       error: () => { this.feeSummary = null; }
+    });
+  }
+
+  loadFeePredictions(): void {
+    if (!this.can('fee_prediction', 'view')) return;
+    if (!this.feePredYear && this.activeAcademicYear?._id) {
+      this.feePredYear = this.activeAcademicYear._id;
+    }
+    this.feePredLoading = true;
+    const params: Record<string, string> = {};
+    if (this.feePredYear) params['academicYear'] = this.feePredYear;
+    if (this.feePredClass) params['classRoom'] = this.feePredClass;
+    this.api.feePredictionDashboard(params).subscribe({
+      next: (dashboard) => {
+        this.feePredDashboard = dashboard;
+        this.feePredLoading = false;
+        // Drop selections that are no longer in the list.
+        const valid = new Set((dashboard.predictions || []).map((row) => row.studentId));
+        this.feePredSelectedIds = this.feePredSelectedIds.filter((id) => valid.has(id));
+      },
+      error: (error) => {
+        this.feePredDashboard = null;
+        this.feePredLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  get feePredAllSelected(): boolean {
+    const rows = this.feePredDashboard?.predictions || [];
+    return rows.length > 0 && rows.every((row) => this.feePredSelectedIds.includes(row.studentId));
+  }
+
+  isFeePredSelected(studentId: string): boolean {
+    return this.feePredSelectedIds.includes(studentId);
+  }
+
+  toggleFeePredStudent(studentId: string, checked: boolean): void {
+    if (checked) {
+      if (!this.feePredSelectedIds.includes(studentId)) this.feePredSelectedIds = [...this.feePredSelectedIds, studentId];
+    } else {
+      this.feePredSelectedIds = this.feePredSelectedIds.filter((id) => id !== studentId);
+    }
+  }
+
+  toggleFeePredSelectAll(checked: boolean): void {
+    const rows = this.feePredDashboard?.predictions || [];
+    this.feePredSelectedIds = checked ? rows.map((row) => row.studentId) : [];
+  }
+
+  feePredRiskBarWidth(key: string): number {
+    const breakdown = this.feePredDashboard?.riskBreakdown;
+    if (!breakdown) return 0;
+    const total = Object.values(breakdown).reduce((sum, n) => sum + (Number(n) || 0), 0);
+    if (!total) return 0;
+    return Math.round(((Number((breakdown as Record<string, number>)[key]) || 0) / total) * 100);
+  }
+
+  feePredTrendHeight(value: number): number {
+    const trend = this.feePredDashboard?.paymentTrend || [];
+    const max = Math.max(...trend.map((p) => Math.max(p.billed || 0, p.collected || 0)), 1);
+    return Math.max(4, Math.round(((value || 0) / max) * 100));
+  }
+
+  prepareFeeReminders(): void {
+    if (!this.can('fee_prediction', 'create') || !this.feePredSelectedIds.length) return;
+    this.api.prepareFeeReminders(this.feePredSelectedIds).subscribe({
+      next: (response) => {
+        this.feePredReminders = response.reminders || [];
+        this.toast.success(`${this.feePredReminders.length} parent reminder${this.feePredReminders.length === 1 ? '' : 's'} prepared`);
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  sendFeeReminders(channel: 'email' | 'whatsapp' | 'all'): void {
+    if (!this.can('fee_prediction', 'create') || !this.feePredSelectedIds.length) return;
+    this.feePredSending = true;
+    this.api.sendFeeReminders(this.feePredSelectedIds, channel).subscribe({
+      next: (response) => {
+        this.feePredSending = false;
+        if (channel === 'whatsapp' || channel === 'all') {
+          // Open WhatsApp deep-links for ready contacts (first few) and refresh reminder preview.
+          this.api.prepareFeeReminders(this.feePredSelectedIds).subscribe({
+            next: (prepared) => {
+              this.feePredReminders = prepared.reminders || [];
+              const links = this.feePredReminders.map((r) => r.reminder?.whatsappUrl).filter(Boolean) as string[];
+              links.slice(0, 5).forEach((url) => window.open(url, '_blank'));
+            }
+          });
+        }
+        const parts = [];
+        if (channel !== 'whatsapp') parts.push(`${response.sent} email${response.sent === 1 ? '' : 's'} sent`);
+        if (channel !== 'email') parts.push(`${response.whatsappReady} WhatsApp link${response.whatsappReady === 1 ? '' : 's'} ready`);
+        this.toast.success(parts.join(' · ') || 'Reminders processed');
+      },
+      error: (error) => {
+        this.feePredSending = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  // ── AI Admission Assistant CRM ──
+  admissionAssistDashboard: AdmissionAssistantDashboard | null = null;
+  admissionAssistLoading = false;
+  admissionLeadQuery = '';
+  viewingAdmissionLead: AdmissionLead | null = null;
+  admissionInterviewAt = '';
+  readonly admissionPipelineStages = [
+    'new',
+    'contacted',
+    'qualified',
+    'documents_pending',
+    'interview_scheduled',
+    'scholarship_review',
+    'converted',
+    'lost'
+  ];
+
+  loadAdmissionAssistant(): void {
+    if (!this.can('admission_assistant', 'view')) return;
+    this.admissionAssistLoading = true;
+    this.api.admissionAssistantDashboard().subscribe({
+      next: (dashboard) => {
+        this.admissionAssistDashboard = dashboard;
+        this.admissionAssistLoading = false;
+        if (this.admissionLeadQuery) this.filterAdmissionLeads();
+      },
+      error: (error) => {
+        this.admissionAssistDashboard = null;
+        this.admissionAssistLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  filterAdmissionLeads(): void {
+    const q = this.admissionLeadQuery.trim().toLowerCase();
+    if (!this.admissionAssistDashboard) return;
+    // Soft client filter on pipeline cards by mutating a filtered view via re-fetch when empty query.
+    if (!q) {
+      this.loadAdmissionAssistant();
+      return;
+    }
+    this.api.admissionLeads({ q: this.admissionLeadQuery }).subscribe({
+      next: (res) => {
+        if (!this.admissionAssistDashboard) return;
+        const leads = res.leads || [];
+        this.admissionAssistDashboard = {
+          ...this.admissionAssistDashboard,
+          pipeline: {
+            total: leads.length,
+            columns: this.admissionPipelineStages.map((stage) => ({
+              stage,
+              label: stage.replace(/_/g, ' '),
+              leads: leads.filter((l) => l.stage === stage)
+            }))
+          },
+          recentLeads: leads.slice(0, 12)
+        };
+      }
+    });
+  }
+
+  admissionTrendHeight(value: number): number {
+    const trend = this.admissionAssistDashboard?.analytics?.trend || [];
+    const max = Math.max(...trend.map((p) => Math.max(p.leads || 0, p.converted || 0)), 1);
+    return Math.max(4, Math.round(((value || 0) / max) * 100));
+  }
+
+  admissionQualBarWidth(key: string): number {
+    const bag = this.admissionAssistDashboard?.analytics?.byQualification || {};
+    const total = Object.values(bag).reduce((sum, n) => sum + (Number(n) || 0), 0);
+    if (!total) return 0;
+    return Math.round(((Number(bag[key]) || 0) / total) * 100);
+  }
+
+  openAdmissionLead(lead: AdmissionLead): void {
+    this.viewingAdmissionLead = lead;
+    this.admissionInterviewAt = lead.interview?.scheduledAt
+      ? new Date(lead.interview.scheduledAt).toISOString().slice(0, 16)
+      : '';
+  }
+
+  moveAdmissionLead(lead: AdmissionLead, stage: string): void {
+    if (!this.can('admission_assistant', 'edit')) return;
+    this.api.updateAdmissionLeadStage(lead._id, stage).subscribe({
+      next: () => {
+        this.toast.success(`Moved to ${stage.replace(/_/g, ' ')}`);
+        this.loadAdmissionAssistant();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  setAdmissionDocStatus(lead: AdmissionLead, key: string, status: string): void {
+    if (!this.can('admission_assistant', 'edit')) return;
+    this.api.verifyAdmissionDocument(lead._id, { key, status }).subscribe({
+      next: (updated) => {
+        this.viewingAdmissionLead = updated;
+        this.toast.success(`Document marked ${status}`);
+        this.loadAdmissionAssistant();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  bookAdmissionInterview(lead: AdmissionLead): void {
+    if (!this.can('admission_assistant', 'edit') || !this.admissionInterviewAt) {
+      this.toast.error('Pick interview date & time');
+      return;
+    }
+    this.api.bookAdmissionInterview(lead._id, { scheduledAt: new Date(this.admissionInterviewAt).toISOString(), mode: 'in_person' }).subscribe({
+      next: (updated) => {
+        this.viewingAdmissionLead = updated;
+        this.toast.success('Interview scheduled');
+        this.loadAdmissionAssistant();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  runAdmissionScholarship(lead: AdmissionLead): void {
+    if (!this.can('admission_assistant', 'edit')) return;
+    this.api.suggestAdmissionScholarship(lead._id).subscribe({
+      next: (updated) => {
+        this.viewingAdmissionLead = updated;
+        this.toast.success(updated.scholarship?.suggested ? 'Scholarship suggested' : 'No automatic scholarship signal');
+        this.loadAdmissionAssistant();
+      },
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  emailAdmissionLead(lead: AdmissionLead): void {
+    if (!this.can('admission_assistant', 'create')) return;
+    this.api.notifyAdmissionLead(lead._id).subscribe({
+      next: () => this.toast.success('Email sent to parent'),
+      error: (error) => this.toast.error(extractApiMessage(error))
+    });
+  }
+
+  // ── AI Timetable Generator ──
+  ttGenDashboard: TimetableGeneratorDashboard | null = null;
+  ttGenLoading = false;
+  ttGenBusy = false;
+  ttGenYear = '';
+  ttGenClassFilter = '';
+  ttGenDragSlotId = '';
+  ttGenAvailTeacher = '';
+  ttGenAvailDay = 'monday';
+  ttGenAvailPeriods = '';
+  ttGenConstraints: {
+    maxPeriodsPerTeacherPerDay: number;
+    sportsPeriodsPerWeek: number;
+    libraryPeriodsPerWeek: number;
+    defaultSubjectPeriodsPerWeek: number;
+    labPeriodsPerWeek: number;
+    protectBreaks: boolean;
+  } = {
+    maxPeriodsPerTeacherPerDay: 6,
+    sportsPeriodsPerWeek: 2,
+    libraryPeriodsPerWeek: 1,
+    defaultSubjectPeriodsPerWeek: 4,
+    labPeriodsPerWeek: 2,
+    protectBreaks: true
+  };
+
+  private applyTtGenDashboard(dashboard: TimetableGeneratorDashboard): void {
+    this.ttGenDashboard = dashboard;
+    const c = dashboard.plan?.constraints;
+    if (c) {
+      this.ttGenConstraints = {
+        maxPeriodsPerTeacherPerDay: c.maxPeriodsPerTeacherPerDay ?? 6,
+        sportsPeriodsPerWeek: c.sportsPeriodsPerWeek ?? 2,
+        libraryPeriodsPerWeek: c.libraryPeriodsPerWeek ?? 1,
+        defaultSubjectPeriodsPerWeek: c.defaultSubjectPeriodsPerWeek ?? 4,
+        labPeriodsPerWeek: c.labPeriodsPerWeek ?? 2,
+        protectBreaks: c.protectBreaks !== false
+      };
+    }
+  }
+
+  loadTimetableGenerator(): void {
+    if (!this.can('timetable_generator', 'view')) return;
+    this.ttGenLoading = true;
+    const params: Record<string, string> = {};
+    if (this.ttGenYear) params['academicYear'] = this.ttGenYear;
+    this.api.timetableGeneratorDashboard(params).subscribe({
+      next: (dashboard) => {
+        this.applyTtGenDashboard(dashboard);
+        this.ttGenLoading = false;
+      },
+      error: (error) => {
+        this.ttGenDashboard = null;
+        this.ttGenLoading = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  saveTimetableConstraints(): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!planId || !this.can('timetable_generator', 'edit')) return;
+    this.ttGenBusy = true;
+    this.api.updateTimetablePlanConfig(planId, { constraints: { ...this.ttGenConstraints } }).subscribe({
+      next: () => {
+        this.ttGenBusy = false;
+        this.toast.success('Constraints saved');
+        this.loadTimetableGenerator();
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  addTeacherAvailabilityBlock(): void {
+    const plan = this.ttGenDashboard?.plan;
+    if (!plan?._id || !this.can('timetable_generator', 'edit')) return;
+    if (!this.ttGenAvailTeacher) {
+      this.toast.error('Select a teacher');
+      return;
+    }
+    const unavailablePeriods = String(this.ttGenAvailPeriods || '')
+      .split(/[,\s]+/)
+      .map((p) => Number(p))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (!unavailablePeriods.length) {
+      this.toast.error('Enter unavailable period numbers (e.g. 1,2,5)');
+      return;
+    }
+    const existing = [...(plan.teacherAvailability || [])];
+    const day = this.ttGenAvailDay || 'monday';
+    const idx = existing.findIndex(
+      (row) =>
+        String(typeof row.teacher === 'string' ? row.teacher : row.teacher?._id) === String(this.ttGenAvailTeacher) &&
+        row.dayOfWeek === day
+    );
+    if (idx >= 0) {
+      existing[idx] = {
+        ...existing[idx],
+        teacher: this.ttGenAvailTeacher,
+        dayOfWeek: day,
+        unavailablePeriods: [...new Set([...(existing[idx].unavailablePeriods || []), ...unavailablePeriods])]
+      };
+    } else {
+      existing.push({ teacher: this.ttGenAvailTeacher, dayOfWeek: day, unavailablePeriods });
+    }
+    this.ttGenBusy = true;
+    this.api.updateTimetablePlanConfig(plan._id, { teacherAvailability: existing as any }).subscribe({
+      next: () => {
+        this.ttGenBusy = false;
+        this.ttGenAvailPeriods = '';
+        this.toast.success('Teacher availability updated');
+        this.loadTimetableGenerator();
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  ttGenAvailTeacherLabel(row: { teacher?: Teacher | string }): string {
+    const teacher = row.teacher;
+    if (!teacher) return 'Teacher';
+    if (typeof teacher === 'string') {
+      const match = (this.ttGenDashboard?.teachers || []).find((t) => t._id === teacher);
+      return match ? `${match.firstName} ${match.lastName}` : teacher;
+    }
+    return [teacher.firstName, teacher.lastName].filter(Boolean).join(' ') || 'Teacher';
+  }
+
+  runTimetableGenerator(): void {
+    if (!this.can('timetable_generator', 'create')) return;
+    this.ttGenBusy = true;
+    this.api
+      .generateTimetable({
+        academicYear: this.ttGenYear || undefined,
+        planId: this.ttGenDashboard?.plan?._id,
+        classRoomIds: this.ttGenClassFilter ? [this.ttGenClassFilter] : undefined
+      })
+      .subscribe({
+        next: (dashboard) => {
+          this.applyTtGenDashboard(dashboard);
+          this.ttGenBusy = false;
+          const score = dashboard.summary?.score ?? 0;
+          const conflicts = dashboard.summary?.conflictCount ?? 0;
+          this.toast.success(`Timetable generated · score ${score}% · ${conflicts} conflict${conflicts === 1 ? '' : 's'}`);
+        },
+        error: (error) => {
+          this.ttGenBusy = false;
+          this.toast.error(extractApiMessage(error));
+        }
+      });
+  }
+
+  validateTimetablePlan(): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!planId) return;
+    this.ttGenBusy = true;
+    this.api.validateTimetablePlan(planId).subscribe({
+      next: (dashboard) => {
+        this.applyTtGenDashboard(dashboard);
+        this.ttGenBusy = false;
+        this.toast.success(`${dashboard.summary?.conflictCount || 0} conflict(s) detected`);
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  applyTimetablePlan(): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!planId || !this.can('timetable_generator', 'approve')) return;
+    this.ttGenBusy = true;
+    this.api.applyTimetablePlan(planId).subscribe({
+      next: (dashboard) => {
+        this.applyTtGenDashboard(dashboard);
+        this.ttGenBusy = false;
+        this.toast.success('Plan applied to live timetable');
+        if (this.can('timetable', 'view')) this.loadListing('timetable');
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  exportTimetablePlanPdf(): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!planId || !this.can('timetable_generator', 'print')) return;
+    this.openProtectedPdf(this.api.timetablePlanPdfUrl(planId, this.ttGenClassFilter || undefined));
+  }
+
+  ttGenConflictKeys(): string[] {
+    return Object.keys(this.ttGenDashboard?.conflictsByType || {});
+  }
+
+  ttGenDayLabel(day: string): string {
+    return day ? day.charAt(0).toUpperCase() + day.slice(1, 3) : day;
+  }
+
+  ttGenClassLabel(slot: TimetablePlanSlot): string {
+    const room = slot.classRoom;
+    if (!room || typeof room === 'string') return slot.classLabel || '';
+    return `${room.name || ''}${room.section ? `-${room.section}` : ''}`.trim();
+  }
+
+  ttGenTeacherLabel(slot: TimetablePlanSlot): string {
+    if (slot.teacherLabel) return slot.teacherLabel;
+    const teacher = slot.teacher;
+    if (!teacher || typeof teacher === 'string') return '';
+    return [teacher.firstName, teacher.lastName].filter(Boolean).join(' ');
+  }
+
+  ttGenSlotsFor(day: string, periodIndex: number): TimetablePlanSlot[] {
+    const cells = this.ttGenDashboard?.calendar?.cells || [];
+    return cells.filter((slot) => {
+      if (slot.dayOfWeek !== day || slot.periodIndex !== periodIndex) return false;
+      if (slot.slotType === 'break') return false;
+      if (this.ttGenClassFilter) {
+        const id = typeof slot.classRoom === 'string' ? slot.classRoom : slot.classRoom?._id;
+        if (String(id) !== String(this.ttGenClassFilter)) return false;
+      }
+      return true;
+    });
+  }
+
+  ttGenCellHasConflict(day: string, periodIndex: number): boolean {
+    return (this.ttGenDashboard?.plan?.conflicts || []).some(
+      (c) => c.severity === 'error' && c.dayOfWeek === day && c.periodIndex === periodIndex
+    );
+  }
+
+  onTtGenDragStart(event: DragEvent, slot: TimetablePlanSlot): void {
+    this.ttGenDragSlotId = slot._id;
+    event.dataTransfer?.setData('text/plain', slot._id);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onTtGenDragEnd(): void {
+    this.ttGenDragSlotId = '';
+  }
+
+  onTtGenDragOver(event: DragEvent, _day: string, period: TimetablePeriodDef): void {
+    if (!this.ttGenDragSlotId) return;
+    if (period.type === 'break') return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  }
+
+  onTtGenDrop(event: DragEvent, day: string, period: TimetablePeriodDef): void {
+    event.preventDefault();
+    const planId = this.ttGenDashboard?.plan?._id;
+    const slotId = this.ttGenDragSlotId || event.dataTransfer?.getData('text/plain');
+    this.ttGenDragSlotId = '';
+    if (!planId || !slotId || !this.can('timetable_generator', 'edit')) return;
+    if (period.type === 'break') {
+      this.toast.error('Cannot place a class during break time');
+      return;
+    }
+    this.ttGenBusy = true;
+    this.api.moveTimetableSlot(planId, { slotId, targetDay: day, targetPeriodIndex: period.index, swap: true }).subscribe({
+      next: (dashboard) => {
+        this.applyTtGenDashboard(dashboard);
+        this.ttGenBusy = false;
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
     });
   }
 

@@ -1,0 +1,203 @@
+<section class="workspace-grid ttgen-page" *ngIf="vm.can('timetable_generator', 'view')">
+  <header class="section-head span-12">
+    <div>
+      <p class="eyebrow">AI Scheduling</p>
+      <h3>Timetable generator</h3>
+    </div>
+    <div class="listing-filters ttgen-filters">
+      <select class="filter-select" [(ngModel)]="vm.ttGenYear" (ngModelChange)="vm.loadTimetableGenerator()" aria-label="Academic year">
+        <option value="">Active year</option>
+        <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+      </select>
+      <select class="filter-select" [(ngModel)]="vm.ttGenClassFilter" aria-label="Calendar class">
+        <option value="">All classes (calendar)</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+      <button type="button" class="ghost small" (click)="vm.loadTimetableGenerator()" [disabled]="vm.ttGenLoading">Refresh</button>
+    </div>
+  </header>
+
+  <div class="span-12" *ngIf="vm.ttGenLoading && !vm.ttGenDashboard">
+    <app-spinner></app-spinner>
+  </div>
+
+  <ng-container *ngIf="vm.ttGenDashboard as dash">
+    <div class="fee-summary-grid span-12">
+      <article class="fee-summary-card ok">
+        <span class="fs-label">Placement score</span>
+        <span class="fs-value">{{ dash.summary.score || 0 }}%</span>
+        <span class="muted">{{ dash.summary.placed || 0 }} periods placed</span>
+      </article>
+      <article class="fee-summary-card" [class.warn]="(dash.summary.conflictCount || 0) > 0" [class.danger]="(dash.summary.conflictCount || 0) > 5">
+        <span class="fs-label">Conflicts</span>
+        <span class="fs-value">{{ dash.summary.conflictCount || 0 }}</span>
+        <span class="muted">{{ dash.summary.unplaced || 0 }} unplaced demands</span>
+      </article>
+      <article class="fee-summary-card">
+        <span class="fs-label">Bell schedule</span>
+        <span class="fs-value">{{ dash.summary.teachingPeriods || 0 }}</span>
+        <span class="muted">{{ dash.summary.breakPeriods || 0 }} break blocks · {{ dash.summary.facilities || 0 }} rooms</span>
+      </article>
+      <article class="fee-summary-card">
+        <span class="fs-label">Plan status</span>
+        <span class="fs-value ttgen-status">{{ dash.summary.status || dash.plan?.status || 'draft' }}</span>
+        <span class="muted" *ngIf="dash.summary.generatedAt">Generated {{ dash.summary.generatedAt | date: 'medium' }}</span>
+      </article>
+    </div>
+
+    <section class="panel span-4 ttgen-constraints">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Constraints</p><h3>Availability &amp; breaks</h3></div>
+      </div>
+      <ng-container *ngIf="dash.plan as plan">
+        <label class="form-field">
+          <span>Max periods / teacher / day</span>
+          <input type="number" min="1" max="12" [(ngModel)]="vm.ttGenConstraints.maxPeriodsPerTeacherPerDay" />
+        </label>
+        <label class="form-field">
+          <span>Subject periods / week</span>
+          <input type="number" min="1" max="10" [(ngModel)]="vm.ttGenConstraints.defaultSubjectPeriodsPerWeek" />
+        </label>
+        <label class="form-field">
+          <span>Lab periods / week</span>
+          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.labPeriodsPerWeek" />
+        </label>
+        <label class="form-field">
+          <span>Sports periods / week</span>
+          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.sportsPeriodsPerWeek" />
+        </label>
+        <label class="form-field">
+          <span>Library periods / week</span>
+          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.libraryPeriodsPerWeek" />
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" [(ngModel)]="vm.ttGenConstraints.protectBreaks" />
+          <span>Protect break time (no teaching)</span>
+        </label>
+
+        <div class="ttgen-facility-list">
+          <p class="eyebrow">Facilities</p>
+          <div class="ttgen-facility" *ngFor="let f of plan.facilities">
+            <span class="ttgen-fac-type" [attr.data-type]="f.type">{{ f.type }}</span>
+            <strong>{{ f.name }}</strong>
+            <span class="muted">cap {{ f.capacity || '—' }}</span>
+          </div>
+        </div>
+
+        <div class="ttgen-avail-block" *ngIf="vm.can('timetable_generator', 'edit')">
+          <p class="eyebrow">Teacher availability block</p>
+          <div class="ttgen-avail-form">
+            <select class="filter-select" [(ngModel)]="vm.ttGenAvailTeacher" aria-label="Teacher">
+              <option value="">Teacher</option>
+              <option *ngFor="let t of dash.teachers || []" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
+            </select>
+            <select class="filter-select" [(ngModel)]="vm.ttGenAvailDay" aria-label="Day">
+              <option *ngFor="let d of plan.workingDays" [value]="d">{{ d }}</option>
+            </select>
+            <input type="text" class="filter-select" [(ngModel)]="vm.ttGenAvailPeriods" placeholder="Periods e.g. 1,2,5" aria-label="Unavailable periods" />
+            <button type="button" class="ghost small" (click)="vm.addTeacherAvailabilityBlock()">Block</button>
+          </div>
+          <p class="muted tiny" *ngFor="let row of plan.teacherAvailability || []">
+            {{ vm.ttGenAvailTeacherLabel(row) }} · {{ row.dayOfWeek }} · P{{ (row.unavailablePeriods || []).join(', P') }}
+          </p>
+        </div>
+
+        <div class="ttgen-actions">
+          <button type="button" class="ghost small" *ngIf="vm.can('timetable_generator', 'edit')" (click)="vm.saveTimetableConstraints()" [disabled]="vm.ttGenBusy">
+            Save constraints
+          </button>
+          <button type="button" class="primary small" *ngIf="vm.can('timetable_generator', 'create')" (click)="vm.runTimetableGenerator()" [disabled]="vm.ttGenBusy">
+            {{ vm.ttGenBusy ? 'Generating…' : 'Generate timetable' }}
+          </button>
+          <button type="button" class="ghost small" (click)="vm.validateTimetablePlan()" [disabled]="vm.ttGenBusy || !plan._id">
+            Detect conflicts
+          </button>
+          <button type="button" class="primary small" *ngIf="vm.can('timetable_generator', 'approve')" (click)="vm.applyTimetablePlan()" [disabled]="vm.ttGenBusy || plan.status === 'applied' || (dash.summary.conflictCount || 0) > 0">
+            Apply to live timetable
+          </button>
+          <button type="button" class="ghost small" *ngIf="vm.can('timetable_generator', 'print')" (click)="vm.exportTimetablePlanPdf()" [disabled]="!plan._id">
+            PDF export
+          </button>
+        </div>
+      </ng-container>
+    </section>
+
+    <section class="panel span-8 ttgen-conflict-panel">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Conflict detection</p><h3>Teacher · room · availability</h3></div>
+      </div>
+      <div class="ttgen-conflict-chips" *ngIf="dash.conflictsByType">
+        <span class="ttgen-chip" *ngFor="let key of vm.ttGenConflictKeys()">{{ key }}: {{ dash.conflictsByType[key] || 0 }}</span>
+      </div>
+      <ul class="ttgen-conflict-list" *ngIf="dash.plan?.conflicts?.length; else noConflicts">
+        <li *ngFor="let c of dash.plan?.conflicts" [class.err]="c.severity === 'error'" [class.warn]="c.severity === 'warning'">
+          <span class="ttgen-sev">{{ c.severity }}</span>
+          <span>{{ c.message }}</span>
+        </li>
+      </ul>
+      <ng-template #noConflicts>
+        <app-empty-state title="No conflicts" message="Generate a timetable or drag periods — conflicts will appear here."></app-empty-state>
+      </ng-template>
+      <div class="ttgen-unplaced" *ngIf="dash.plan?.unplaced?.length">
+        <p class="eyebrow">Unplaced demands</p>
+        <p class="muted" *ngFor="let u of dash.plan?.unplaced">{{ u.subject }} — {{ u.reason }}</p>
+      </div>
+    </section>
+
+    <section class="panel span-12 ttgen-calendar-panel">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Angular calendar</p>
+          <h3>Weekly board — drag &amp; drop to reschedule</h3>
+        </div>
+        <p class="hint-text">Drag a period onto another cell to swap. Breaks are locked. Conflicts update automatically.</p>
+      </div>
+
+      <div class="ttgen-cal-wrap" *ngIf="dash.calendar?.periods?.length; else emptyCal">
+        <table class="ttgen-calendar" role="grid" aria-label="Weekly timetable calendar">
+          <thead>
+            <tr>
+              <th scope="col">Period</th>
+              <th scope="col" *ngFor="let day of dash.calendar.days">{{ vm.ttGenDayLabel(day) }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let period of dash.calendar.periods" [class.is-break]="period.type === 'break'">
+              <th scope="row">
+                <span class="ttgen-period-label">{{ period.label }}</span>
+                <span class="muted">{{ period.startTime }}–{{ period.endTime }}</span>
+              </th>
+              <td
+                *ngFor="let day of dash.calendar.days"
+                class="ttgen-cell"
+                [class.drop-target]="vm.ttGenDragSlotId"
+                [class.has-conflict]="vm.ttGenCellHasConflict(day, period.index)"
+                (dragover)="vm.onTtGenDragOver($event, day, period)"
+                (drop)="vm.onTtGenDrop($event, day, period)"
+              >
+                <div
+                  class="ttgen-slot"
+                  *ngFor="let slot of vm.ttGenSlotsFor(day, period.index)"
+                  [attr.data-type]="slot.slotType"
+                  [class.locked]="slot.locked"
+                  [draggable]="!slot.locked && slot.slotType !== 'break' && vm.can('timetable_generator', 'edit') && dash.plan?.status !== 'applied'"
+                  (dragstart)="vm.onTtGenDragStart($event, slot)"
+                  (dragend)="vm.onTtGenDragEnd()"
+                >
+                  <strong>{{ slot.subject }}</strong>
+                  <span *ngIf="slot.classLabel || vm.ttGenClassLabel(slot)">{{ slot.classLabel || vm.ttGenClassLabel(slot) }}</span>
+                  <span class="muted">{{ slot.teacherLabel || vm.ttGenTeacherLabel(slot) }}</span>
+                  <span class="ttgen-room" *ngIf="slot.room">{{ slot.room }}</span>
+                </div>
+                <span class="ttgen-break" *ngIf="period.type === 'break'">Break</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #emptyCal>
+        <app-empty-state title="No calendar yet" message="Set constraints and click Generate timetable to build the weekly schedule."></app-empty-state>
+      </ng-template>
+    </section>
+  </ng-container>
+</section>

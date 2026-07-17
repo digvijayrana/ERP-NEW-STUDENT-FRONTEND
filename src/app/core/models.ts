@@ -135,6 +135,168 @@ export interface FeeSummary {
   lastGeneratedDate?: string | null;
 }
 
+export type FeeRiskCategory = 'low' | 'medium' | 'high' | 'critical';
+
+export interface FeePredictionContact {
+  phone?: string;
+  email?: string;
+  name?: string;
+}
+
+export interface FeePredictionRow {
+  studentId: string;
+  studentName: string;
+  admissionNumber?: string;
+  classLabel?: string;
+  pendingAmount: number;
+  overdueAmount: number;
+  collectedAmount?: number;
+  overdueInvoices: number;
+  openInvoices?: number;
+  latePaymentProbability: number;
+  defaultProbability: number;
+  expectedCollection: number;
+  riskCategory: FeeRiskCategory;
+  avgPaymentLatencyDays?: number;
+  maxOverdueDays?: number;
+  factors?: string[];
+  contact?: FeePredictionContact;
+  reminder?: {
+    subject: string;
+    body: string;
+    emailReady: boolean;
+    whatsappReady: boolean;
+    whatsappUrl?: string | null;
+    channels: string[];
+  };
+}
+
+export interface FeePaymentTrendPoint {
+  year: number;
+  month: number;
+  label: string;
+  billed: number;
+  collected: number;
+  pending: number;
+  overdueCount: number;
+  collectionRate: number;
+}
+
+export interface FeePredictionDashboard {
+  generatedAt: string;
+  summary: {
+    studentsAnalyzed: number;
+    studentsWithPending: number;
+    latePaymentRiskCount: number;
+    defaulterRiskCount: number;
+    totalPending: number;
+    expectedCollection: number;
+    monthlyRevenueForecast: number;
+    avgLatePaymentProbability: number;
+    avgDefaultProbability: number;
+    lastMonthCollected: number;
+    lastMonthBilled: number;
+    lastMonthCollectionRate: number;
+  };
+  riskBreakdown: Record<FeeRiskCategory, number>;
+  paymentTrend: FeePaymentTrendPoint[];
+  highRiskStudents: FeePredictionRow[];
+  predictions: FeePredictionRow[];
+}
+
+export type AdmissionLeadStage =
+  | 'new'
+  | 'contacted'
+  | 'qualified'
+  | 'documents_pending'
+  | 'interview_scheduled'
+  | 'scholarship_review'
+  | 'converted'
+  | 'lost';
+
+export interface AdmissionLead {
+  _id: string;
+  leadCode: string;
+  parentName: string;
+  parentPhone?: string;
+  parentEmail?: string;
+  relation?: string;
+  childName: string;
+  childGender?: string;
+  dateOfBirth?: string;
+  applyingClass?: string;
+  previousSchool?: string;
+  stage: AdmissionLeadStage;
+  source?: string;
+  notes?: string;
+  tags?: string[];
+  qualificationScore?: number;
+  qualificationLabel?: 'hot' | 'warm' | 'cold' | 'disqualified' | '';
+  eligibility?: {
+    eligible?: boolean | null;
+    reasons?: string[];
+    recommendedClass?: string;
+    ageYears?: number | null;
+  };
+  feeEstimate?: {
+    academicYearName?: string;
+    className?: string;
+    total?: number;
+    components?: Array<{ key?: string; label: string; amount: number; frequency?: string }>;
+  };
+  scholarship?: {
+    suggested?: boolean;
+    type?: string;
+    percent?: number;
+    reasons?: string[];
+  };
+  documents?: Array<{ key: string; label: string; status: string; notes?: string }>;
+  interview?: {
+    scheduledAt?: string;
+    mode?: string;
+    status?: string;
+    notes?: string;
+  };
+  lastActivityAt?: string;
+  createdAt?: string;
+}
+
+export interface AdmissionAssistantDashboard {
+  generatedAt: string;
+  summary: {
+    leads: number;
+    hot: number;
+    warm: number;
+    interviews: number;
+    scholarships: number;
+    converted: number;
+    conversionRate: number;
+  };
+  pipeline: {
+    total: number;
+    columns: Array<{ stage: string; label: string; leads: AdmissionLead[] }>;
+  };
+  analytics: {
+    totals: AdmissionAssistantDashboard['summary'];
+    byStage: Record<string, number>;
+    bySource: Record<string, number>;
+    byClass: Record<string, number>;
+    byQualification: Record<string, number>;
+    trend: Array<{ label: string; leads: number; converted: number }>;
+  };
+  recentLeads: AdmissionLead[];
+  faqs: Array<{ id: string; question: string; answer: string }>;
+  classOptions: string[];
+}
+
+export interface AdmissionChatResponse {
+  sessionId: string;
+  reply: string;
+  intent: string;
+  suggestions?: string[];
+  data?: Record<string, unknown>;
+}
+
 export type FeeFrequency = 'one_time' | 'monthly' | 'quarterly' | 'half_yearly' | 'yearly';
 
 export interface FeeStructureComponent {
@@ -595,6 +757,120 @@ export interface TimetableRow {
     room?: string;
   }>;
   academicYear?: AcademicYear | string;
+}
+
+export type TimetableSlotType = 'subject' | 'lab' | 'sports' | 'library' | 'break' | 'free';
+export type TimetableFacilityType = 'classroom' | 'lab' | 'sports' | 'library';
+
+export interface TimetablePeriodDef {
+  index: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  type: 'teaching' | 'break' | 'assembly';
+}
+
+export interface TimetableFacility {
+  _id?: string;
+  name: string;
+  type: TimetableFacilityType;
+  capacity?: number;
+  availableDays?: string[];
+  unavailablePeriods?: number[];
+}
+
+export interface TimetablePlanSlot {
+  _id: string;
+  classRoom: ClassRoom | string;
+  classLabel?: string;
+  dayOfWeek: string;
+  periodIndex: number;
+  subject: string;
+  teacher?: Teacher | string;
+  teacherLabel?: string;
+  room?: string;
+  facility?: string;
+  slotType: TimetableSlotType;
+  locked?: boolean;
+}
+
+export interface TimetablePlanConflict {
+  type: string;
+  severity: 'error' | 'warning';
+  message: string;
+  slotIds?: string[];
+  dayOfWeek?: string;
+  periodIndex?: number;
+}
+
+export interface TimetablePlan {
+  _id: string;
+  name: string;
+  status: 'draft' | 'applied';
+  academicYear?: AcademicYear | string;
+  workingDays: string[];
+  periods: TimetablePeriodDef[];
+  facilities: TimetableFacility[];
+  teacherAvailability?: Array<{
+    teacher: Teacher | string;
+    dayOfWeek: string;
+    unavailablePeriods: number[];
+  }>;
+  classroomAvailability?: Array<{
+    classRoom: ClassRoom | string;
+    dayOfWeek: string;
+    unavailablePeriods: number[];
+  }>;
+  constraints: {
+    maxPeriodsPerTeacherPerDay?: number;
+    sportsPeriodsPerWeek?: number;
+    libraryPeriodsPerWeek?: number;
+    defaultSubjectPeriodsPerWeek?: number;
+    labPeriodsPerWeek?: number;
+    protectBreaks?: boolean;
+  };
+  slots: TimetablePlanSlot[];
+  conflicts: TimetablePlanConflict[];
+  unplaced?: Array<{
+    classRoom?: ClassRoom | string;
+    subject?: string;
+    teacher?: Teacher | string;
+    slotType?: string;
+    reason?: string;
+  }>;
+  stats?: {
+    placed?: number;
+    unplaced?: number;
+    conflictCount?: number;
+    teachingSlots?: number;
+    score?: number;
+  };
+  generatedAt?: string;
+  appliedAt?: string;
+}
+
+export interface TimetableGeneratorDashboard {
+  plan: TimetablePlan | null;
+  summary: {
+    placed: number;
+    unplaced: number;
+    conflictCount: number;
+    score: number;
+    teachingSlots: number;
+    facilities: number;
+    teachingPeriods: number;
+    breakPeriods: number;
+    status?: string;
+    generatedAt?: string;
+    appliedAt?: string;
+  };
+  conflictsByType: Record<string, number>;
+  calendar: {
+    days: string[];
+    periods: TimetablePeriodDef[];
+    cells: TimetablePlanSlot[];
+  };
+  teachers?: Array<{ _id: string; firstName: string; lastName: string; employeeCode?: string; subjects?: string[] }>;
 }
 
 export interface PayrollRecord {

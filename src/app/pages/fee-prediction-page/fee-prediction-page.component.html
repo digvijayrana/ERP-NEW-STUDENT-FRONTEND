@@ -1,0 +1,186 @@
+<section class="workspace-grid fee-pred-page" *ngIf="vm.can('fee_prediction', 'view')">
+  <header class="section-head span-12">
+    <div>
+      <p class="eyebrow">AI Fee Intelligence</p>
+      <h3>Fee prediction &amp; collection analytics</h3>
+    </div>
+    <div class="listing-filters fee-pred-filters">
+      <select class="filter-select" [(ngModel)]="vm.feePredYear" (ngModelChange)="vm.loadFeePredictions()" aria-label="Academic year">
+        <option value="">All years</option>
+        <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
+      </select>
+      <select class="filter-select" [(ngModel)]="vm.feePredClass" (ngModelChange)="vm.loadFeePredictions()" aria-label="Class">
+        <option value="">All classes</option>
+        <option *ngFor="let room of vm.classes" [value]="room._id">{{ room.name }}-{{ room.section }}</option>
+      </select>
+      <button type="button" class="ghost small" (click)="vm.loadFeePredictions()" [disabled]="vm.feePredLoading">Refresh</button>
+    </div>
+  </header>
+
+  <div class="span-12" *ngIf="vm.feePredLoading && !vm.feePredDashboard">
+    <app-spinner></app-spinner>
+  </div>
+
+  <ng-container *ngIf="vm.feePredDashboard as dash">
+    <!-- Summary prediction cards -->
+    <div class="fee-summary-grid span-12">
+      <article class="fee-summary-card warn">
+        <span class="fs-label">Late payment risk</span>
+        <span class="fs-value">{{ dash.summary.latePaymentRiskCount }}</span>
+        <span class="muted">Avg likelihood {{ dash.summary.avgLatePaymentProbability }}%</span>
+      </article>
+      <article class="fee-summary-card danger">
+        <span class="fs-label">Default probability</span>
+        <span class="fs-value">{{ dash.summary.avgDefaultProbability }}%</span>
+        <span class="muted">{{ dash.summary.defaulterRiskCount }} high/critical risk</span>
+      </article>
+      <article class="fee-summary-card ok">
+        <span class="fs-label">Expected collection</span>
+        <span class="fs-value">{{ dash.summary.expectedCollection | currency: 'INR':'symbol':'1.0-0' }}</span>
+        <span class="muted">of {{ dash.summary.totalPending | currency: 'INR':'symbol':'1.0-0' }} pending</span>
+      </article>
+      <article class="fee-summary-card">
+        <span class="fs-label">Monthly revenue forecast</span>
+        <span class="fs-value">{{ dash.summary.monthlyRevenueForecast | currency: 'INR':'symbol':'1.0-0' }}</span>
+        <span class="muted">Last month {{ dash.summary.lastMonthCollectionRate }}% collected</span>
+      </article>
+    </div>
+
+    <!-- Risk breakdown + payment trend -->
+    <section class="panel span-4 fee-pred-risk-panel">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Risk category</p><h3>Distribution</h3></div>
+      </div>
+      <div class="risk-stack">
+        <div class="risk-row" *ngFor="let key of ['critical','high','medium','low']">
+          <span class="risk-badge" [ngClass]="key">{{ key }}</span>
+          <div class="bar-track">
+            <div class="bar-fill" [ngClass]="'risk-' + key" [style.width.%]="vm.feePredRiskBarWidth(key)"></div>
+          </div>
+          <strong>{{ dash.riskBreakdown[key] || 0 }}</strong>
+        </div>
+      </div>
+      <p class="hint-text">Risk is scored from overdue history, payment latency, carry-forward balances and pending ratio.</p>
+    </section>
+
+    <section class="panel span-8 fee-pred-trend-panel">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Analytics</p><h3>Payment trend (6 months)</h3></div>
+      </div>
+      <div class="trend-chart" *ngIf="dash.paymentTrend?.length; else noTrend">
+        <div class="trend-col" *ngFor="let point of dash.paymentTrend">
+          <div class="trend-bars">
+            <div class="trend-bar billed" [style.height.%]="vm.feePredTrendHeight(point.billed)" [title]="'Billed ' + (point.billed | currency:'INR':'symbol':'1.0-0')"></div>
+            <div class="trend-bar collected" [style.height.%]="vm.feePredTrendHeight(point.collected)" [title]="'Collected ' + (point.collected | currency:'INR':'symbol':'1.0-0')"></div>
+          </div>
+          <span class="trend-label">{{ point.label }}</span>
+          <span class="trend-rate">{{ point.collectionRate }}%</span>
+        </div>
+      </div>
+      <ng-template #noTrend>
+        <app-empty-state title="No trend data" message="Generate fee demands to see collection trends."></app-empty-state>
+      </ng-template>
+      <div class="trend-legend">
+        <span><i class="lg billed"></i> Billed</span>
+        <span><i class="lg collected"></i> Collected</span>
+      </div>
+    </section>
+
+    <!-- Predictions table + reminders -->
+    <section class="panel span-12">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Predictions</p>
+          <h3>Students with pending fees</h3>
+        </div>
+        <div class="fee-pred-actions" *ngIf="vm.can('fee_prediction', 'create')">
+          <button type="button" class="ghost small" [disabled]="!vm.feePredSelectedIds.length" (click)="vm.prepareFeeReminders()">Generate reminders</button>
+          <button type="button" class="ghost small" [disabled]="!vm.feePredSelectedIds.length || vm.feePredSending" (click)="vm.sendFeeReminders('email')">Email reminder</button>
+          <button type="button" class="ghost small" [disabled]="!vm.feePredSelectedIds.length || vm.feePredSending" (click)="vm.sendFeeReminders('whatsapp')">WhatsApp reminder</button>
+          <button type="button" class="primary-btn compact-submit" [disabled]="!vm.feePredSelectedIds.length || vm.feePredSending" (click)="vm.sendFeeReminders('all')">Send all channels</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" *ngIf="dash.predictions?.length; else noPredictions">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:36px">
+                <input type="checkbox" [checked]="vm.feePredAllSelected" (change)="vm.toggleFeePredSelectAll($any($event.target).checked)" aria-label="Select all">
+              </th>
+              <th>Student</th>
+              <th>Class</th>
+              <th>Pending</th>
+              <th>Late pay %</th>
+              <th>Default %</th>
+              <th>Expected</th>
+              <th>Risk</th>
+              <th>Signals</th>
+              <th>Contact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of dash.predictions" [class.selected]="vm.isFeePredSelected(row.studentId)">
+              <td>
+                <input type="checkbox" [checked]="vm.isFeePredSelected(row.studentId)" (change)="vm.toggleFeePredStudent(row.studentId, $any($event.target).checked)" [attr.aria-label]="'Select ' + row.studentName">
+              </td>
+              <td>
+                <strong>{{ row.studentName }}</strong>
+                <br><span class="muted">{{ row.admissionNumber || '—' }}</span>
+              </td>
+              <td>{{ row.classLabel || '—' }}</td>
+              <td>{{ row.pendingAmount | currency: 'INR':'symbol':'1.0-0' }}</td>
+              <td>
+                <div class="mini-meter">
+                  <div class="bar-track"><div class="bar-fill late" [style.width.%]="row.latePaymentProbability"></div></div>
+                  <span>{{ row.latePaymentProbability }}%</span>
+                </div>
+              </td>
+              <td>
+                <div class="mini-meter">
+                  <div class="bar-track"><div class="bar-fill default" [style.width.%]="row.defaultProbability"></div></div>
+                  <span>{{ row.defaultProbability }}%</span>
+                </div>
+              </td>
+              <td>{{ row.expectedCollection | currency: 'INR':'symbol':'1.0-0' }}</td>
+              <td><span class="risk-badge" [ngClass]="row.riskCategory">{{ row.riskCategory }}</span></td>
+              <td class="factors-cell">
+                <span class="factor-chip" *ngFor="let f of row.factors?.slice(0,2)">{{ f }}</span>
+              </td>
+              <td class="contact-cell">
+                <span class="muted" *ngIf="row.contact?.phone">{{ row.contact?.phone }}</span>
+                <span class="muted" *ngIf="row.contact?.email"><br>{{ row.contact?.email }}</span>
+                <span class="muted" *ngIf="!row.contact?.phone && !row.contact?.email">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPredictions>
+        <app-empty-state title="No pending fee risk" message="All analyzed students are clear, or no demands exist for the selected filters."></app-empty-state>
+      </ng-template>
+    </section>
+
+    <!-- Prepared reminder preview -->
+    <section class="panel span-12" *ngIf="vm.feePredReminders.length">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Parent reminder</p><h3>Prepared outreach ({{ vm.feePredReminders.length }})</h3></div>
+      </div>
+      <div class="reminder-grid">
+        <article class="reminder-card" *ngFor="let rem of vm.feePredReminders">
+          <div class="reminder-head">
+            <strong>{{ rem.studentName }}</strong>
+            <span class="risk-badge" [ngClass]="rem.riskCategory">{{ rem.riskCategory }}</span>
+          </div>
+          <p class="reminder-body">{{ rem.reminder?.body }}</p>
+          <div class="reminder-actions">
+            <a *ngIf="rem.reminder?.whatsappUrl" class="primary-btn compact-submit" [href]="rem.reminder?.whatsappUrl" target="_blank" rel="noopener">Open WhatsApp</a>
+            <span class="muted" *ngIf="!rem.reminder?.whatsappReady">WhatsApp unavailable</span>
+            <span class="muted" *ngIf="rem.reminder?.emailReady">Email ready</span>
+            <span class="muted" *ngIf="!rem.reminder?.emailReady">No email</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </ng-container>
+</section>

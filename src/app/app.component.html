@@ -101,6 +101,8 @@
       </div>
     </div>
   </div>
+
+  <app-admission-chatbot></app-admission-chatbot>
 </main>
 
 <main class="app-shell" *ngIf="currentUser">
@@ -256,6 +258,10 @@
       <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
 
+    @defer (when activeTab === 'admission-assistant') {
+      <app-admission-assistant-page *ngIf="activeTab === 'admission-assistant'" [vm]="pageVm"></app-admission-assistant-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
     @defer (when activeTab === 'classes') {
       <app-classes-page *ngIf="activeTab === 'classes'" [vm]="pageVm"></app-classes-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
@@ -266,6 +272,10 @@
 
     @defer (when activeTab === 'fees'; prefetch on idle) {
       <app-fees-page *ngIf="activeTab === 'fees'" [vm]="pageVm"></app-fees-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'fee-prediction') {
+      <app-fee-prediction-page *ngIf="activeTab === 'fee-prediction'" [vm]="pageVm"></app-fee-prediction-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
 
     @defer (when activeTab === 'transport') {
@@ -294,6 +304,10 @@
 
     @defer (when activeTab === 'timetable') {
       <app-timetable-page *ngIf="activeTab === 'timetable'" [vm]="pageVm"></app-timetable-page>
+    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
+
+    @defer (when activeTab === 'timetable-generator') {
+      <app-timetable-generator-page *ngIf="activeTab === 'timetable-generator'" [vm]="pageVm"></app-timetable-generator-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
 
     @defer (when activeTab === 'exams') {

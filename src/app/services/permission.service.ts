@@ -21,6 +21,9 @@ export type ErpModule =
   | 'roles'
   | 'attendance'
   | 'fees'
+  | 'fee_prediction'
+  | 'admission_assistant'
+  | 'timetable_generator'
   | 'payroll'
   | 'timetable'
   | 'exams'
@@ -49,6 +52,9 @@ export const TAB_MODULE_MAP: Record<string, ErpModule> = {
   classes: 'classes',
   teachers: 'teachers',
   fees: 'fees',
+  'fee-prediction': 'fee_prediction',
+  'admission-assistant': 'admission_assistant',
+  'timetable-generator': 'timetable_generator',
   payroll: 'payroll',
   transport: 'transport',
   drivers: 'drivers',

@@ -324,6 +324,187 @@ export class ErpApiService {
     return this.http.get<import('../core/models').FeeSummary>(`${this.baseUrl}/fees/summary`, { ...this.options(), params: httpParams });
   }
 
+  feePredictionDashboard(params?: Record<string, string>): Observable<import('../core/models').FeePredictionDashboard> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<import('../core/models').FeePredictionDashboard>(`${this.baseUrl}/fee-predictions/dashboard`, {
+      ...this.options(),
+      params: httpParams
+    });
+  }
+
+  prepareFeeReminders(studentIds: string[]): Observable<{ count: number; reminders: import('../core/models').FeePredictionRow[] }> {
+    return this.http.post<{ count: number; reminders: import('../core/models').FeePredictionRow[] }>(
+      `${this.baseUrl}/fee-predictions/reminders/prepare`,
+      { studentIds },
+      this.options()
+    );
+  }
+
+  sendFeeReminders(
+    studentIds: string[],
+    channel: 'email' | 'whatsapp' | 'all' = 'all'
+  ): Observable<{ channel: string; sent: number; whatsappReady: number; results: Array<Record<string, unknown>> }> {
+    return this.http.post<{ channel: string; sent: number; whatsappReady: number; results: Array<Record<string, unknown>> }>(
+      `${this.baseUrl}/fee-predictions/reminders/send`,
+      { studentIds, channel },
+      this.options()
+    );
+  }
+
+  admissionAssistantDashboard(): Observable<import('../core/models').AdmissionAssistantDashboard> {
+    return this.http.get<import('../core/models').AdmissionAssistantDashboard>(
+      `${this.baseUrl}/admission-assistant/dashboard`,
+      this.options()
+    );
+  }
+
+  admissionLeads(params?: Record<string, string>): Observable<{ count: number; leads: import('../core/models').AdmissionLead[] }> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<{ count: number; leads: import('../core/models').AdmissionLead[] }>(
+      `${this.baseUrl}/admission-assistant/leads`,
+      { ...this.options(), params: httpParams }
+    );
+  }
+
+  updateAdmissionLeadStage(id: string, stage: string): Observable<import('../core/models').AdmissionLead> {
+    return this.http.patch<import('../core/models').AdmissionLead>(
+      `${this.baseUrl}/admission-assistant/leads/${id}/stage`,
+      { stage },
+      this.options()
+    );
+  }
+
+  verifyAdmissionDocument(
+    id: string,
+    payload: { key: string; status: string; notes?: string }
+  ): Observable<import('../core/models').AdmissionLead> {
+    return this.http.patch<import('../core/models').AdmissionLead>(
+      `${this.baseUrl}/admission-assistant/leads/${id}/documents`,
+      payload,
+      this.options()
+    );
+  }
+
+  bookAdmissionInterview(
+    id: string,
+    payload: { scheduledAt: string; mode?: string; notes?: string }
+  ): Observable<import('../core/models').AdmissionLead> {
+    return this.http.post<import('../core/models').AdmissionLead>(
+      `${this.baseUrl}/admission-assistant/leads/${id}/interview`,
+      payload,
+      this.options()
+    );
+  }
+
+  suggestAdmissionScholarship(id: string): Observable<import('../core/models').AdmissionLead> {
+    return this.http.post<import('../core/models').AdmissionLead>(
+      `${this.baseUrl}/admission-assistant/leads/${id}/scholarship`,
+      {},
+      this.options()
+    );
+  }
+
+  notifyAdmissionLead(id: string, message?: string): Observable<{ emailed: boolean }> {
+    return this.http.post<{ emailed: boolean }>(
+      `${this.baseUrl}/admission-assistant/leads/${id}/notify`,
+      { message },
+      this.options()
+    );
+  }
+
+  /** Public landing chatbot (no auth required). */
+  admissionChat(sessionId: string, message: string, context?: Record<string, unknown>): Observable<import('../core/models').AdmissionChatResponse> {
+    return this.http.post<import('../core/models').AdmissionChatResponse>(`${this.baseUrl}/admission-assistant/public/chat`, {
+      sessionId,
+      message,
+      context
+    });
+  }
+
+  admissionPublicFaq(): Observable<{ faqs: Array<{ id: string; question: string; answer: string }>; classOptions: string[] }> {
+    return this.http.get<{ faqs: Array<{ id: string; question: string; answer: string }>; classOptions: string[] }>(
+      `${this.baseUrl}/admission-assistant/public/faq`
+    );
+  }
+
+  timetableGeneratorDashboard(params?: Record<string, string>): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) httpParams = httpParams.set(key, value);
+      }
+    }
+    return this.http.get<import('../core/models').TimetableGeneratorDashboard>(`${this.baseUrl}/timetable-generator/dashboard`, {
+      ...this.options(),
+      params: httpParams
+    });
+  }
+
+  generateTimetable(body?: {
+    academicYear?: string;
+    classRoomIds?: string[];
+    planId?: string;
+  }): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/generate`,
+      body || {},
+      this.options()
+    );
+  }
+
+  updateTimetablePlanConfig(
+    planId: string,
+    body: Partial<import('../core/models').TimetablePlan>
+  ): Observable<import('../core/models').TimetablePlan> {
+    return this.http.put<import('../core/models').TimetablePlan>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/config`,
+      body,
+      this.options()
+    );
+  }
+
+  validateTimetablePlan(planId: string): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/validate`,
+      {},
+      this.options()
+    );
+  }
+
+  moveTimetableSlot(
+    planId: string,
+    body: { slotId: string; targetDay: string; targetPeriodIndex: number; swap?: boolean }
+  ): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/move`,
+      body,
+      this.options()
+    );
+  }
+
+  applyTimetablePlan(planId: string): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/apply`,
+      {},
+      this.options()
+    );
+  }
+
+  timetablePlanPdfUrl(planId: string, classRoom?: string): string {
+    const q = classRoom ? `?classRoom=${encodeURIComponent(classRoom)}` : '';
+    return `${this.baseUrl}/timetable-generator/plans/${planId}/pdf${q}`;
+  }
+
   generateFeeDemands(payload: Record<string, unknown>): Observable<{ created: number; skipped: number }> {
     return this.http.post<{ created: number; skipped: number }>(`${this.baseUrl}/fees/demands/generate`, payload, this.options());
   }

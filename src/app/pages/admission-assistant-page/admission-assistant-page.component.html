@@ -1,0 +1,169 @@
+<section class="workspace-grid admission-assist-page" *ngIf="vm.can('admission_assistant', 'view')">
+  <header class="section-head span-12">
+    <div>
+      <p class="eyebrow">AI Admission Assistant</p>
+      <h3>CRM pipeline, lead analytics &amp; eligibility</h3>
+    </div>
+    <div class="listing-filters fee-pred-filters">
+      <input class="filter-select" style="min-width:160px" type="search" placeholder="Search leads…" [(ngModel)]="vm.admissionLeadQuery" (ngModelChange)="vm.filterAdmissionLeads()">
+      <button type="button" class="ghost small" (click)="vm.loadAdmissionAssistant()" [disabled]="vm.admissionAssistLoading">Refresh</button>
+    </div>
+  </header>
+
+  <div class="span-12" *ngIf="vm.admissionAssistLoading && !vm.admissionAssistDashboard">
+    <app-spinner></app-spinner>
+  </div>
+
+  <ng-container *ngIf="vm.admissionAssistDashboard as dash">
+    <div class="fee-summary-grid span-12">
+      <article class="fee-summary-card">
+        <span class="fs-label">Total leads</span>
+        <span class="fs-value">{{ dash.summary.leads }}</span>
+      </article>
+      <article class="fee-summary-card danger">
+        <span class="fs-label">Hot leads</span>
+        <span class="fs-value">{{ dash.summary.hot }}</span>
+        <span class="muted">{{ dash.summary.warm }} warm</span>
+      </article>
+      <article class="fee-summary-card warn">
+        <span class="fs-label">Interviews</span>
+        <span class="fs-value">{{ dash.summary.interviews }}</span>
+      </article>
+      <article class="fee-summary-card ok">
+        <span class="fs-label">Converted</span>
+        <span class="fs-value">{{ dash.summary.converted }}</span>
+        <span class="muted">{{ dash.summary.conversionRate }}% conversion</span>
+      </article>
+    </div>
+
+    <!-- Lead analytics trend -->
+    <section class="panel span-8">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Lead analytics</p><h3>Inquiry trend (6 months)</h3></div>
+      </div>
+      <div class="trend-chart" *ngIf="dash.analytics?.trend?.length">
+        <div class="trend-col" *ngFor="let point of dash.analytics.trend">
+          <div class="trend-bars">
+            <div class="trend-bar billed" [style.height.%]="vm.admissionTrendHeight(point.leads)" [title]="point.leads + ' leads'"></div>
+            <div class="trend-bar collected" [style.height.%]="vm.admissionTrendHeight(point.converted)" [title]="point.converted + ' converted'"></div>
+          </div>
+          <span class="trend-label">{{ point.label }}</span>
+          <span class="trend-rate">{{ point.leads }}</span>
+        </div>
+      </div>
+      <div class="trend-legend">
+        <span><i class="lg billed"></i> Leads</span>
+        <span><i class="lg collected"></i> Converted</span>
+      </div>
+    </section>
+
+    <section class="panel span-4">
+      <div class="section-head compact">
+        <div><p class="eyebrow">Qualification</p><h3>Mix</h3></div>
+      </div>
+      <div class="risk-stack">
+        <div class="risk-row" *ngFor="let key of ['hot','warm','cold','disqualified']">
+          <span class="risk-badge" [ngClass]="key === 'hot' ? 'critical' : key === 'warm' ? 'high' : key === 'cold' ? 'medium' : 'low'">{{ key }}</span>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width.%]="vm.admissionQualBarWidth(key)"></div>
+          </div>
+          <strong>{{ dash.analytics.byQualification[key] || 0 }}</strong>
+        </div>
+      </div>
+      <p class="hint-text" style="margin-top:12px">Public chatbot on the login page captures leads into this CRM automatically.</p>
+    </section>
+
+    <!-- CRM Pipeline -->
+    <section class="panel span-12">
+      <div class="section-head">
+        <div><p class="eyebrow">CRM pipeline</p><h3>Stages</h3></div>
+      </div>
+      <div class="crm-board">
+        <div class="crm-column" *ngFor="let col of dash.pipeline.columns">
+          <header class="crm-col-head">
+            <strong>{{ col.label }}</strong>
+            <span class="muted">{{ col.leads.length }}</span>
+          </header>
+          <article class="crm-card" *ngFor="let lead of col.leads" (click)="vm.openAdmissionLead(lead)">
+            <div class="crm-card-top">
+              <strong>{{ lead.childName }}</strong>
+              <span class="risk-badge" [ngClass]="lead.qualificationLabel === 'hot' ? 'critical' : lead.qualificationLabel === 'warm' ? 'high' : 'medium'">{{ lead.qualificationLabel || '—' }}</span>
+            </div>
+            <span class="muted">{{ lead.parentName }} · {{ lead.applyingClass || 'Class?' }}</span>
+            <span class="muted">{{ lead.leadCode }}</span>
+            <div class="crm-card-actions" *ngIf="vm.can('admission_assistant', 'edit')" (click)="$event.stopPropagation()">
+              <select class="filter-select" [ngModel]="lead.stage" (ngModelChange)="vm.moveAdmissionLead(lead, $event)">
+                <option *ngFor="let s of vm.admissionPipelineStages" [value]="s">{{ s.replace('_', ' ') }}</option>
+              </select>
+            </div>
+          </article>
+          <p class="muted" *ngIf="!col.leads.length" style="padding:8px;font-size:12px">Empty</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lead detail -->
+    <section class="panel span-12" *ngIf="vm.viewingAdmissionLead as lead">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Lead {{ lead.leadCode }}</p>
+          <h3>{{ lead.childName }} — {{ lead.parentName }}</h3>
+        </div>
+        <button type="button" class="ghost small" (click)="vm.viewingAdmissionLead = null">Close</button>
+      </div>
+      <div class="detail-grid">
+        <div><span>Phone</span><strong>{{ lead.parentPhone || '—' }}</strong></div>
+        <div><span>Email</span><strong>{{ lead.parentEmail || '—' }}</strong></div>
+        <div><span>Class</span><strong>{{ lead.applyingClass || '—' }}</strong></div>
+        <div><span>Score</span><strong>{{ lead.qualificationScore || 0 }} ({{ lead.qualificationLabel || '—' }})</strong></div>
+        <div><span>Eligibility</span><strong>{{ lead.eligibility?.eligible === true ? 'Eligible' : lead.eligibility?.eligible === false ? 'Not eligible' : 'Pending' }}</strong></div>
+        <div><span>Fee estimate</span><strong>{{ lead.feeEstimate?.total != null ? (lead.feeEstimate.total | currency:'INR':'symbol':'1.0-0') : '—' }}</strong></div>
+        <div><span>Scholarship</span><strong>{{ lead.scholarship?.suggested ? (lead.scholarship?.type + ' ~' + lead.scholarship?.percent + '%') : 'None suggested' }}</strong></div>
+        <div><span>Interview</span><strong>{{ lead.interview?.scheduledAt ? (lead.interview.scheduledAt | date:'medium') : 'Not booked' }}</strong></div>
+      </div>
+      <p class="hint-text" *ngIf="lead.eligibility?.reasons?.length">{{ lead.eligibility?.reasons?.join(' ') }}</p>
+
+      <h4 style="margin:16px 0 8px">Document verification</h4>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Document</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let doc of lead.documents">
+              <td>{{ doc.label }}</td>
+              <td><span class="risk-badge" [ngClass]="doc.status === 'verified' ? 'low' : doc.status === 'rejected' ? 'critical' : 'medium'">{{ doc.status }}</span></td>
+              <td class="table-actions" *ngIf="vm.can('admission_assistant', 'edit')">
+                <button type="button" class="ghost small" (click)="vm.setAdmissionDocStatus(lead, doc.key, 'submitted')">Submitted</button>
+                <button type="button" class="ghost small" (click)="vm.setAdmissionDocStatus(lead, doc.key, 'verified')">Verify</button>
+                <button type="button" class="ghost small danger-text" (click)="vm.setAdmissionDocStatus(lead, doc.key, 'rejected')">Reject</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-actions" *ngIf="vm.can('admission_assistant', 'edit')">
+        <label><span class="label-text">Book interview</span>
+          <input type="datetime-local" [(ngModel)]="vm.admissionInterviewAt">
+        </label>
+        <button type="button" class="ghost" (click)="vm.bookAdmissionInterview(lead)">Save interview</button>
+        <button type="button" class="ghost" (click)="vm.runAdmissionScholarship(lead)">Scholarship suggestion</button>
+        <button type="button" class="primary-btn compact-submit" *ngIf="lead.parentEmail" (click)="vm.emailAdmissionLead(lead)">Email parent</button>
+      </div>
+    </section>
+
+    <!-- FAQ reference -->
+    <section class="panel span-12">
+      <div class="section-head compact"><div><p class="eyebrow">Chatbot FAQ</p><h3>Knowledge base</h3></div></div>
+      <div class="reminder-grid">
+        <article class="reminder-card" *ngFor="let faq of dash.faqs">
+          <strong>{{ faq.question }}</strong>
+          <p class="reminder-body">{{ faq.answer }}</p>
+        </article>
+      </div>
+    </section>
+  </ng-container>
+
+  <div class="span-12" *ngIf="!vm.admissionAssistLoading && !vm.admissionAssistDashboard">
+    <app-empty-state title="No admission data" message="Open the login page chatbot to capture the first lead, then refresh."></app-empty-state>
+  </div>
+</section>
