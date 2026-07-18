@@ -2,9 +2,11 @@
   <div class="login-layout">
     <aside class="login-brand-panel">
       <div class="login-brand-content">
-        <p class="eyebrow">CampusFlow ERP</p>
-        <h1>Smart school management</h1>
-        <p class="login-copy">Admissions, fees, payroll, AI exams, and parent insights — all in one place.</p>
+        <p class="eyebrow">{{ schoolBrand?.isAdmin ? 'Platform Admin' : 'CampusFlow ERP' }}</p>
+        <img *ngIf="schoolBrand?.logoUrl" class="login-school-logo" [src]="schoolBrand?.logoUrl" [alt]="schoolBrand?.name || 'School logo'" />
+        <h1>{{ schoolBrand?.name || 'Smart school management' }}</h1>
+        <p class="login-copy" *ngIf="schoolBrand?.website">{{ schoolBrand?.website }}</p>
+        <p class="login-copy" *ngIf="!schoolBrand?.website">Admissions, fees, payroll, AI exams, and parent insights — all in one place.</p>
       </div>
 
       <div class="role-grid" role="listbox" aria-label="Select your role">
@@ -109,9 +111,10 @@
   <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
     <div class="sidebar-header">
       <div class="brand-block">
-        <p class="eyebrow">School ERP</p>
-        <h1 class="brand-full">CampusFlow</h1>
-        <span class="brand-short">CF</span>
+        <p class="eyebrow">{{ schoolBrand?.isAdmin ? 'Platform' : 'School ERP' }}</p>
+        <img *ngIf="schoolBrand?.logoUrl" class="nav-school-logo" [src]="schoolBrand?.logoUrl" alt="" />
+        <h1 class="brand-full">{{ schoolBrand?.name || 'CampusFlow' }}</h1>
+        <span class="brand-short">{{ (schoolBrand?.name || 'CF').slice(0, 2) | uppercase }}</span>
       </div>
       <button type="button" class="icon-button sidebar-toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar">
         <span aria-hidden="true">{{ isSidebarCollapsed ? '>' : '<' }}</span>
@@ -300,10 +303,6 @@
 
     @defer (when activeTab === 'attendance'; prefetch on idle) {
       <app-attendance-page *ngIf="activeTab === 'attendance'" [vm]="pageVm"></app-attendance-page>
-    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
-
-    @defer (when activeTab === 'timetable') {
-      <app-timetable-page *ngIf="activeTab === 'timetable'" [vm]="pageVm"></app-timetable-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
 
     @defer (when activeTab === 'timetable-generator') {

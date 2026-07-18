@@ -69,8 +69,8 @@ export const TAB_MODULE_MAP: Record<string, ErpModule> = {
 
 /** Tabs each self-service role may see (in addition to module permissions). */
 export const ROLE_TAB_ALLOWLIST: Partial<Record<string, string[]>> = {
-  student: ['dashboard', 'profile', 'fees', 'attendance', 'timetable', 'exams'],
-  parent: ['dashboard', 'profile', 'fees', 'attendance', 'timetable', 'exams']
+  student: ['dashboard', 'profile', 'fees', 'attendance', 'exams'],
+  parent: ['dashboard', 'profile', 'fees', 'attendance', 'exams']
 };
 
 @Injectable({ providedIn: 'root' })

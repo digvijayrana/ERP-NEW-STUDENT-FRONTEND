@@ -753,6 +753,22 @@ button:disabled {
   margin: var(--space-2) 0;
 }
 
+.login-school-logo {
+  display: block;
+  max-height: 56px;
+  max-width: 180px;
+  margin: 0 0 12px;
+  object-fit: contain;
+}
+
+.nav-school-logo {
+  display: block;
+  max-height: 32px;
+  max-width: 120px;
+  margin-bottom: 4px;
+  object-fit: contain;
+}
+
 .login-brand-content .login-copy,
 .login-hint,
 .login-footer-note {
@@ -6323,12 +6339,255 @@ tr.ineligible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  align-items: end;
 }
+
+.ttgen-filter-field {
+  display: grid;
+  gap: 4px;
+}
+
+.ttgen-filter-field > span {
+  color: var(--muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ttgen-class-filter {
+  min-width: 210px;
+}
+
+.ttgen-context {
+  align-items: center;
+  background:
+    radial-gradient(circle at 92% 15%, rgba(45, 212, 191, 0.22), transparent 30%),
+    linear-gradient(120deg, #0f2e2b 0%, #115e59 100%);
+  border: 1px solid rgba(153, 246, 228, 0.25);
+  border-radius: 16px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 18px 20px;
+}
+
+.ttgen-context-main,
+.ttgen-context-actions,
+.ttgen-context-meta {
+  align-items: center;
+  display: flex;
+}
+
+.ttgen-context-main { gap: 14px; }
+.ttgen-context-actions { gap: 10px; }
+.ttgen-context h2 { color: #fff; font-size: 1.2rem; margin: 2px 0 6px; }
+.ttgen-context .eyebrow { color: #99f6e4; margin: 0; }
+
+.ttgen-context-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.ttgen-context-meta {
+  color: #ccfbf1;
+  flex-wrap: wrap;
+  font-size: 11px;
+  gap: 12px;
+}
+
+.ttgen-context-meta span + span::before {
+  color: #5eead4;
+  content: "•";
+  margin-right: 12px;
+}
+
+.ttgen-plan-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.ttgen-plan-badge[data-status="applied"] {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.ttgen-setup-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.85fr);
+}
+
+.ttgen-bell-editor {
+  min-width: 0;
+}
+
+.ttgen-setup-head,
+.ttgen-save-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ttgen-setup-head h4,
+.ttgen-teacher-editor h4 {
+  margin: 0 0 3px;
+}
+
+.ttgen-plan-name {
+  display: grid;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.ttgen-plan-name input,
+.ttgen-teacher-time-form input {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.ttgen-save-row {
+  border-top: 1px solid var(--border, #e2e8f0);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.ttgen-teacher-editor {
+  align-self: start;
+  background: var(--surface-soft, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.ttgen-teacher-time-form,
+.ttgen-teacher-time-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.ttgen-teacher-time-form {
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  gap: 10px;
+  margin-top: 14px;
+  padding-bottom: 14px;
+}
+
+.ttgen-teacher-time-form label > span {
+  color: var(--muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ttgen-time-pair {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ttgen-availability-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.ttgen-availability-rule {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.ttgen-availability-rule strong,
+.ttgen-availability-rule span {
+  display: block;
+}
+
+.ttgen-availability-rule strong { font-size: 11px; }
+.ttgen-availability-rule span { color: var(--muted, #64748b); font-size: 10px; margin-top: 2px; }
+.ttgen-empty-rule { color: var(--muted, #64748b); font-size: 11px; margin: 12px 0 0; }
 
 .ttgen-status {
   text-transform: capitalize;
   font-size: 1.35rem !important;
+}
+
+.ttgen-period-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ttgen-period-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ttgen-period-row {
+  align-items: end;
+  background: var(--surface-soft, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px minmax(130px, 1.5fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) auto;
+  padding: 9px;
+}
+
+.ttgen-period-row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  gap: 3px;
+  text-transform: uppercase;
+}
+
+.ttgen-period-row input,
+.ttgen-period-row select {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 7px;
+  min-height: 34px;
+  padding: 5px 8px;
+}
+
+.ttgen-period-number {
+  align-self: center;
+  background: #ccfbf1;
+  border-radius: 999px;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px;
+  text-align: center;
 }
 
 .ttgen-constraints .form-field {
@@ -6513,6 +6772,15 @@ tr.ineligible {
   outline-offset: -2px;
 }
 
+.ttgen-cell.click-target {
+  cursor: pointer;
+}
+
+.ttgen-cell.click-target:hover {
+  background: #ecfdf5;
+  box-shadow: inset 0 0 0 2px #14b8a6;
+}
+
 .ttgen-cell.has-conflict {
   background: #fef2f2;
 }
@@ -6535,6 +6803,11 @@ tr.ineligible {
 .ttgen-slot:hover {
   box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
   transform: translateY(-1px);
+}
+
+.ttgen-slot.selected {
+  background: #ccfbf1;
+  box-shadow: 0 0 0 2px #0d9488;
 }
 
 .ttgen-slot.locked {
@@ -6563,5 +6836,21 @@ tr.ineligible {
 }
 
 @media (max-width: 900px) {
+  .ttgen-context,
+  .ttgen-context-actions,
+  .ttgen-setup-head,
+  .ttgen-save-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ttgen-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ttgen-period-row {
+    grid-template-columns: 28px 1fr 1fr;
+  }
+
   .ttgen-actions { flex-direction: column; align-items: stretch; }
 }

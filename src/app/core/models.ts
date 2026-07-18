@@ -285,7 +285,6 @@ export interface AdmissionAssistantDashboard {
     trend: Array<{ label: string; leads: number; converted: number }>;
   };
   recentLeads: AdmissionLead[];
-  faqs: Array<{ id: string; question: string; answer: string }>;
   classOptions: string[];
 }
 
@@ -871,6 +870,7 @@ export interface TimetableGeneratorDashboard {
     cells: TimetablePlanSlot[];
   };
   teachers?: Array<{ _id: string; firstName: string; lastName: string; employeeCode?: string; subjects?: string[] }>;
+  classes?: Array<{ _id: string; name: string; section?: string }>;
 }
 
 export interface PayrollRecord {

@@ -70,7 +70,7 @@
           <strong>{{ dash.analytics.byQualification[key] || 0 }}</strong>
         </div>
       </div>
-      <p class="hint-text" style="margin-top:12px">Public chatbot on the login page captures leads into this CRM automatically.</p>
+      <p class="hint-text" style="margin-top:12px">Qualification scores use eligibility, contact completeness, documents, and admission activity.</p>
     </section>
 
     <!-- CRM Pipeline -->
@@ -151,19 +151,9 @@
       </div>
     </section>
 
-    <!-- FAQ reference -->
-    <section class="panel span-12">
-      <div class="section-head compact"><div><p class="eyebrow">Chatbot FAQ</p><h3>Knowledge base</h3></div></div>
-      <div class="reminder-grid">
-        <article class="reminder-card" *ngFor="let faq of dash.faqs">
-          <strong>{{ faq.question }}</strong>
-          <p class="reminder-body">{{ faq.answer }}</p>
-        </article>
-      </div>
-    </section>
   </ng-container>
 
   <div class="span-12" *ngIf="!vm.admissionAssistLoading && !vm.admissionAssistDashboard">
-    <app-empty-state title="No admission data" message="Open the login page chatbot to capture the first lead, then refresh."></app-empty-state>
+    <app-empty-state title="No admission data" message="Add the first admission lead, then refresh this dashboard."></app-empty-state>
   </div>
 </section>

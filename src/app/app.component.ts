@@ -16,7 +16,6 @@ import { PromotionPageComponent } from './pages/promotion-page/promotion-page.co
 import { StudentProfilePageComponent } from './pages/student-profile-page/student-profile-page.component';
 import { StudentsPageComponent } from './pages/students-page/students-page.component';
 import { TeachersPageComponent } from './pages/teachers-page/teachers-page.component';
-import { TimetablePageComponent } from './pages/timetable-page/timetable-page.component';
 import { TransportPageComponent } from './pages/transport-page/transport-page.component';
 import { DriversPageComponent } from './pages/drivers-page/drivers-page.component';
 import { FeePredictionPageComponent } from './pages/fee-prediction-page/fee-prediction-page.component';
@@ -128,7 +127,6 @@ interface AdminRefreshRequests {
     PayrollPageComponent,
     PromotionPageComponent,
     AttendancePageComponent,
-    TimetablePageComponent,
     ExamsPageComponent,
     StudentProfilePageComponent,
     TransportPageComponent,
@@ -422,7 +420,6 @@ export class AppComponent implements OnInit {
     { key: 'drivers', label: 'Drivers', icon: 'drivers', roles: ['admin'] },
     { key: 'payroll', label: 'Payroll', icon: 'payroll', roles: ['admin'] },
     { key: 'attendance', label: 'Attendance', icon: 'attendance', roles: ['admin', 'teacher', 'student', 'parent'] },
-    { key: 'timetable', label: 'Timetable', icon: 'timetable', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'timetable-generator', label: 'Timetable AI', icon: 'timetable-generator', roles: ['admin', 'teacher'] },
     { key: 'exams', label: 'AI Exams', icon: 'exams', roles: ['admin', 'teacher', 'student', 'parent'] },
     { key: 'profile', label: 'Student Profile', icon: 'profile', roles: ['admin', 'teacher', 'student', 'parent'] },
@@ -721,7 +718,10 @@ export class AppComponent implements OnInit {
 
   examAttemptForm = this.fb.group({});
 
+  schoolBrand: { slug?: string; name: string; logoUrl?: string; website?: string; isAdmin?: boolean } | null = null;
+
   ngOnInit(): void {
+    this.loadSchoolBranding();
     applyDefaultListSort(this.listSort, [
       ...this.serverPagedKeys,
       ...this.operationalPagedKeys,
@@ -896,6 +896,25 @@ export class AppComponent implements OnInit {
       reports: 'Reports & analytics'
     };
     return titles[this.activeTab] || 'Operations workspace';
+  }
+
+  loadSchoolBranding(): void {
+    this.api.schoolBranding().subscribe({
+      next: (brand) => {
+        this.schoolBrand = brand;
+        if (brand?.name && typeof document !== 'undefined') {
+          document.title = brand.name;
+          const meta = document.querySelector('meta[name="app-school-name"]') as HTMLMetaElement | null;
+          if (meta) meta.content = brand.name;
+        }
+      },
+      error: () => {
+        this.schoolBrand = {
+          name: 'School ERP',
+          slug: typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : 'default'
+        };
+      }
+    });
   }
 
   selectLoginRole(role: UserRole): void {
@@ -3491,9 +3510,14 @@ export class AppComponent implements OnInit {
   ttGenYear = '';
   ttGenClassFilter = '';
   ttGenDragSlotId = '';
+  ttGenSelectedSlotId = '';
+  ttGenSettingsOpen = false;
+  ttGenPlanName = '';
+  ttGenPeriods: TimetablePeriodDef[] = [];
   ttGenAvailTeacher = '';
   ttGenAvailDay = 'monday';
-  ttGenAvailPeriods = '';
+  ttGenAvailStartTime = '08:00';
+  ttGenAvailEndTime = '08:40';
   ttGenConstraints: {
     maxPeriodsPerTeacherPerDay: number;
     sportsPeriodsPerWeek: number;
@@ -3511,8 +3535,27 @@ export class AppComponent implements OnInit {
   };
 
   private applyTtGenDashboard(dashboard: TimetableGeneratorDashboard): void {
-    this.ttGenDashboard = dashboard;
-    const c = dashboard.plan?.constraints;
+    const previous = this.ttGenDashboard;
+    this.ttGenDashboard = {
+      ...dashboard,
+      teachers: dashboard.teachers || previous?.teachers || [],
+      classes: dashboard.classes || previous?.classes || []
+    };
+    this.ttGenPeriods = (this.ttGenDashboard.plan?.periods || []).map((period) => ({ ...period }));
+    this.ttGenPlanName = this.ttGenDashboard.plan?.name || '';
+    const classOptions = this.ttGenDashboard.classes || [];
+    if (this.ttGenClassFilter && !classOptions.some((room) => room._id === this.ttGenClassFilter)) {
+      this.ttGenClassFilter = '';
+    }
+    if (!this.ttGenClassFilter && classOptions.length) {
+      this.ttGenClassFilter = classOptions[0]._id;
+    }
+    const firstTeachingPeriod = this.ttGenPeriods.find((period) => period.type === 'teaching');
+    if (firstTeachingPeriod && (!this.ttGenAvailStartTime || !this.ttGenAvailEndTime)) {
+      this.ttGenAvailStartTime = firstTeachingPeriod.startTime;
+      this.ttGenAvailEndTime = firstTeachingPeriod.endTime;
+    }
+    const c = this.ttGenDashboard.plan?.constraints;
     if (c) {
       this.ttGenConstraints = {
         maxPeriodsPerTeacherPerDay: c.maxPeriodsPerTeacherPerDay ?? 6,
@@ -3523,6 +3566,10 @@ export class AppComponent implements OnInit {
         protectBreaks: c.protectBreaks !== false
       };
     }
+  }
+
+  toggleTimetableSettings(): void {
+    this.ttGenSettingsOpen = !this.ttGenSettingsOpen;
   }
 
   loadTimetableGenerator(): void {
@@ -3560,6 +3607,68 @@ export class AppComponent implements OnInit {
     });
   }
 
+  addTimetablePeriod(type: TimetablePeriodDef['type'] = 'teaching'): void {
+    const last = this.ttGenPeriods[this.ttGenPeriods.length - 1];
+    const index = this.ttGenPeriods.reduce((max, period) => Math.max(max, period.index), 0) + 1;
+    const startTime = last?.endTime || '08:00';
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const end = new Date(2000, 0, 1, hours || 0, (minutes || 0) + (type === 'break' ? 20 : 40));
+    const endTime = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+    this.ttGenPeriods.push({
+      index,
+      label: type === 'break' ? 'Break' : `Period ${this.ttGenPeriods.filter((p) => p.type === 'teaching').length + 1}`,
+      startTime,
+      endTime,
+      type
+    });
+  }
+
+  removeTimetablePeriod(index: number): void {
+    this.ttGenPeriods = this.ttGenPeriods
+      .filter((period) => period.index !== index)
+      .map((period, position) => ({ ...period, index: position + 1 }));
+  }
+
+  saveTimetablePeriods(): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!planId || !this.can('timetable_generator', 'edit')) return;
+    if (!this.ttGenPeriods.length) {
+      this.toast.error('Add at least one period');
+      return;
+    }
+    const invalid = this.ttGenPeriods.some(
+      (period) => !period.label?.trim() || !period.startTime || !period.endTime || period.startTime >= period.endTime
+    );
+    if (invalid) {
+      this.toast.error('Each period needs a label and an end time after its start time');
+      return;
+    }
+    const sorted = this.ttGenPeriods
+      .map((period) => ({ ...period, label: period.label.trim() }))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      .map((period, position) => ({ ...period, index: position + 1 }));
+    const overlaps = sorted.some((period, index) => index > 0 && period.startTime < sorted[index - 1].endTime);
+    if (overlaps) {
+      this.toast.error('Period times cannot overlap');
+      return;
+    }
+    this.ttGenBusy = true;
+    this.api.updateTimetablePlanConfig(planId, {
+      name: this.ttGenPlanName.trim() || 'AI Timetable Plan',
+      periods: sorted
+    }).subscribe({
+      next: () => {
+        this.ttGenBusy = false;
+        this.toast.success('Period schedule saved. Generate the timetable again.');
+        this.loadTimetableGenerator();
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
   addTeacherAvailabilityBlock(): void {
     const plan = this.ttGenDashboard?.plan;
     if (!plan?._id || !this.can('timetable_generator', 'edit')) return;
@@ -3567,12 +3676,20 @@ export class AppComponent implements OnInit {
       this.toast.error('Select a teacher');
       return;
     }
-    const unavailablePeriods = String(this.ttGenAvailPeriods || '')
-      .split(/[,\s]+/)
-      .map((p) => Number(p))
-      .filter((n) => Number.isFinite(n) && n > 0);
+    if (!this.ttGenAvailStartTime || !this.ttGenAvailEndTime || this.ttGenAvailStartTime >= this.ttGenAvailEndTime) {
+      this.toast.error('Select a valid unavailable start and end time');
+      return;
+    }
+    const unavailablePeriods = this.ttGenPeriods
+      .filter(
+        (period) =>
+          period.type === 'teaching' &&
+          period.startTime < this.ttGenAvailEndTime &&
+          period.endTime > this.ttGenAvailStartTime
+      )
+      .map((period) => period.index);
     if (!unavailablePeriods.length) {
-      this.toast.error('Enter unavailable period numbers (e.g. 1,2,5)');
+      this.toast.error('The selected time does not overlap a teaching period');
       return;
     }
     const existing = [...(plan.teacherAvailability || [])];
@@ -3596,7 +3713,6 @@ export class AppComponent implements OnInit {
     this.api.updateTimetablePlanConfig(plan._id, { teacherAvailability: existing as any }).subscribe({
       next: () => {
         this.ttGenBusy = false;
-        this.ttGenAvailPeriods = '';
         this.toast.success('Teacher availability updated');
         this.loadTimetableGenerator();
       },
@@ -3605,6 +3721,34 @@ export class AppComponent implements OnInit {
         this.toast.error(extractApiMessage(error));
       }
     });
+  }
+
+  removeTeacherAvailabilityBlock(row: { teacher?: Teacher | string; dayOfWeek: string }): void {
+    const plan = this.ttGenDashboard?.plan;
+    if (!plan?._id || !this.can('timetable_generator', 'edit')) return;
+    const teacherId = typeof row.teacher === 'string' ? row.teacher : row.teacher?._id;
+    const nextRows = (plan.teacherAvailability || []).filter((item) => {
+      const itemTeacherId = typeof item.teacher === 'string' ? item.teacher : item.teacher?._id;
+      return !(String(itemTeacherId) === String(teacherId) && item.dayOfWeek === row.dayOfWeek);
+    });
+    this.ttGenBusy = true;
+    this.api.updateTimetablePlanConfig(plan._id, { teacherAvailability: nextRows as any }).subscribe({
+      next: () => {
+        this.ttGenBusy = false;
+        this.toast.success('Teacher availability removed');
+        this.loadTimetableGenerator();
+      },
+      error: (error) => {
+        this.ttGenBusy = false;
+        this.toast.error(extractApiMessage(error));
+      }
+    });
+  }
+
+  ttGenAvailabilityTimeLabel(row: { unavailablePeriods?: number[] }): string {
+    const selected = this.ttGenPeriods.filter((period) => (row.unavailablePeriods || []).includes(period.index));
+    if (!selected.length) return 'No periods';
+    return `${selected[0].startTime}–${selected[selected.length - 1].endTime}`;
   }
 
   ttGenAvailTeacherLabel(row: { teacher?: Teacher | string }): string {
@@ -3623,8 +3767,7 @@ export class AppComponent implements OnInit {
     this.api
       .generateTimetable({
         academicYear: this.ttGenYear || undefined,
-        planId: this.ttGenDashboard?.plan?._id,
-        classRoomIds: this.ttGenClassFilter ? [this.ttGenClassFilter] : undefined
+        planId: this.ttGenDashboard?.plan?._id
       })
       .subscribe({
         next: (dashboard) => {
@@ -3690,6 +3833,21 @@ export class AppComponent implements OnInit {
     return day ? day.charAt(0).toUpperCase() + day.slice(1, 3) : day;
   }
 
+  ttGenAcademicYearLabel(): string {
+    const year = this.ttGenDashboard?.plan?.academicYear;
+    if (!year) return 'Academic year not selected';
+    if (typeof year === 'string') {
+      return this.years.find((item) => item._id === year)?.name || year;
+    }
+    return year.name;
+  }
+
+  ttGenSelectedClassLabel(): string {
+    if (!this.ttGenClassFilter) return 'All classes overview';
+    const room = (this.ttGenDashboard?.classes || []).find((item) => item._id === this.ttGenClassFilter);
+    return room ? `${room.name}${room.section ? `-${room.section}` : ''}` : 'Select a class';
+  }
+
   ttGenClassLabel(slot: TimetablePlanSlot): string {
     const room = slot.classRoom;
     if (!room || typeof room === 'string') return slot.classLabel || '';
@@ -3724,8 +3882,12 @@ export class AppComponent implements OnInit {
 
   onTtGenDragStart(event: DragEvent, slot: TimetablePlanSlot): void {
     this.ttGenDragSlotId = slot._id;
-    event.dataTransfer?.setData('text/plain', slot._id);
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    this.ttGenSelectedSlotId = slot._id;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', slot._id);
+      event.dataTransfer.setData('application/x-timetable-slot', slot._id);
+    }
   }
 
   onTtGenDragEnd(): void {
@@ -3733,17 +3895,41 @@ export class AppComponent implements OnInit {
   }
 
   onTtGenDragOver(event: DragEvent, _day: string, period: TimetablePeriodDef): void {
-    if (!this.ttGenDragSlotId) return;
     if (period.type === 'break') return;
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
   }
 
   onTtGenDrop(event: DragEvent, day: string, period: TimetablePeriodDef): void {
     event.preventDefault();
+    event.stopPropagation();
     const planId = this.ttGenDashboard?.plan?._id;
-    const slotId = this.ttGenDragSlotId || event.dataTransfer?.getData('text/plain');
+    const slotId =
+      this.ttGenDragSlotId ||
+      event.dataTransfer?.getData('application/x-timetable-slot') ||
+      event.dataTransfer?.getData('text/plain');
     this.ttGenDragSlotId = '';
+    this.moveTimetableSlot(planId, slotId, day, period);
+  }
+
+  selectTimetableSlot(slot: TimetablePlanSlot): void {
+    if (!this.can('timetable_generator', 'edit') || slot.locked) return;
+    this.ttGenSelectedSlotId = this.ttGenSelectedSlotId === slot._id ? '' : slot._id;
+  }
+
+  moveSelectedTimetableSlot(day: string, period: TimetablePeriodDef): void {
+    const planId = this.ttGenDashboard?.plan?._id;
+    if (!this.ttGenSelectedSlotId) return;
+    this.moveTimetableSlot(planId, this.ttGenSelectedSlotId, day, period);
+  }
+
+  private moveTimetableSlot(
+    planId: string | undefined,
+    slotId: string | undefined,
+    day: string,
+    period: TimetablePeriodDef
+  ): void {
     if (!planId || !slotId || !this.can('timetable_generator', 'edit')) return;
     if (period.type === 'break') {
       this.toast.error('Cannot place a class during break time');
@@ -3754,6 +3940,8 @@ export class AppComponent implements OnInit {
       next: (dashboard) => {
         this.applyTtGenDashboard(dashboard);
         this.ttGenBusy = false;
+        this.ttGenSelectedSlotId = '';
+        this.toast.success('Period moved');
       },
       error: (error) => {
         this.ttGenBusy = false;

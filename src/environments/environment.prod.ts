@@ -1,6 +1,8 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://erp-new-student-backend.onrender.com/api',
+  // Same-origin via Nginx — Host header selects the school DB
+  apiBaseUrl: '/api/erp',
+  rootDomain: 'schoolerp.local',
   upi: {
     vpa: 'school@upi',
     payeeName: 'School ERP'

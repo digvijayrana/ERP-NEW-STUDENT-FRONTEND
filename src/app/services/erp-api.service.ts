@@ -39,11 +39,55 @@ import {
   TimetableRow
 } from '../core/models';
 
+/** Resolve API prefix from hostname (Nginx gateway) — never send ?tenant= */
+export function resolveApiBaseUrl(): string {
+  if (typeof window === 'undefined') return environment.apiBaseUrl;
+  const host = window.location.hostname.toLowerCase();
+  const root = (environment as { rootDomain?: string }).rootDomain || 'localhost';
+
+  if (host === 'admin.localhost' || host === 'admin.schoolerp.local' || host.startsWith('admin.')) {
+    return '/api/admin';
+  }
+  // abc.localhost / demo.schoolerp.local / *.myerp.com
+  if (
+    host === root ||
+    host.endsWith(`.${root}`) ||
+    host.endsWith('.schoolerp.local') ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.myerp.com')
+  ) {
+    return '/api/erp';
+  }
+  return environment.apiBaseUrl;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ErpApiService {
-  private readonly baseUrl = environment.apiBaseUrl;
-
   constructor(private readonly http: HttpClient) {}
+
+  private get baseUrl(): string {
+    return resolveApiBaseUrl();
+  }
+
+  schoolBranding(): Observable<{
+    slug: string;
+    name: string;
+    logoUrl?: string;
+    website?: string;
+    host?: string;
+    isAdmin?: boolean;
+    status?: string;
+  }> {
+    return this.http.get<{
+      slug: string;
+      name: string;
+      logoUrl?: string;
+      website?: string;
+      host?: string;
+      isAdmin?: boolean;
+      status?: string;
+    }>(`${this.baseUrl}/public/branding`);
+  }
 
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/auth/login`, { email, password });
