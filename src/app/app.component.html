@@ -104,7 +104,6 @@
     </div>
   </div>
 
-  <app-admission-chatbot></app-admission-chatbot>
 </main>
 
 <main class="app-shell" *ngIf="currentUser">
@@ -259,10 +258,6 @@
 
     @defer (when activeTab === 'students'; prefetch on idle) {
       <app-students-page *ngIf="activeTab === 'students'" [vm]="pageVm"></app-students-page>
-    } @loading (minimum 150ms) { <app-spinner></app-spinner> }
-
-    @defer (when activeTab === 'admission-assistant') {
-      <app-admission-assistant-page *ngIf="activeTab === 'admission-assistant'" [vm]="pageVm"></app-admission-assistant-page>
     } @loading (minimum 150ms) { <app-spinner></app-spinner> }
 
     @defer (when activeTab === 'classes') {

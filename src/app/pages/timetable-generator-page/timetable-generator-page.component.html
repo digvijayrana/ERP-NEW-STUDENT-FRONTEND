@@ -1,8 +1,9 @@
 <section class="workspace-grid ttgen-page" *ngIf="vm.can('timetable_generator', 'view')">
   <header class="section-head span-12">
     <div>
-      <p class="eyebrow">AI Scheduling</p>
-      <h3>Master timetable workspace</h3>
+      <p class="eyebrow">Scheduling</p>
+      <h3>Timetable</h3>
+      <p class="hint-text">Build your weekly class schedule in a few simple steps.</p>
     </div>
     <div class="listing-filters ttgen-filters">
       <label class="ttgen-filter-field">
@@ -12,16 +13,51 @@
           <option *ngFor="let year of vm.years" [value]="year._id">{{ year.name }}</option>
         </select>
       </label>
-      <label class="ttgen-filter-field">
-        <span>View timetable for</span>
-        <select class="filter-select ttgen-class-filter" [(ngModel)]="vm.ttGenClassFilter" aria-label="View timetable for class">
-          <option value="">All classes overview</option>
+      <label class="ttgen-filter-field" *ngIf="vm.ttGenCanShowCalendar()">
+        <span>View class</span>
+        <select class="filter-select" [(ngModel)]="vm.ttGenClassFilter" (ngModelChange)="vm.selectTtGenClass($event)" aria-label="View timetable for class">
+          <option value="">All classes</option>
           <option *ngFor="let room of vm.ttGenDashboard?.classes || []" [value]="room._id">
             {{ room.name }}{{ room.section ? '-' + room.section : '' }}
           </option>
         </select>
       </label>
-      <button type="button" class="ghost small" (click)="vm.loadTimetableGenerator()" [disabled]="vm.ttGenLoading">Refresh</button>
+      <button
+        type="button"
+        class="ghost small"
+        *ngIf="vm.ttGenCanShowCalendar()"
+        (click)="vm.ttGenShowAdvancedFilters = !vm.ttGenShowAdvancedFilters"
+      >
+        {{ vm.ttGenShowAdvancedFilters ? 'Hide filters' : 'More filters' }}
+      </button>
+      <ng-container *ngIf="vm.ttGenShowAdvancedFilters && vm.ttGenCanShowCalendar()">
+        <label class="ttgen-filter-field">
+          <span>Teacher</span>
+          <select class="filter-select" [(ngModel)]="vm.ttGenTeacherFilter" aria-label="Filter by teacher">
+            <option value="">All teachers</option>
+            <option *ngFor="let t of vm.ttGenDashboard?.teachers || []" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
+          </select>
+        </label>
+        <label class="ttgen-filter-field">
+          <span>Subject</span>
+          <select class="filter-select" [(ngModel)]="vm.ttGenSubjectFilter" aria-label="Filter by subject">
+            <option value="">All subjects</option>
+            <option *ngFor="let subject of vm.ttGenSubjectOptions()" [value]="subject">{{ subject }}</option>
+          </select>
+        </label>
+        <button type="button" class="ghost small" (click)="vm.toggleTtGenCompact()" [attr.aria-pressed]="vm.ttGenCompact">
+          {{ vm.ttGenCompact ? 'Comfortable' : 'Compact' }}
+        </button>
+      </ng-container>
+      <button
+        type="button"
+        class="ghost small"
+        (click)="vm.resetTimetablePlan()"
+        [disabled]="vm.ttGenLoading || vm.ttGenBusy"
+        title="Clear subjects and teachers for the selected class only"
+      >
+        Refresh
+      </button>
     </div>
   </header>
 
@@ -30,90 +66,184 @@
   </div>
 
   <ng-container *ngIf="vm.ttGenDashboard as dash">
+    <section class="ttgen-guide span-12" *ngIf="!vm.ttGenGuideDismissed">
+      <div class="ttgen-guide-top">
+        <div>
+          <p class="eyebrow">How to create a timetable</p>
+          <h3>{{ vm.ttGenNextActionHint() }}</h3>
+        </div>
+        <button type="button" class="ghost small" (click)="vm.dismissTtGenGuide()" aria-label="Hide guide">Hide tips</button>
+      </div>
+
+      <ol class="ttgen-steps">
+        <li [class.done]="vm.ttGenGuideStep() > 1" [class.active]="vm.ttGenGuideStep() === 1">
+          <span class="ttgen-step-num">1</span>
+          <div>
+            <strong>Set school day times</strong>
+            <p>Add periods and breaks with start and end times.</p>
+          </div>
+        </li>
+        <li [class.done]="vm.ttGenGuideStep() > 2" [class.active]="vm.ttGenGuideStep() === 2">
+          <span class="ttgen-step-num">2</span>
+          <div>
+            <strong>Create timetable</strong>
+            <p>Optional: mark busy teachers, then auto-fill classes.</p>
+          </div>
+        </li>
+        <li [class.done]="vm.ttGenGuideStep() > 3" [class.active]="vm.ttGenGuideStep() === 3">
+          <span class="ttgen-step-num">3</span>
+          <div>
+            <strong>Check &amp; fix</strong>
+            <p>Open a class, fix any clashes, adjust subjects if needed.</p>
+          </div>
+        </li>
+        <li [class.done]="vm.ttGenGuideStep() === 4" [class.active]="vm.ttGenGuideStep() === 4">
+          <span class="ttgen-step-num">4</span>
+          <div>
+            <strong>Publish</strong>
+            <p>Make it live for the school, or download a PDF.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="ttgen-guide-actions" *ngIf="dash.plan as plan">
+        <button
+          type="button"
+          class="primary"
+          (click)="vm.runTtGenNextAction()"
+          [disabled]="vm.ttGenBusy || (vm.ttGenGuideStep() === 3 && (dash.summary.conflictCount || 0) > 0 && !vm.can('timetable_generator', 'approve') && !vm.can('timetable_generator', 'print'))"
+        >
+          {{ vm.ttGenBusy ? 'Please wait…' : vm.ttGenNextActionLabel() }}
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          (click)="vm.toggleTimetableSettings()"
+          [attr.aria-expanded]="vm.ttGenSettingsOpen"
+        >
+          {{ vm.ttGenSettingsOpen ? 'Hide day setup' : 'Edit school day times' }}
+        </button>
+        <span class="ttgen-plan-badge" [attr.data-status]="plan.status">{{ plan.status === 'applied' ? 'Live' : plan.status }}</span>
+      </div>
+    </section>
+
     <section class="ttgen-context span-12" *ngIf="dash.plan as plan">
       <div class="ttgen-context-main">
-        <span class="ttgen-context-icon">AI</span>
-        <div>
-          <p class="eyebrow">Current timetable plan</p>
-          <h2>{{ plan.name }}</h2>
+        <span class="ttgen-context-icon" aria-hidden="true">TT</span>
+        <div class="ttgen-context-copy">
+          <p class="eyebrow">Plan name</p>
+          <label class="ttgen-banner-name">
+            <span class="sr-only">Timetable plan name</span>
+            <input
+              type="text"
+              [(ngModel)]="vm.ttGenPlanName"
+              [readonly]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
+              placeholder="e.g. Main school timetable 2026-27"
+            />
+          </label>
           <div class="ttgen-context-meta">
             <span>{{ vm.ttGenAcademicYearLabel() }}</span>
-            <span>{{ vm.ttGenSelectedClassLabel() }}</span>
+            <span *ngIf="vm.ttGenHasSchedule()">{{ vm.ttGenSelectedClassLabel() }}</span>
             <span>{{ plan.workingDays.length }} working days</span>
           </div>
         </div>
       </div>
-      <div class="ttgen-context-actions">
-        <span class="ttgen-plan-badge" [attr.data-status]="plan.status">{{ plan.status }}</span>
-        <button
-          type="button"
-          class="primary small"
-          (click)="vm.toggleTimetableSettings()"
-          [attr.aria-expanded]="vm.ttGenSettingsOpen"
-        >
-          {{ vm.ttGenSettingsOpen ? 'Close schedule setup' : 'Manage bell & teacher schedule' }}
+      <div class="ttgen-context-actions" *ngIf="vm.ttGenGuideDismissed">
+        <span class="ttgen-plan-badge" [attr.data-status]="plan.status">{{ plan.status === 'applied' ? 'Live' : plan.status }}</span>
+        <button type="button" class="primary small" (click)="vm.runTtGenNextAction()" [disabled]="vm.ttGenBusy">
+          {{ vm.ttGenBusy ? 'Working…' : vm.ttGenNextActionLabel() }}
+        </button>
+        <button type="button" class="ghost small" (click)="vm.toggleTimetableSettings()">
+          {{ vm.ttGenSettingsOpen ? 'Hide day setup' : 'Edit day times' }}
         </button>
       </div>
     </section>
 
-    <div class="fee-summary-grid span-12">
+    <div class="ttgen-class-chips span-12" *ngIf="vm.ttGenCanShowCalendar() && (dash.classes || []).length">
+      <span class="ttgen-chip-label">Choose class (required to assign teacher)</span>
+      <button type="button" class="ttgen-chip-btn" [class.active]="!vm.ttGenClassFilter" (click)="vm.selectTtGenClass('')">All</button>
+      <button
+        type="button"
+        class="ttgen-chip-btn"
+        *ngFor="let room of dash.classes"
+        [class.active]="vm.ttGenClassFilter === room._id"
+        (click)="vm.selectTtGenClass(room._id)"
+      >
+        {{ room.name }}{{ room.section ? '-' + room.section : '' }}
+      </button>
+    </div>
+
+    <div class="fee-summary-grid span-12" *ngIf="vm.ttGenHasSchedule()">
       <article class="fee-summary-card ok">
-        <span class="fs-label">Placement score</span>
+        <span class="fs-label">Filled</span>
         <span class="fs-value">{{ dash.summary.score || 0 }}%</span>
         <span class="muted">{{ dash.summary.placed || 0 }} periods placed</span>
       </article>
       <article class="fee-summary-card" [class.warn]="(dash.summary.conflictCount || 0) > 0" [class.danger]="(dash.summary.conflictCount || 0) > 5">
-        <span class="fs-label">Conflicts</span>
+        <span class="fs-label">Clashes</span>
         <span class="fs-value">{{ dash.summary.conflictCount || 0 }}</span>
-        <span class="muted">{{ dash.summary.unplaced || 0 }} unplaced demands</span>
+        <span class="muted">{{ dash.summary.unplaced || 0 }} still unplaced</span>
       </article>
       <article class="fee-summary-card">
-        <span class="fs-label">Bell schedule</span>
+        <span class="fs-label">Periods / day</span>
         <span class="fs-value">{{ dash.summary.teachingPeriods || 0 }}</span>
-        <span class="muted">{{ dash.summary.breakPeriods || 0 }} break blocks · {{ dash.summary.facilities || 0 }} rooms</span>
+        <span class="muted">{{ dash.summary.breakPeriods || 0 }} breaks</span>
       </article>
       <article class="fee-summary-card">
-        <span class="fs-label">Plan status</span>
-        <span class="fs-value ttgen-status">{{ dash.summary.status || dash.plan?.status || 'draft' }}</span>
-        <span class="muted" *ngIf="dash.summary.generatedAt">Generated {{ dash.summary.generatedAt | date: 'medium' }}</span>
+        <span class="fs-label">Status</span>
+        <span class="fs-value ttgen-status">{{ dash.plan?.status === 'applied' ? 'Live' : (dash.summary.status || dash.plan?.status || 'draft') }}</span>
+        <span class="muted" *ngIf="dash.summary.generatedAt">Updated {{ dash.summary.generatedAt | date: 'medium' }}</span>
       </article>
     </div>
 
     <section class="panel span-12 ttgen-period-editor" *ngIf="dash.plan as plan" [hidden]="!vm.ttGenSettingsOpen">
       <div class="section-head compact">
         <div>
-          <p class="eyebrow">Schedule setup</p>
-          <h3>Bell schedule &amp; teacher availability</h3>
+          <p class="eyebrow">Step 1</p>
+          <h3>School day times</h3>
+          <p class="hint-text">Tell the system when each period starts and ends. Example: Period 1 08:00–08:40, then Lunch Break.</p>
         </div>
       </div>
       <div class="ttgen-setup-grid">
         <div class="ttgen-bell-editor">
           <div class="ttgen-setup-head">
             <div>
-              <h4>Bell schedule</h4>
-              <p class="hint-text">Add teaching periods, breaks or assemblies in chronological order.</p>
+              <h4>Periods &amp; breaks</h4>
+              <p class="hint-text">List them in order from morning to afternoon.</p>
             </div>
             <div class="ttgen-period-actions" *ngIf="vm.can('timetable_generator', 'edit') && plan.status !== 'applied'">
               <button type="button" class="ghost small" (click)="vm.addTimetablePeriod('teaching')">+ Period</button>
               <button type="button" class="ghost small" (click)="vm.addTimetablePeriod('break')">+ Break</button>
             </div>
           </div>
-          <label class="form-field ttgen-plan-name">
+          <label class="ttgen-plan-name">
             <span>Timetable plan name</span>
-            <input type="text" [(ngModel)]="vm.ttGenPlanName" [disabled]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'" placeholder="e.g. 2026–27 Main School Timetable" />
+            <input
+              type="text"
+              [(ngModel)]="vm.ttGenPlanName"
+              [readonly]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
+              placeholder="e.g. Main school timetable 2026-27"
+            />
           </label>
           <div class="ttgen-period-grid">
+            <div class="ttgen-period-row ttgen-period-head" aria-hidden="true">
+              <span></span>
+              <span>Period name</span>
+              <span>Type</span>
+              <span>Start</span>
+              <span>End</span>
+              <span></span>
+            </div>
             <div class="ttgen-period-row" *ngFor="let period of vm.ttGenPeriods; let i = index">
               <span class="ttgen-period-number">{{ i + 1 }}</span>
               <input
                 type="text"
-                class="filter-select"
                 [(ngModel)]="period.label"
-                [disabled]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
+                [readonly]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
                 aria-label="Period label"
+                placeholder="e.g. Period 1"
               />
               <select
-                class="filter-select"
                 [(ngModel)]="period.type"
                 [disabled]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
                 aria-label="Period type"
@@ -122,14 +252,18 @@
                 <option value="break">Break</option>
                 <option value="assembly">Assembly</option>
               </select>
-              <label>
-                <span>Start</span>
-                <input type="time" [(ngModel)]="period.startTime" [disabled]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'" />
-              </label>
-              <label>
-                <span>End</span>
-                <input type="time" [(ngModel)]="period.endTime" [disabled]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'" />
-              </label>
+              <input
+                type="time"
+                [(ngModel)]="period.startTime"
+                [readonly]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
+                aria-label="Start time"
+              />
+              <input
+                type="time"
+                [(ngModel)]="period.endTime"
+                [readonly]="!vm.can('timetable_generator', 'edit') || plan.status === 'applied'"
+                aria-label="End time"
+              />
               <button
                 type="button"
                 class="ghost small danger-text"
@@ -139,41 +273,52 @@
               >
                 Remove
               </button>
+              <span *ngIf="!(vm.can('timetable_generator', 'edit') && plan.status !== 'applied')"></span>
             </div>
           </div>
           <div class="ttgen-save-row" *ngIf="vm.can('timetable_generator', 'edit') && plan.status !== 'applied'">
-            <span class="hint-text">Changing bell times clears the generated draft so it can be rebuilt safely.</span>
+            <span class="hint-text">Save these times before creating the timetable.</span>
             <button type="button" class="primary small" (click)="vm.saveTimetablePeriods()" [disabled]="vm.ttGenBusy">
-              Save bell schedule
+              Save school day times
             </button>
           </div>
         </div>
 
         <aside class="ttgen-teacher-editor">
           <div>
-            <h4>Teacher unavailable time</h4>
-            <p class="hint-text">The AI will not assign this teacher during the selected time range.</p>
+            <p class="eyebrow">Optional</p>
+            <h4>Busy teachers</h4>
+            <p class="hint-text">If a teacher cannot teach at a certain time, select them from the list and add that slot. Skip this if everyone is free.</p>
           </div>
           <div class="ttgen-teacher-time-form" *ngIf="vm.can('timetable_generator', 'edit') && plan.status !== 'applied'">
             <label>
               <span>Teacher</span>
-              <select class="filter-select" [(ngModel)]="vm.ttGenAvailTeacher">
+              <select [(ngModel)]="vm.ttGenAvailTeacher">
                 <option value="">Select teacher</option>
                 <option *ngFor="let t of dash.teachers || []" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
               </select>
             </label>
             <label>
               <span>Day</span>
-              <select class="filter-select" [(ngModel)]="vm.ttGenAvailDay">
-                <option *ngFor="let d of plan.workingDays" [value]="d">{{ vm.ttGenDayLabel(d) }}</option>
+              <select [(ngModel)]="vm.ttGenAvailDay">
+                <option *ngFor="let d of plan.workingDays" [value]="d">{{ vm.ttGenFullDayLabel(d) }}</option>
               </select>
             </label>
             <div class="ttgen-time-pair">
               <label><span>From</span><input type="time" [(ngModel)]="vm.ttGenAvailStartTime" /></label>
               <label><span>Until</span><input type="time" [(ngModel)]="vm.ttGenAvailEndTime" /></label>
             </div>
-            <button type="button" class="primary small" (click)="vm.addTeacherAvailabilityBlock()" [disabled]="vm.ttGenBusy">
-              Add unavailable time
+            <button type="button" class="ghost small" (click)="vm.addTeacherAvailabilityBlock()" [disabled]="vm.ttGenBusy">
+              Add busy time
+            </button>
+            <button
+              type="button"
+              class="primary small"
+              *ngIf="vm.can('timetable_generator', 'create')"
+              (click)="vm.runTimetableGenerator()"
+              [disabled]="vm.ttGenBusy"
+            >
+              {{ vm.ttGenBusy ? 'Creating…' : 'Create timetable' }}
             </button>
           </div>
           <div class="ttgen-availability-list" *ngIf="plan.teacherAvailability?.length; else noTeacherRules">
@@ -186,130 +331,206 @@
             </div>
           </div>
           <ng-template #noTeacherRules>
-            <p class="ttgen-empty-rule">No teacher time restrictions added.</p>
+            <p class="ttgen-empty-rule">No busy teachers added — that is fine for most schools.</p>
           </ng-template>
         </aside>
       </div>
     </section>
 
-    <section class="panel span-4 ttgen-constraints">
-      <div class="section-head compact">
-        <div><p class="eyebrow">Constraints</p><h3>Availability &amp; breaks</h3></div>
+    <section class="panel span-12 ttgen-toolbar" *ngIf="vm.ttGenCanShowCalendar() && dash.plan as plan">
+      <div class="ttgen-toolbar-left">
+        <span class="hint-text" *ngIf="!vm.ttGenEditorOpen()">
+          Select a class, then click a <strong>Free</strong> cell to assign subject + teacher. Click a filled period to edit or drag to swap.
+        </span>
+        <span class="ttgen-selected-hint" *ngIf="vm.ttGenSelectedSlot() as selected">
+          Editing <strong>{{ selected.subject }}</strong>
+          <span class="muted">· pick teacher below, or click another cell to move it</span>
+          <button type="button" class="ghost small" (click)="vm.ttGenSelectedSlotId = ''; vm.clearTtGenSlotEditor()">Cancel</button>
+        </span>
+        <span class="ttgen-selected-hint" *ngIf="vm.ttGenIsAssigning()">
+          Assigning <strong>{{ vm.ttGenAssignContextLabel() }}</strong>
+          <button type="button" class="ghost small" (click)="vm.clearTtGenSlotEditor()">Cancel</button>
+        </span>
       </div>
-      <ng-container *ngIf="dash.plan as plan">
-        <label class="form-field">
-          <span>Max periods / teacher / day</span>
-          <input type="number" min="1" max="12" [(ngModel)]="vm.ttGenConstraints.maxPeriodsPerTeacherPerDay" />
-        </label>
-        <label class="form-field">
-          <span>Subject periods / week</span>
-          <input type="number" min="1" max="10" [(ngModel)]="vm.ttGenConstraints.defaultSubjectPeriodsPerWeek" />
-        </label>
-        <label class="form-field">
-          <span>Lab periods / week</span>
-          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.labPeriodsPerWeek" />
-        </label>
-        <label class="form-field">
-          <span>Sports periods / week</span>
-          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.sportsPeriodsPerWeek" />
-        </label>
-        <label class="form-field">
-          <span>Library periods / week</span>
-          <input type="number" min="0" max="6" [(ngModel)]="vm.ttGenConstraints.libraryPeriodsPerWeek" />
-        </label>
-        <label class="checkbox-row">
-          <input type="checkbox" [(ngModel)]="vm.ttGenConstraints.protectBreaks" />
-          <span>Protect break time (no teaching)</span>
-        </label>
+      <div class="ttgen-toolbar-actions">
+        <button
+          type="button"
+          class="primary small"
+          *ngIf="vm.can('timetable_generator', 'edit') && plan.status === 'applied'"
+          (click)="vm.enableTimetableEditing()"
+          [disabled]="vm.ttGenBusy"
+        >
+          Edit timetable
+        </button>
+        <button
+          type="button"
+          class="ghost small danger-text"
+          *ngIf="vm.can('timetable_generator', 'edit')"
+          (click)="vm.resetTimetablePlan()"
+          [disabled]="vm.ttGenBusy || !plan._id || !vm.ttGenClassFilter"
+          title="Clears only the selected class/section"
+        >
+          Refresh class
+        </button>
+        <button type="button" class="ghost small" (click)="vm.validateTimetablePlan()" [disabled]="vm.ttGenBusy || !plan._id || plan.status === 'applied'">
+          Find clashes
+        </button>
+        <button type="button" class="primary small" *ngIf="vm.can('timetable_generator', 'approve')" (click)="vm.applyTimetablePlan()" [disabled]="vm.ttGenBusy || plan.status === 'applied' || (dash.summary.conflictCount || 0) > 0">
+          Publish
+        </button>
+        <button type="button" class="ghost small" *ngIf="vm.can('timetable_generator', 'print')" (click)="vm.exportTimetablePlanPdf()" [disabled]="!plan._id">
+          PDF
+        </button>
+      </div>
+    </section>
 
-        <div class="ttgen-facility-list">
-          <p class="eyebrow">Facilities</p>
-          <div class="ttgen-facility" *ngFor="let f of plan.facilities">
-            <span class="ttgen-fac-type" [attr.data-type]="f.type">{{ f.type }}</span>
-            <strong>{{ f.name }}</strong>
-            <span class="muted">cap {{ f.capacity || '—' }}</span>
-          </div>
+    <section class="panel span-12 ttgen-conflict-panel" *ngIf="vm.ttGenCanShowCalendar() || vm.ttGenEditorOpen()">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">{{ vm.ttGenEditorOpen() ? (vm.ttGenIsAssigning() ? 'Assign teacher' : 'Edit period') : 'Step 3' }}</p>
+          <h3>
+            {{
+              vm.ttGenIsAssigning()
+                ? 'Who teaches this period?'
+                : vm.ttGenSelectedSlotId
+                  ? 'Change subject / teacher / room'
+                  : 'Clashes to fix'
+            }}
+          </h3>
         </div>
+      </div>
 
-        <div class="ttgen-actions">
-          <button type="button" class="ghost small" *ngIf="vm.can('timetable_generator', 'edit')" (click)="vm.saveTimetableConstraints()" [disabled]="vm.ttGenBusy">
-            Save constraints
+      <div class="ttgen-slot-editor" *ngIf="vm.ttGenEditorOpen()">
+        <p class="hint-text" *ngIf="vm.ttGenSelectedSlot() as selected">
+          {{ selected.classLabel || vm.ttGenClassLabel(selected) }} · {{ vm.ttGenFullDayLabel(selected.dayOfWeek) }} · Period {{ selected.periodIndex }}
+        </p>
+        <p class="hint-text" *ngIf="vm.ttGenIsAssigning()">{{ vm.ttGenAssignContextLabel() }}</p>
+        <div class="ttgen-slot-editor-grid">
+          <label>
+            <span>Subject</span>
+            <input
+              type="text"
+              list="ttgen-subject-list"
+              [(ngModel)]="vm.ttGenEditSubject"
+              placeholder="e.g. Mathematics"
+            />
+            <datalist id="ttgen-subject-list">
+              <option *ngFor="let subject of vm.ttGenSubjectChoices" [value]="subject"></option>
+            </datalist>
+          </label>
+          <label>
+            <span>Teacher</span>
+            <select class="filter-select" [(ngModel)]="vm.ttGenEditTeacher">
+              <option value="">Select teacher</option>
+              <option *ngFor="let t of dash.teachers || []" [value]="t._id">{{ t.firstName }} {{ t.lastName }}</option>
+            </select>
+          </label>
+          <label>
+            <span>Room (optional)</span>
+            <input type="text" [(ngModel)]="vm.ttGenEditRoom" placeholder="Room / facility" />
+          </label>
+          <label>
+            <span>Type</span>
+            <select class="filter-select" [(ngModel)]="vm.ttGenEditSlotType">
+              <option value="subject">Subject</option>
+              <option value="lab">Lab</option>
+              <option value="sports">Sports</option>
+              <option value="library">Library</option>
+            </select>
+          </label>
+        </div>
+        <div class="ttgen-save-row">
+          <span class="hint-text">{{ vm.ttGenIsAssigning() ? 'Choose subject and teacher, then save.' : 'Save to update this period and re-check clashes.' }}</span>
+          <button type="button" class="primary small" (click)="vm.saveTimetableSlotEdit()" [disabled]="vm.ttGenBusy">
+            {{ vm.ttGenBusy ? 'Saving…' : vm.ttGenIsAssigning() ? 'Assign teacher' : 'Save period' }}
           </button>
-          <button type="button" class="primary small" *ngIf="vm.can('timetable_generator', 'create')" (click)="vm.runTimetableGenerator()" [disabled]="vm.ttGenBusy">
-            {{ vm.ttGenBusy ? 'Generating…' : 'Generate timetable' }}
-          </button>
-          <button type="button" class="ghost small" (click)="vm.validateTimetablePlan()" [disabled]="vm.ttGenBusy || !plan._id">
-            Detect conflicts
-          </button>
-          <button type="button" class="primary small" *ngIf="vm.can('timetable_generator', 'approve')" (click)="vm.applyTimetablePlan()" [disabled]="vm.ttGenBusy || plan.status === 'applied' || (dash.summary.conflictCount || 0) > 0">
-            Apply to live timetable
-          </button>
-          <button type="button" class="ghost small" *ngIf="vm.can('timetable_generator', 'print')" (click)="vm.exportTimetablePlanPdf()" [disabled]="!plan._id">
-            PDF export
-          </button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="!vm.ttGenEditorOpen()">
+        <div class="ttgen-conflict-chips" *ngIf="dash.conflictsByType">
+          <span class="ttgen-chip" *ngFor="let key of vm.ttGenConflictKeys()">{{ key }}: {{ dash.conflictsByType[key] || 0 }}</span>
+        </div>
+        <ul class="ttgen-conflict-list" *ngIf="vm.ttGenVisibleConflicts().length; else noConflicts">
+          <li *ngFor="let c of vm.ttGenVisibleConflicts()" [class.err]="c.severity === 'error'" [class.warn]="c.severity === 'warning'">
+            <span class="ttgen-sev">{{ c.severity === 'error' ? 'Clash' : 'Note' }}</span>
+            <span>{{ c.message }}</span>
+          </li>
+        </ul>
+        <ng-template #noConflicts>
+          <app-empty-state title="No clashes" message="Great — you can publish this timetable for the school."></app-empty-state>
+        </ng-template>
+        <div class="ttgen-unplaced" *ngIf="dash.plan?.unplaced?.length">
+          <p class="eyebrow">Could not place automatically</p>
+          <p class="muted" *ngFor="let u of dash.plan?.unplaced">{{ u.subject }} — {{ u.reason }}</p>
+        </div>
+        <div class="ttgen-load" *ngIf="vm.ttGenTeacherLoad().length">
+          <p class="eyebrow">Teacher periods this week (current class view)</p>
+          <div class="ttgen-load-list">
+            <div class="ttgen-load-row" *ngFor="let row of vm.ttGenTeacherLoad()" [class.maxed]="row.maxed">
+              <span>{{ row.name }}</span>
+              <strong>{{ row.count }}</strong>
+            </div>
+          </div>
         </div>
       </ng-container>
     </section>
 
-    <section class="panel span-8 ttgen-conflict-panel">
-      <div class="section-head compact">
-        <div><p class="eyebrow">Conflict detection</p><h3>Teacher · room · availability</h3></div>
-      </div>
-      <div class="ttgen-conflict-chips" *ngIf="dash.conflictsByType">
-        <span class="ttgen-chip" *ngFor="let key of vm.ttGenConflictKeys()">{{ key }}: {{ dash.conflictsByType[key] || 0 }}</span>
-      </div>
-      <ul class="ttgen-conflict-list" *ngIf="dash.plan?.conflicts?.length; else noConflicts">
-        <li *ngFor="let c of dash.plan?.conflicts" [class.err]="c.severity === 'error'" [class.warn]="c.severity === 'warning'">
-          <span class="ttgen-sev">{{ c.severity }}</span>
-          <span>{{ c.message }}</span>
-        </li>
-      </ul>
-      <ng-template #noConflicts>
-        <app-empty-state title="No conflicts" message="Generate a timetable or drag periods — conflicts will appear here."></app-empty-state>
-      </ng-template>
-      <div class="ttgen-unplaced" *ngIf="dash.plan?.unplaced?.length">
-        <p class="eyebrow">Unplaced demands</p>
-        <p class="muted" *ngFor="let u of dash.plan?.unplaced">{{ u.subject }} — {{ u.reason }}</p>
-      </div>
-    </section>
-
-    <section class="panel span-12 ttgen-calendar-panel">
+    <section class="panel span-12 ttgen-calendar-panel" [class.compact]="vm.ttGenCompact" *ngIf="vm.ttGenCanShowCalendar(); else emptyStart">
       <div class="section-head compact">
         <div>
           <p class="eyebrow">{{ vm.ttGenAcademicYearLabel() }}</p>
-          <h3>{{ vm.ttGenSelectedClassLabel() }} · Weekly timetable</h3>
+          <h3>{{ vm.ttGenSelectedClassLabel() }} · Weekly view</h3>
+          <p class="hint-text" *ngIf="!vm.ttGenClassFilter">Pick a class above, then click any Free cell to assign a teacher.</p>
         </div>
-        <p class="hint-text">Drag a period onto another cell to swap. You can also click a period, then click its destination cell. Breaks are locked.</p>
+        <div class="ttgen-legend" aria-label="Period type legend">
+          <span class="ttgen-legend-item" data-type="subject">Subject</span>
+          <span class="ttgen-legend-item" data-type="lab">Lab</span>
+          <span class="ttgen-legend-item" data-type="sports">Sports</span>
+          <span class="ttgen-legend-item" data-type="library">Library</span>
+          <span class="ttgen-legend-item" data-type="break">Break</span>
+        </div>
       </div>
 
-      <div class="ttgen-cal-wrap" *ngIf="dash.calendar?.periods?.length; else emptyCal">
+      <div class="ttgen-cal-wrap" *ngIf="dash.calendar?.periods?.length">
         <table class="ttgen-calendar" role="grid" aria-label="Weekly timetable calendar">
           <thead>
             <tr>
-              <th scope="col">Period</th>
-              <th scope="col" *ngFor="let day of dash.calendar.days">{{ vm.ttGenDayLabel(day) }}</th>
+              <th scope="col" class="ttgen-sticky-col">Period</th>
+              <th
+                scope="col"
+                *ngFor="let day of dash.calendar.days"
+                [class.is-today]="vm.ttGenIsToday(day)"
+              >
+                <span class="ttgen-day-short">{{ vm.ttGenDayLabel(day) }}</span>
+                <span class="ttgen-day-full">{{ vm.ttGenFullDayLabel(day) }}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let period of dash.calendar.periods" [class.is-break]="period.type === 'break'">
-              <th scope="row">
+            <tr *ngFor="let period of dash.calendar.periods" [class.is-break]="period.type === 'break' || period.type === 'assembly'">
+              <th scope="row" class="ttgen-sticky-col">
                 <span class="ttgen-period-label">{{ period.label }}</span>
                 <span class="muted">{{ period.startTime }}–{{ period.endTime }}</span>
               </th>
               <td
                 *ngFor="let day of dash.calendar.days"
                 class="ttgen-cell"
-                [class.drop-target]="vm.ttGenDragSlotId"
+                [class.drop-target]="vm.ttGenDragSlotId && vm.ttGenDropDay === day && vm.ttGenDropPeriod === period.index"
                 [class.has-conflict]="vm.ttGenCellHasConflict(day, period.index)"
-                [class.click-target]="vm.ttGenSelectedSlotId && period.type !== 'break'"
+                [class.click-target]="period.type !== 'break' && period.type !== 'assembly' && (vm.ttGenSelectedSlotId || !vm.ttGenSlotsFor(day, period.index).length)"
+                [class.is-today]="vm.ttGenIsToday(day)"
+                [class.is-empty]="period.type !== 'break' && period.type !== 'assembly' && !vm.ttGenSlotsFor(day, period.index).length"
+                [class.is-assigning]="vm.ttGenAssignDay === day && vm.ttGenAssignPeriod === period.index"
                 (dragover)="vm.onTtGenDragOver($event, day, period)"
                 (drop)="vm.onTtGenDrop($event, day, period)"
-                (click)="vm.moveSelectedTimetableSlot(day, period)"
+                (click)="vm.onTtGenCellClick(day, period)"
               >
                 <div
                   class="ttgen-slot"
                   *ngFor="let slot of vm.ttGenSlotsFor(day, period.index)"
                   [attr.data-type]="slot.slotType"
+                  [style.--slot-hue]="vm.ttGenSubjectHue(slot.subject)"
                   [class.locked]="slot.locked"
                   [class.selected]="vm.ttGenSelectedSlotId === slot._id"
                   [draggable]="!slot.locked && slot.slotType !== 'break' && vm.can('timetable_generator', 'edit') && dash.plan?.status !== 'applied'"
@@ -319,18 +540,31 @@
                 >
                   <strong>{{ slot.subject }}</strong>
                   <span *ngIf="slot.classLabel || vm.ttGenClassLabel(slot)">{{ slot.classLabel || vm.ttGenClassLabel(slot) }}</span>
-                  <span class="muted">{{ slot.teacherLabel || vm.ttGenTeacherLabel(slot) }}</span>
+                  <span class="muted">{{ slot.teacherLabel || vm.ttGenTeacherLabel(slot) || 'No teacher' }}</span>
                   <span class="ttgen-room" *ngIf="slot.room">{{ slot.room }}</span>
                 </div>
                 <span class="ttgen-break" *ngIf="period.type === 'break'">Break</span>
+                <span class="ttgen-break" *ngIf="period.type === 'assembly'">Assembly</span>
+                <span class="ttgen-free" *ngIf="period.type !== 'break' && period.type !== 'assembly' && !vm.ttGenSlotsFor(day, period.index).length">
+                  {{ vm.ttGenClassFilter ? '+ Assign teacher' : 'Free' }}
+                </span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <ng-template #emptyCal>
-        <app-empty-state title="No calendar yet" message="Set constraints and click Generate timetable to build the weekly schedule."></app-empty-state>
-      </ng-template>
     </section>
+
+    <ng-template #emptyStart>
+      <section class="panel span-12 ttgen-empty-start" *ngIf="!vm.ttGenSettingsOpen">
+        <app-empty-state
+          title="No timetable yet"
+          message="Follow the steps above: save school day times, then click Create timetable."
+        ></app-empty-state>
+        <div class="ttgen-empty-actions">
+          <button type="button" class="primary" (click)="vm.ttGenSettingsOpen = true">Start with school day times</button>
+        </div>
+      </section>
+    </ng-template>
   </ng-container>
 </section>

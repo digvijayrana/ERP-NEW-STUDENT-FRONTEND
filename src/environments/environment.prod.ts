@@ -1,8 +1,8 @@
 export const environment = {
   production: true,
-  // Same-origin via Nginx — Host header selects the school DB
+  // Same-origin /api when UI proxies to the API (no separate gateway)
   apiBaseUrl: '/api/erp',
-  rootDomain: 'schoolerp.local',
+  rootDomain: 'localhost',
   upi: {
     vpa: 'school@upi',
     payeeName: 'School ERP'

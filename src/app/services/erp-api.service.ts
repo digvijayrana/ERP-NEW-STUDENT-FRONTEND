@@ -39,17 +39,24 @@ import {
   TimetableRow
 } from '../core/models';
 
-/** Resolve API prefix from hostname (Nginx gateway) — never send ?tenant= */
+/** Resolve API base URL — same-origin /api when UI is served with API proxy; else environment.apiBaseUrl */
 export function resolveApiBaseUrl(): string {
   if (typeof window === 'undefined') return environment.apiBaseUrl;
   const host = window.location.hostname.toLowerCase();
+  const port = window.location.port;
   const root = (environment as { rootDomain?: string }).rootDomain || 'localhost';
 
-  if (host === 'admin.localhost' || host === 'admin.schoolerp.local' || host.startsWith('admin.')) {
+  // Direct ng serve → backend on :5000
+  if ((host === 'localhost' || host === '127.0.0.1') && port === '4200') {
+    return environment.apiBaseUrl;
+  }
+
+  // Docker SPA ports (UI proxies /api → erp-api)
+  if (port === '8081' || host === 'admin.localhost' || host === 'admin.schoolerp.local' || host.startsWith('admin.')) {
     return '/api/admin';
   }
-  // abc.localhost / demo.schoolerp.local / *.myerp.com
   if (
+    port === '8080' ||
     host === root ||
     host.endsWith(`.${root}`) ||
     host.endsWith('.schoolerp.local') ||
@@ -400,87 +407,6 @@ export class ErpApiService {
     );
   }
 
-  admissionAssistantDashboard(): Observable<import('../core/models').AdmissionAssistantDashboard> {
-    return this.http.get<import('../core/models').AdmissionAssistantDashboard>(
-      `${this.baseUrl}/admission-assistant/dashboard`,
-      this.options()
-    );
-  }
-
-  admissionLeads(params?: Record<string, string>): Observable<{ count: number; leads: import('../core/models').AdmissionLead[] }> {
-    let httpParams = new HttpParams();
-    if (params) {
-      for (const [key, value] of Object.entries(params)) {
-        if (value) httpParams = httpParams.set(key, value);
-      }
-    }
-    return this.http.get<{ count: number; leads: import('../core/models').AdmissionLead[] }>(
-      `${this.baseUrl}/admission-assistant/leads`,
-      { ...this.options(), params: httpParams }
-    );
-  }
-
-  updateAdmissionLeadStage(id: string, stage: string): Observable<import('../core/models').AdmissionLead> {
-    return this.http.patch<import('../core/models').AdmissionLead>(
-      `${this.baseUrl}/admission-assistant/leads/${id}/stage`,
-      { stage },
-      this.options()
-    );
-  }
-
-  verifyAdmissionDocument(
-    id: string,
-    payload: { key: string; status: string; notes?: string }
-  ): Observable<import('../core/models').AdmissionLead> {
-    return this.http.patch<import('../core/models').AdmissionLead>(
-      `${this.baseUrl}/admission-assistant/leads/${id}/documents`,
-      payload,
-      this.options()
-    );
-  }
-
-  bookAdmissionInterview(
-    id: string,
-    payload: { scheduledAt: string; mode?: string; notes?: string }
-  ): Observable<import('../core/models').AdmissionLead> {
-    return this.http.post<import('../core/models').AdmissionLead>(
-      `${this.baseUrl}/admission-assistant/leads/${id}/interview`,
-      payload,
-      this.options()
-    );
-  }
-
-  suggestAdmissionScholarship(id: string): Observable<import('../core/models').AdmissionLead> {
-    return this.http.post<import('../core/models').AdmissionLead>(
-      `${this.baseUrl}/admission-assistant/leads/${id}/scholarship`,
-      {},
-      this.options()
-    );
-  }
-
-  notifyAdmissionLead(id: string, message?: string): Observable<{ emailed: boolean }> {
-    return this.http.post<{ emailed: boolean }>(
-      `${this.baseUrl}/admission-assistant/leads/${id}/notify`,
-      { message },
-      this.options()
-    );
-  }
-
-  /** Public landing chatbot (no auth required). */
-  admissionChat(sessionId: string, message: string, context?: Record<string, unknown>): Observable<import('../core/models').AdmissionChatResponse> {
-    return this.http.post<import('../core/models').AdmissionChatResponse>(`${this.baseUrl}/admission-assistant/public/chat`, {
-      sessionId,
-      message,
-      context
-    });
-  }
-
-  admissionPublicFaq(): Observable<{ faqs: Array<{ id: string; question: string; answer: string }>; classOptions: string[] }> {
-    return this.http.get<{ faqs: Array<{ id: string; question: string; answer: string }>; classOptions: string[] }>(
-      `${this.baseUrl}/admission-assistant/public/faq`
-    );
-  }
-
   timetableGeneratorDashboard(params?: Record<string, string>): Observable<import('../core/models').TimetableGeneratorDashboard> {
     let httpParams = new HttpParams();
     if (params) {
@@ -532,6 +458,56 @@ export class ErpApiService {
     return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
       `${this.baseUrl}/timetable-generator/plans/${planId}/move`,
       body,
+      this.options()
+    );
+  }
+
+  updateTimetableSlot(
+    planId: string,
+    slotId: string,
+    body: { subject?: string; teacher?: string | null; room?: string; slotType?: string }
+  ): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.patch<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/slots/${slotId}`,
+      body,
+      this.options()
+    );
+  }
+
+  assignTimetableSlot(
+    planId: string,
+    body: {
+      classRoom: string;
+      dayOfWeek: string;
+      periodIndex: number;
+      subject: string;
+      teacher: string;
+      room?: string;
+      slotType?: string;
+    }
+  ): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/slots`,
+      body,
+      this.options()
+    );
+  }
+
+  reopenTimetablePlanForEdit(planId: string): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/reopen`,
+      {},
+      this.options()
+    );
+  }
+
+  resetTimetablePlan(
+    planId: string,
+    classRoom: string
+  ): Observable<import('../core/models').TimetableGeneratorDashboard> {
+    return this.http.post<import('../core/models').TimetableGeneratorDashboard>(
+      `${this.baseUrl}/timetable-generator/plans/${planId}/reset`,
+      { classRoom },
       this.options()
     );
   }
