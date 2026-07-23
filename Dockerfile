@@ -15,6 +15,14 @@ RUN printf '%s\n' \
   '  root /usr/share/nginx/html;' \
   '  index index.html;' \
   '  gzip on;' \
+  '  location /api/ {' \
+  '    proxy_pass http://erp-api:5000/api/;' \
+  '    proxy_http_version 1.1;' \
+  '    proxy_set_header Host $host;' \
+  '    proxy_set_header X-Real-IP $remote_addr;' \
+  '    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+  '    proxy_set_header X-Forwarded-Proto $scheme;' \
+  '  }' \
   '  location / { try_files $uri $uri/ /index.html; }' \
   '  location ~* \.(?:js|css|woff2?|png|jpg|svg|ico)$ { expires 30d; add_header Cache-Control "public, immutable"; }' \
   '}' > /etc/nginx/conf.d/default.conf

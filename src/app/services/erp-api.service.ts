@@ -47,12 +47,13 @@ export function resolveApiBaseUrl(): string {
   const port = window.location.port;
   const root = (environment as { rootDomain?: string }).rootDomain || 'localhost';
 
-  // Direct ng serve → backend on :5000
-  if ((host === 'localhost' || host === '127.0.0.1') && port === '4200') {
+  // Angular `ng serve` (any host / tenant subdomain) → call backend directly.
+  // Same-origin `/api/*` has no proxy on the Vite/Webpack dev server and returns HTTP 405 on POST/PATCH.
+  if (port === '4200' || port === '4201') {
     return environment.apiBaseUrl;
   }
 
-  // Docker SPA ports (UI proxies /api → erp-api)
+  // Docker SPA ports (UI nginx proxies /api → erp-api)
   if (port === '8081' || host === 'admin.localhost' || host === 'admin.schoolerp.local' || host.startsWith('admin.')) {
     return '/api/admin';
   }
@@ -598,10 +599,11 @@ export class ErpApiService {
   }
 
   previewPayroll(teacher: string, month: number, year: number): Observable<PayrollPreview> {
-    return this.http.get<PayrollPreview>(`${this.baseUrl}/payroll/preview`, {
-      ...this.options(),
-      params: { teacher, month: String(month), year: String(year) }
-    });
+    return this.http.post<PayrollPreview>(
+      `${this.baseUrl}/payroll/preview`,
+      { teacher, month, year },
+      this.options()
+    );
   }
 
   createPayroll(payload: Record<string, unknown>): Observable<unknown> {

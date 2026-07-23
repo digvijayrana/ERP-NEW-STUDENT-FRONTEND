@@ -5741,7 +5741,7 @@ export class AppComponent implements OnInit {
       error: (err) => {
         this.payrollPreview = null;
         this.payrollPreviewLoading = false;
-        this.message = err.error?.message || 'Could not calculate payroll preview';
+        this.message = extractApiMessage(err, 'Could not calculate payroll preview');
       }
     });
   }

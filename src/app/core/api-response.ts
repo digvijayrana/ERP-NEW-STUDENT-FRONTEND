@@ -55,9 +55,19 @@ export interface ListQueryParams {
 }
 
 export function extractApiMessage(error: unknown, fallback = 'Something went wrong'): string {
-  const body = (error as { error?: ApiErrorResponse })?.error;
-  if (body?.errors?.length) return body.errors.map((e) => e.message).join('. ');
-  return body?.message || fallback;
+  const http = error as { error?: ApiErrorResponse | string; status?: number; statusText?: string };
+  const body = http?.error;
+  if (body && typeof body === 'object') {
+    if (body.errors?.length) return body.errors.map((e) => e.message).join('. ');
+    if (body.message) return body.message;
+  }
+  if (http?.status === 405) {
+    return 'Method not allowed (405). The UI may be calling the wrong API URL — restart the Angular app and ensure the backend is running on port 5000.';
+  }
+  if (typeof http?.statusText === 'string' && http.statusText && http.status) {
+    return `${fallback} (${http.status} ${http.statusText})`;
+  }
+  return fallback;
 }
 
 export function isPaginatedResponse<T>(value: unknown): value is ApiSuccessResponse<T[]> {
