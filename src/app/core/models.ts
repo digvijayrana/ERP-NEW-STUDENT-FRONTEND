@@ -22,6 +22,8 @@ export interface Teacher {
   qualification?: string;
   subjects?: string[];
   baseSalary: number;
+  /** Paid leave days allowed per month before salary deduction. */
+  monthlyAllowedLeaves?: number;
   status: 'active' | 'inactive';
   experience?: Array<{ instituteName: string; designation: string; fromDate: string; toDate: string; description?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
   education?: Array<{ instituteName: string; degree: string; fieldOfStudy: string; fromDate: string; toDate: string; grade?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
@@ -241,6 +243,7 @@ export interface FeeHistoryRow {
   paidAmount: number;
   pendingAmount: number;
   paymentDate?: string | null;
+  createdAt?: string | null;
   paymentStatus: string;
   mode?: string | null;
   locked?: boolean;
@@ -781,6 +784,15 @@ export interface TimetableGeneratorDashboard {
   classes?: Array<{ _id: string; name: string; section?: string }>;
 }
 
+export interface PayrollLeaveSummary {
+  allowedLeaves: number;
+  leavesTaken: number;
+  excessLeaves: number;
+  daysInMonth: number;
+  perDayRate: number;
+  leaveDeduction: number;
+}
+
 export interface PayrollRecord {
   _id: string;
   teacher: Teacher | string;
@@ -789,10 +801,21 @@ export interface PayrollRecord {
   basicSalary: number;
   allowances: number;
   deductions: number;
+  otherDeductions?: number;
+  leaveSummary?: PayrollLeaveSummary;
   netSalary: number;
   status: 'pending' | 'paid';
   paidAt?: string;
   locked?: boolean;
+}
+
+export interface PayrollPreview {
+  teacher: Pick<Teacher, '_id' | 'firstName' | 'lastName' | 'employeeCode' | 'baseSalary' | 'monthlyAllowedLeaves'>;
+  month: number;
+  year: number;
+  basicSalary: number;
+  leaveSummary: PayrollLeaveSummary;
+  suggestedDeductions: number;
 }
 
 export interface WorkflowNotification {

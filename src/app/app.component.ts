@@ -3,7 +3,7 @@ import { Component, HostListener, OnInit, ViewEncapsulation, inject } from '@ang
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 
-import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeePredictionDashboard, FeePredictionRow, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableGeneratorDashboard, TimetablePeriodDef, TimetablePlanSlot, TimetableRow, UserRole, Vehicle, WorkflowNotification, FeeStructure, DriverSalaryRegister, DriverSalaryRegisterRow } from './core/models';
+import { AcademicYear, AttendanceRecord, AttendanceRegisterSheet, AttendanceReportRow, AuthUser, BusRegistration, BusReportRow, BusRoute, BusStop, ClassRoom, DashboardSummary, ErpRole, Exam, ExamClassReport, ExamSubmission, FeeHistoryRow, FeeInvoice, FeePredictionDashboard, FeePredictionRow, FeeStructureComponent, FeeSummary, GlobalSearchResult, ParentSearchResult, PayrollPreview, PayrollRecord, PromotionBatch, PromotionEligibleRow, PromotionPreview, PromotionPreviewRow, ReportDomain, ReportRow, Student, StudentProfile, Teacher, TimetableGeneratorDashboard, TimetablePeriodDef, TimetablePlanSlot, TimetableRow, UserRole, Vehicle, WorkflowNotification, FeeStructure, DriverSalaryRegister, DriverSalaryRegisterRow } from './core/models';
 import { extractApiMessage, ListQueryParams } from './core/api-response';
 import { APP_CONSTANTS, ROLES, EXAM_DIFFICULTY, ATTENDANCE_STATUS, FEE_STATUS, PAYMENT_MODES, CLASS_NAME_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, FEE_COMPONENT_PRESETS, FEE_FREQUENCY_OPTIONS } from './core/constants';
 import { AttendancePageComponent } from './pages/attendance-page/attendance-page.component';
@@ -494,7 +494,8 @@ export class AppComponent implements OnInit {
     aadhaarNumber: ['', Validators.pattern(APP_CONSTANTS.AADHAAR_PATTERN)],
     qualification: [''],
     subjects: [[] as string[]],
-    baseSalary: [0, [Validators.required, Validators.min(0)]]
+    baseSalary: [0, [Validators.required, Validators.min(0)]],
+    monthlyAllowedLeaves: [0, [Validators.min(0)]]
   });
 
   // Option lists for class configuration and teacher specialisation.
@@ -665,8 +666,18 @@ export class AppComponent implements OnInit {
     year: [new Date().getFullYear(), Validators.required],
     basicSalary: [0, [Validators.required, Validators.min(0)]],
     allowances: [0, Validators.min(0)],
-    deductions: [0, Validators.min(0)]
+    otherDeductions: [0, Validators.min(0)]
   });
+  payrollPreview: PayrollPreview | null = null;
+  payrollPreviewLoading = false;
+
+  get payrollPreviewNet(): number {
+    if (!this.payrollPreview) return 0;
+    const allowances = Number(this.payrollForm.get('allowances')?.value) || 0;
+    const other = Number(this.payrollForm.get('otherDeductions')?.value) || 0;
+    const leave = this.payrollPreview.leaveSummary?.leaveDeduction || 0;
+    return this.payrollPreview.basicSalary + allowances - leave - other;
+  }
 
   promotionForm = this.fb.group({
     fromAcademicYear: ['', Validators.required],
@@ -1904,6 +1915,10 @@ export class AppComponent implements OnInit {
         this.loadCollectableInvoices();
         this.loadFeeSummary();
         if (!this.collectAcademicYear) this.collectAcademicYear = this.activeAcademicYear?._id || '';
+        if (!this.feeStructureViewYear) {
+          this.feeStructureViewYear = this.feeDemandForm.get('academicYear')?.value || this.activeAcademicYear?._id || '';
+        }
+        this.loadFeeStructuresList();
       }
     }
     if (tab === 'fee-prediction' && this.can('fee_prediction', 'view')) {
@@ -2428,7 +2443,8 @@ export class AppComponent implements OnInit {
       aadhaarNumber: '',
       qualification: '',
       subjects: [],
-      baseSalary: 0
+      baseSalary: 0,
+      monthlyAllowedLeaves: 0
     });
     this.teacherSubjectDraft = '';
   }
@@ -2453,7 +2469,8 @@ export class AppComponent implements OnInit {
       aadhaarNumber: teacher.aadhaarNumber || '',
       qualification: teacher.qualification || '',
       subjects: teacher.subjects ? [...teacher.subjects] : [],
-      baseSalary: teacher.baseSalary
+      baseSalary: teacher.baseSalary,
+      monthlyAllowedLeaves: teacher.monthlyAllowedLeaves ?? 0
     });
     this.teacherSubjectDraft = '';
     this.message = `Editing ${teacher.firstName}`;
@@ -4217,18 +4234,83 @@ export class AppComponent implements OnInit {
   readonly feeComponentPresets = FEE_COMPONENT_PRESETS;
   readonly feeFrequencyOptions = FEE_FREQUENCY_OPTIONS;
   showFeeStructure = false;
+  showFeeStructureView = true;
   feeStructureYear = '';
   feeStructureClassName = '';
   feeStructureComponents: FeeStructureComponent[] = [];
   feeStructureId: string | null = null;
   feeStructureLoading = false;
   feeStructureSaving = false;
+  feeStructureViewYear = '';
+  feeStructuresList: FeeStructure[] = [];
+  feeStructuresLoading = false;
+  expandedFeeStructureId: string | null = null;
 
   toggleFeeStructure(): void {
     this.showFeeStructure = !this.showFeeStructure;
     if (this.showFeeStructure && !this.feeStructureYear) {
       this.feeStructureYear = this.feeDemandForm.get('academicYear')?.value || this.activeAcademicYear?._id || '';
     }
+  }
+
+  toggleFeeStructureView(): void {
+    this.showFeeStructureView = !this.showFeeStructureView;
+    if (this.showFeeStructureView) {
+      if (!this.feeStructureViewYear) {
+        this.feeStructureViewYear = this.feeDemandForm.get('academicYear')?.value || this.activeAcademicYear?._id || '';
+      }
+      this.loadFeeStructuresList();
+    }
+  }
+
+  loadFeeStructuresList(): void {
+    if (!this.can('fees', 'view')) return;
+    if (!this.feeStructureViewYear) {
+      this.feeStructuresList = [];
+      return;
+    }
+    this.feeStructuresLoading = true;
+    this.api.listFeeStructures({ academicYear: this.feeStructureViewYear }).subscribe({
+      next: (structures) => {
+        this.feeStructuresList = Array.isArray(structures) ? structures : [];
+        this.feeStructuresLoading = false;
+      },
+      error: (error) => {
+        this.feeStructuresList = [];
+        this.feeStructuresLoading = false;
+        this.toast.error(extractApiMessage(error, 'Unable to load fee structures'));
+      }
+    });
+  }
+
+  feeStructureRowTotal(structure: FeeStructure): number {
+    return (structure.components || []).reduce((sum, component) => sum + (Number(component.amount) || 0), 0);
+  }
+
+  feeStructureYearLabel(structure: FeeStructure): string {
+    const year = structure.academicYear;
+    if (year && typeof year === 'object' && 'name' in year) return String((year as AcademicYear).name || '—');
+    return this.openYears.find((item) => item._id === year)?.name || '—';
+  }
+
+  toggleFeeStructureDetail(structureId?: string): void {
+    if (!structureId) return;
+    this.expandedFeeStructureId = this.expandedFeeStructureId === structureId ? null : structureId;
+  }
+
+  editFeeStructureFromView(structure: FeeStructure): void {
+    if (!this.can('fees', 'create')) {
+      this.toast.error('You do not have permission to configure fee structures');
+      return;
+    }
+    const yearId = typeof structure.academicYear === 'object' && structure.academicYear
+      ? (structure.academicYear as AcademicYear)._id
+      : String(structure.academicYear || '');
+    this.showFeeStructure = true;
+    this.feeStructureYear = yearId || this.feeStructureViewYear;
+    this.feeStructureClassName = structure.className || '';
+    this.feeStructureComponents = (structure.components || []).map((component) => ({ ...component }));
+    this.feeStructureId = structure._id || null;
   }
 
   loadFeeStructure(): void {
@@ -4323,6 +4405,10 @@ export class AppComponent implements OnInit {
         this.toast.success(`Fee structure saved for Class ${this.feeStructureClassName}. It will apply to all sections.`);
         // Refresh class list so linked sections reflect the new monthly fee.
         if (this.can('classes', 'view')) this.loadListing('classes');
+        if (this.feeStructureViewYear === this.feeStructureYear || !this.feeStructureViewYear) {
+          this.feeStructureViewYear = this.feeStructureYear;
+          this.loadFeeStructuresList();
+        }
       },
       error: (error) => {
         this.feeStructureSaving = false;
@@ -4342,6 +4428,7 @@ export class AppComponent implements OnInit {
         this.feeStructureComponents = [];
         this.feeStructureId = null;
         this.toast.success('Fee structure deleted');
+        this.loadFeeStructuresList();
       },
       error: (error) => this.toast.error(extractApiMessage(error))
     });
@@ -4698,7 +4785,7 @@ export class AppComponent implements OnInit {
       classes: { class: 'name', academicYear: 'name', teacher: 'name' },
       users: { status: 'createdAt' },
       invoices: { studentName: 'dueDate', period: 'feeYear' },
-      feeHistory: { studentName: 'paymentDate', period: 'paymentDate' },
+      feeHistory: { studentName: 'paymentDate', period: 'paymentDate', createdAt: 'createdAt' },
       payroll: { teacherName: 'year', period: 'year' },
       busRoutes: { route: 'routeName' },
       busRegistrations: { studentName: 'updatedAt' },
@@ -5636,12 +5723,46 @@ export class AppComponent implements OnInit {
     this.openProtectedPdf(this.api.busReportPdfUrl(this.transportReportType, params));
   }
 
+  onPayrollSelectionChange(): void {
+    const teacher = String(this.payrollForm.get('teacher')?.value || '');
+    const month = Number(this.payrollForm.get('month')?.value);
+    const year = Number(this.payrollForm.get('year')?.value);
+    if (!teacher || !month || !year) {
+      this.payrollPreview = null;
+      return;
+    }
+    this.payrollPreviewLoading = true;
+    this.api.previewPayroll(teacher, month, year).subscribe({
+      next: (preview) => {
+        this.payrollPreview = preview;
+        this.payrollForm.patchValue({ basicSalary: preview.basicSalary }, { emitEvent: false });
+        this.payrollPreviewLoading = false;
+      },
+      error: (err) => {
+        this.payrollPreview = null;
+        this.payrollPreviewLoading = false;
+        this.message = err.error?.message || 'Could not calculate payroll preview';
+      }
+    });
+  }
+
   savePayroll(): void {
+    const value = this.payrollForm.getRawValue();
+    const payload = {
+      teacher: value.teacher,
+      month: Number(value.month),
+      year: Number(value.year),
+      basicSalary: Number(value.basicSalary) || 0,
+      allowances: Number(value.allowances) || 0,
+      otherDeductions: Number(value.otherDeductions) || 0
+    };
     const request = this.editingPayrollId
-      ? this.api.updatePayroll(this.editingPayrollId, this.payrollForm.getRawValue())
-      : this.api.createPayroll(this.payrollForm.getRawValue());
-    this.submit(request, this.editingPayrollId ? 'Payroll updated' : 'Payroll record created', this.payrollForm);
-    this.editingPayrollId = '';
+      ? this.api.updatePayroll(this.editingPayrollId, payload)
+      : this.api.createPayroll(payload);
+    this.submit(request, this.editingPayrollId ? 'Payroll updated' : 'Payroll record created', this.payrollForm, () => {
+      this.editingPayrollId = '';
+      this.payrollPreview = null;
+    });
   }
 
   editPayroll(payroll: PayrollRecord): void {
@@ -5652,9 +5773,10 @@ export class AppComponent implements OnInit {
       year: payroll.year,
       basicSalary: payroll.basicSalary,
       allowances: payroll.allowances,
-      deductions: payroll.deductions
+      otherDeductions: payroll.otherDeductions ?? Math.max(0, (payroll.deductions || 0) - (payroll.leaveSummary?.leaveDeduction || 0))
     });
     this.message = `Editing payroll for ${this.payrollTeacherName(payroll.teacher)}`;
+    this.onPayrollSelectionChange();
   }
 
   deletePayroll(id: string): void {
@@ -7667,26 +7789,28 @@ export class AppComponent implements OnInit {
 
   exportFeeHistoryCsv(): void {
     this.withFilteredExportRows('feeHistory', this.sortedFeeHistory, (rows) => {
-      exportRowsToCsv('fee-history.csv', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status'], rows.map((row) => [
+      exportRowsToCsv('fee-history.csv', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status', 'Created date'], rows.map((row) => [
         this.feePeriodLabel(row.feeMonth, row.feeYear),
         this.studentName(row.student),
         row.receiptNumber || '—',
         String(row.paidAmount),
         String(row.pendingAmount),
-        row.paymentStatus
+        row.paymentStatus,
+        row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-IN') : '—'
       ]));
     });
   }
 
   exportFeeHistoryPdf(): void {
     this.withFilteredExportRows('feeHistory', this.sortedFeeHistory, (rows) => {
-      exportRowsToPdf('Fee Payment History', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status'], rows.map((row) => [
+      exportRowsToPdf('Fee Payment History', ['Month', 'Student', 'Receipt', 'Paid', 'Pending', 'Status', 'Created date'], rows.map((row) => [
         this.feePeriodLabel(row.feeMonth, row.feeYear),
         this.studentName(row.student),
         row.receiptNumber || '—',
         String(row.paidAmount),
         String(row.pendingAmount),
-        row.paymentStatus
+        row.paymentStatus,
+        row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-IN') : '—'
       ]));
     });
   }

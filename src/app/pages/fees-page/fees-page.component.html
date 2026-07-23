@@ -32,12 +32,92 @@
     </div>
   </div>
 
+  <!-- View all class fee structures (read-only overview) -->
+  <section *ngIf="!vm.isPortalUser && vm.can('fees', 'view')" class="panel fee-structure-card span-12">
+    <div class="fee-gen-head">
+      <div>
+        <p class="eyebrow">Overview</p>
+        <h3>View Fee Structures</h3>
+      </div>
+      <button type="button" class="ghost small filter-toggle" (click)="vm.toggleFeeStructureView()">
+        {{ vm.showFeeStructureView ? 'Hide' : 'Show' }}
+      </button>
+    </div>
+
+    <ng-container *ngIf="vm.showFeeStructureView">
+      <p class="hint-text">See every class fee structure for the selected academic year. Amounts apply to all sections of that class.</p>
+
+      <div class="fee-gen-grid">
+        <label><span class="label-text">Academic year</span>
+          <select [value]="vm.feeStructureViewYear" (change)="vm.feeStructureViewYear = $any($event.target).value; vm.loadFeeStructuresList()">
+            <option value="">Select year</option>
+            <option *ngFor="let year of vm.openYears" [value]="year._id">{{ year.name }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="page-spinner-wrap" *ngIf="vm.feeStructuresLoading">
+        <app-spinner [show]="true" label="Loading fee structures..."></app-spinner>
+      </div>
+
+      <ng-container *ngIf="!vm.feeStructuresLoading">
+        <div class="fee-structure-view-table" *ngIf="vm.feeStructuresList.length; else noFeeStructures">
+          <div class="fsv-head">
+            <span>Class</span>
+            <span>Components</span>
+            <span>Total</span>
+            <span>Status</span>
+            <span></span>
+          </div>
+          <ng-container *ngFor="let structure of vm.feeStructuresList">
+            <div class="fsv-row">
+              <strong>Class {{ structure.className || '—' }}</strong>
+              <span>{{ structure.components?.length || 0 }}</span>
+              <span>{{ vm.feeStructureRowTotal(structure) | currency: 'INR' }}</span>
+              <span class="fsv-status" [class.active]="structure.status !== 'inactive'">{{ structure.status || 'active' }}</span>
+              <div class="fsv-actions">
+                <button type="button" class="ghost small" (click)="vm.toggleFeeStructureDetail(structure._id)">
+                  {{ vm.expandedFeeStructureId === structure._id ? 'Hide' : 'View' }}
+                </button>
+                <button type="button" class="ghost small" *ngIf="vm.can('fees', 'create')" (click)="vm.editFeeStructureFromView(structure)">Edit</button>
+              </div>
+            </div>
+            <div class="fsv-detail" *ngIf="vm.expandedFeeStructureId === structure._id">
+              <div class="fee-structure-table readonly">
+                <div class="fsc-head">
+                  <span>Component</span>
+                  <span>Amount (₹)</span>
+                  <span>Frequency</span>
+                  <span>New admission only</span>
+                </div>
+                <div class="fsc-row" *ngFor="let component of structure.components">
+                  <span>{{ component.label }}</span>
+                  <span>{{ component.amount | number }}</span>
+                  <span>{{ vm.feeCycleLabel(component.frequency) }}</span>
+                  <span>{{ component.newAdmissionOnly ? 'Yes' : '—' }}</span>
+                </div>
+                <div class="fsc-total">
+                  <span>Total for Class {{ structure.className }}</span>
+                  <strong>{{ vm.feeStructureRowTotal(structure) | currency: 'INR' }}</strong>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <ng-template #noFeeStructures>
+          <p class="hint-text" *ngIf="vm.feeStructureViewYear">No fee structures defined for this year yet.{{ vm.can('fees', 'create') ? ' Use Configure below to add one.' : '' }}</p>
+          <p class="hint-text" *ngIf="!vm.feeStructureViewYear">Select an academic year to view fee structures.</p>
+        </ng-template>
+      </ng-container>
+    </ng-container>
+  </section>
+
   <!-- Fee Structure definition (admission / registration / tuition / bus / lab / custom) -->
   <section *ngIf="vm.can('fees', 'create')" class="panel fee-structure-card span-12">
     <div class="fee-gen-head">
       <div>
         <p class="eyebrow">Configuration</p>
-        <h3>Fee Structure</h3>
+        <h3>Configure Fee Structure</h3>
       </div>
       <button type="button" class="ghost small filter-toggle" (click)="vm.toggleFeeStructure()">
         {{ vm.showFeeStructure ? 'Hide' : 'Configure' }}
@@ -436,6 +516,7 @@
             <th>Pending</th>
             <th>Bus fee</th>
             <th>Payment date</th>
+            <th class="sortable" (click)="vm.toggleListSort('feeHistory', 'createdAt')">Created date{{ vm.listSortIndicator('feeHistory', 'createdAt') }}</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -449,13 +530,14 @@
             <td>{{ row.pendingAmount | currency: 'INR' }}</td>
             <td>{{ row.busFee || 0 | currency: 'INR' }}</td>
             <td>{{ row.paymentDate ? (row.paymentDate | date: 'dd MMM yyyy') : '—' }}</td>
+            <td>{{ row.createdAt ? (row.createdAt | date: 'dd MMM yyyy') : '—' }}</td>
             <td><span class="status-badge" [ngClass]="row.paymentStatus">{{ row.paymentStatus }}</span></td>
             <td class="action-cell">
               <button *ngIf="row.paymentId && row.paymentStatus !== 'void'" type="button" class="ghost small" (click)="vm.openReceiptPdf(row.invoiceId, row.paymentId!)">PDF</button>
             </td>
           </tr>
           <tr *ngIf="!vm.sortedFeeHistory.length && !vm.isListingLoading('feeHistory')">
-            <td [attr.colspan]="vm.isPortalUser ? 8 : 9">
+            <td [attr.colspan]="vm.isPortalUser ? 9 : 10">
               <app-empty-state title="No payment history" message="No fee payment history yet for the selected filters."></app-empty-state>
             </td>
           </tr>

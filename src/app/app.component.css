@@ -5135,6 +5135,80 @@ tbody tr:hover {
 /* Fee structure builder */
 .fee-structure-card { padding: 16px 18px; }
 
+.fee-structure-view-table {
+  border: 1px solid var(--border-soft, var(--border));
+  border-radius: var(--radius);
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.fsv-head,
+.fsv-row {
+  align-items: center;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 1.4fr 0.8fr 1fr 0.8fr 1.4fr;
+  padding: 10px 12px;
+}
+
+.fsv-head {
+  background: var(--surface-soft, #f8fafc);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fsv-row {
+  border-top: 1px solid var(--border-soft, var(--border));
+}
+
+.fsv-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: center;
+  padding: 2px 8px;
+  text-transform: capitalize;
+  width: fit-content;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.fsv-status.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.fsv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.fsv-detail {
+  background: var(--surface-soft, #f8fafc);
+  border-top: 1px solid var(--border-soft, var(--border));
+  padding: 10px 12px 14px;
+}
+
+.fee-structure-table.readonly .fsc-row {
+  grid-template-columns: 2fr 1.1fr 1.2fr 1fr;
+}
+
+@media (max-width: 720px) {
+  .fsv-head { display: none; }
+  .fsv-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fsv-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
 .fee-preset-row {
   align-items: center;
   display: flex;
@@ -5653,6 +5727,24 @@ tbody tr:hover {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
+}
+
+.payroll-preview-card {
+  margin: 16px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2, var(--primary-soft));
+}
+
+.payroll-preview-card .eyebrow {
+  margin-bottom: 10px;
+}
+
+.payroll-preview-card .hint-text {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .pr-row {

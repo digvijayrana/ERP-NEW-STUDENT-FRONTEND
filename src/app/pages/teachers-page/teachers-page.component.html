@@ -40,6 +40,10 @@
           <span class="my-profile-value">{{ tp.baseSalary | currency: 'INR' }}</span>
         </div>
         <div class="my-profile-field">
+          <span class="my-profile-label">Monthly Allowed Leaves</span>
+          <span class="my-profile-value">{{ tp.monthlyAllowedLeaves ?? 0 }}</span>
+        </div>
+        <div class="my-profile-field">
           <span class="my-profile-label">Class Teacher Of</span>
           <span class="my-profile-value">
             <ng-container *ngIf="vm.getTeacherClasses(tp._id).length; else noCtClass">
@@ -265,6 +269,10 @@
               <app-field-error [control]="vm.teacherForm.get('aadhaarNumber')" label="Aadhaar number"></app-field-error>
               <label class="required"><span class="label-text">Qualification</span><input formControlName="qualification"></label>
               <label class="required"><span class="label-text">Base salary</span><input type="number" formControlName="baseSalary" min="0"></label>
+              <label><span class="label-text">Monthly allowed leaves</span>
+                <input type="number" formControlName="monthlyAllowedLeaves" min="0" step="0.5">
+                <span class="field-hint">Leave days allowed per month before salary deduction.</span>
+              </label>
             </div>
           </fieldset>
 
@@ -334,6 +342,10 @@
         <div class="my-profile-field">
           <span class="my-profile-label">Base Salary</span>
           <span class="my-profile-value">{{ vm.viewingTeacher.baseSalary | currency: 'INR' }}</span>
+        </div>
+        <div class="my-profile-field">
+          <span class="my-profile-label">Monthly Allowed Leaves</span>
+          <span class="my-profile-value">{{ vm.viewingTeacher.monthlyAllowedLeaves ?? 0 }}</span>
         </div>
         <div class="my-profile-field">
           <span class="my-profile-label">Assigned Classes</span>

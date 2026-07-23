@@ -28,6 +28,7 @@ import {
   BusRegistration,
   BusReportRow,
   PayrollRecord,
+  PayrollPreview,
   GlobalSearchResult,
   WorkflowNotification,
   ReportDomain,
@@ -541,6 +542,13 @@ export class ErpApiService {
     return this.http.get<FeeStructure | null>(`${this.baseUrl}/fees/structures/for-class`, { ...this.options(), params: httpParams });
   }
 
+  listFeeStructures(params?: { academicYear?: string; className?: string }): Observable<FeeStructure[]> {
+    let httpParams = new HttpParams();
+    if (params?.academicYear) httpParams = httpParams.set('academicYear', params.academicYear);
+    if (params?.className) httpParams = httpParams.set('className', params.className);
+    return this.http.get<FeeStructure[]>(`${this.baseUrl}/fees/structures`, { ...this.options(), params: httpParams });
+  }
+
   saveFeeStructure(payload: Record<string, unknown>): Observable<FeeStructure> {
     return this.http.put<FeeStructure>(`${this.baseUrl}/fees/structures`, payload, this.options());
   }
@@ -587,6 +595,13 @@ export class ErpApiService {
 
   unlockFeePayment(invoiceId: string, paymentId: string): Observable<FeeInvoice> {
     return this.http.post<FeeInvoice>(`${this.baseUrl}/fees/invoices/${invoiceId}/payments/${paymentId}/unlock`, {}, this.options());
+  }
+
+  previewPayroll(teacher: string, month: number, year: number): Observable<PayrollPreview> {
+    return this.http.get<PayrollPreview>(`${this.baseUrl}/payroll/preview`, {
+      ...this.options(),
+      params: { teacher, month: String(month), year: String(year) }
+    });
   }
 
   createPayroll(payload: Record<string, unknown>): Observable<unknown> {
