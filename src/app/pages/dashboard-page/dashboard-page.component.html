@@ -36,6 +36,16 @@
       <div class="dash-stat-info">
         <span>Total Students</span>
         <strong>{{ vm.summary.totalStudents }}</strong>
+        <div class="gender-breakdown" *ngIf="vm.summary.studentGender?.total as g">
+          <span class="gender-chip boys" title="Boys">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M16.5 3.5l4 4M20.5 3.5v4h-4"/></svg>
+            {{ g.male || 0 }}
+          </span>
+          <span class="gender-chip girls" title="Girls">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M12 14.5v5M9.5 17h5"/></svg>
+            {{ g.female || 0 }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -46,6 +56,16 @@
       <div class="dash-stat-info">
         <span>Active Students</span>
         <strong>{{ vm.summary.activeStudents }}</strong>
+        <div class="gender-breakdown" *ngIf="vm.summary.studentGender?.active as g">
+          <span class="gender-chip boys" title="Boys">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M16.5 3.5l4 4M20.5 3.5v4h-4"/></svg>
+            {{ g.male || 0 }}
+          </span>
+          <span class="gender-chip girls" title="Girls">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M12 14.5v5M9.5 17h5"/></svg>
+            {{ g.female || 0 }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -56,6 +76,16 @@
       <div class="dash-stat-info">
         <span>Total Teachers</span>
         <strong>{{ vm.summary.totalTeachers }}</strong>
+        <div class="gender-breakdown" *ngIf="vm.summary.teacherGender?.total as g">
+          <span class="gender-chip boys" title="Male">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M16.5 3.5l4 4M20.5 3.5v4h-4"/></svg>
+            {{ g.male || 0 }}
+          </span>
+          <span class="gender-chip girls" title="Female">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M12 14.5v5M9.5 17h5"/></svg>
+            {{ g.female || 0 }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -66,6 +96,16 @@
       <div class="dash-stat-info">
         <span>Active Teachers</span>
         <strong>{{ vm.summary.activeTeachers }}</strong>
+        <div class="gender-breakdown" *ngIf="vm.summary.teacherGender?.active as g">
+          <span class="gender-chip boys" title="Male">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M16.5 3.5l4 4M20.5 3.5v4h-4"/></svg>
+            {{ g.male || 0 }}
+          </span>
+          <span class="gender-chip girls" title="Female">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M12 14.5v5M9.5 17h5"/></svg>
+            {{ g.female || 0 }}
+          </span>
+        </div>
       </div>
     </div>
 

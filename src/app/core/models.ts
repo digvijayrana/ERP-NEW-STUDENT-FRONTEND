@@ -24,6 +24,7 @@ export interface Teacher {
   baseSalary: number;
   /** Paid leave days allowed per month before salary deduction. */
   monthlyAllowedLeaves?: number;
+  gender?: 'male' | 'female' | 'other';
   status: 'active' | 'inactive';
   experience?: Array<{ instituteName: string; designation: string; fromDate: string; toDate: string; description?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
   education?: Array<{ instituteName: string; degree: string; fieldOfStudy: string; fromDate: string; toDate: string; grade?: string; document?: { url: string; originalName: string; uploadedAt: string } }>;
@@ -47,6 +48,8 @@ export interface ClassRoom {
   feeStructure?: FeeStructure | string;
   status?: 'active' | 'inactive';
   studentCount?: number;
+  maleCount?: number;
+  femaleCount?: number;
   availableCapacity?: number;
 }
 
@@ -440,12 +443,26 @@ export interface DashboardTrends {
   busUtilization?: DashboardTrendSeries;
 }
 
+export interface GenderCount {
+  male: number;
+  female: number;
+  other?: number;
+}
+
 export interface DashboardSummary {
   activeYear?: AcademicYear;
   totalStudents?: number;
   activeStudents?: number;
   totalTeachers?: number;
   activeTeachers?: number;
+  studentGender?: {
+    total?: GenderCount;
+    active?: GenderCount;
+  };
+  teacherGender?: {
+    total?: GenderCount;
+    active?: GenderCount;
+  };
   totalClasses?: number;
   totalSections?: number;
   todaysAdmissions?: number;

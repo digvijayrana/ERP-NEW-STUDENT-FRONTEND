@@ -260,8 +260,15 @@
               <p class="field-hint span-2" *ngIf="!vm.editingTeacherId">Employee code is auto-generated (prefix TE) on save.</p>
               <label class="required"><span class="label-text">First name</span><input formControlName="firstName"></label>
               <label><span class="label-text">Middle name</span><input formControlName="middleName"></label>
-              <label class="required" ><span class="label-text">Last name</span><input formControlName="lastName"></label>
+              <label class="required"><span class="label-text">Last name</span><input formControlName="lastName"></label>
               <app-field-error [control]="vm.teacherForm.get('firstName')" label="First name"></app-field-error>
+              <label class="required"><span class="label-text">Gender</span>
+                <select formControlName="gender">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
               <label class="required"><span class="label-text">Phone</span><input formControlName="phone" maxlength="10" pattern="\d{10}" inputmode="numeric"></label>
               <app-field-error [control]="vm.teacherForm.get('phone')" label="Phone"></app-field-error>
               <label class="required"><span class="label-text">Email</span><input formControlName="email"></label>

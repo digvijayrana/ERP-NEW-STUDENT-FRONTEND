@@ -175,6 +175,7 @@
           <th class="sortable" (click)="vm.toggleListSort('classes', 'academicYear')">Academic Year{{ vm.listSortIndicator('classes', 'academicYear') }}</th>
           <th class="sortable" (click)="vm.toggleListSort('classes', 'teacher')">Teacher{{ vm.listSortIndicator('classes', 'teacher') }}</th>
           <th>Students</th>
+          <th>Boys / Girls</th>
           <th>Available</th>
           <th class="sortable" (click)="vm.toggleListSort('classes', 'monthlyFee')">Monthly fee{{ vm.listSortIndicator('classes', 'monthlyFee') }}</th>
           <th class="sortable" (click)="vm.toggleListSort('classes', 'status')">Status{{ vm.listSortIndicator('classes', 'status') }}</th>
@@ -186,6 +187,18 @@
             <td>{{ vm.classYearName(room) }}</td>
             <td>{{ vm.teacherName(room.classTeacher) }}</td>
             <td>{{ room.studentCount ?? vm.getClassStudentCount(room._id) }} / {{ room.capacity || 0 }}</td>
+            <td>
+              <div class="gender-inline">
+                <span class="gender-chip boys" title="Boys">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M16.5 3.5l4 4M20.5 3.5v4h-4"/></svg>
+                  {{ room.maleCount ?? 0 }}
+                </span>
+                <span class="gender-chip girls" title="Girls">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5a6 6 0 0 1 12 0V20"/><path d="M12 14.5v5M9.5 17h5"/></svg>
+                  {{ room.femaleCount ?? 0 }}
+                </span>
+              </div>
+            </td>
             <td>{{ vm.getClassAvailableCapacity(room) }}</td>
             <td>{{ room.monthlyFee | currency: 'INR' }}</td>
             <td><span class="status-badge" [ngClass]="room.status || 'active'">{{ room.status || 'active' }}</span></td>
@@ -198,7 +211,7 @@
             </td>
           </tr>
           <tr *ngIf="!vm.sortedClasses.length && !vm.isListingLoading('classes')">
-            <td colspan="8">
+            <td colspan="9">
               <app-empty-state
                 title="No classes found"
                 message="Configure a class and section for the active academic year.">
@@ -208,7 +221,7 @@
         </tbody>
       </table>
     </div>
-    <app-table-skeleton *ngIf="vm.isListingLoading('classes') && !vm.sortedClasses.length" [columns]="8" [rows]="6"></app-table-skeleton>
+    <app-table-skeleton *ngIf="vm.isListingLoading('classes') && !vm.sortedClasses.length" [columns]="9" [rows]="6"></app-table-skeleton>
     </div>
     <app-pagination-bar [vm]="vm" listKey="classes" [items]="vm.sortedClasses"></app-pagination-bar>
   </section>

@@ -3404,6 +3404,59 @@ p {
   overflow-wrap: anywhere;
 }
 
+.gender-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gender-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.gender-chip svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.gender-chip.boys {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.gender-chip.girls {
+  color: #be185d;
+  background: #fce7f3;
+}
+
+.gender-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gender-inline .gender-chip {
+  font-size: 11px;
+  padding: 2px 7px 2px 5px;
+}
+
 .dash-stat-blue .dash-stat-icon { background: var(--primary-muted); color: var(--primary); }
 .dash-stat-blue::after { background: var(--primary); }
 .dash-stat-purple .dash-stat-icon { background: #ede9fe; color: #7c3aed; }
