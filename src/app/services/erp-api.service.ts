@@ -50,6 +50,13 @@ export function resolveApiBaseUrl(): string {
   // Angular `ng serve` (any host / tenant subdomain) → call backend directly.
   // Same-origin `/api/*` has no proxy on the Vite/Webpack dev server and returns HTTP 405 on POST/PATCH.
   if (port === '4200' || port === '4201') {
+    return environment.apiBaseUrl.includes('localhost')
+      ? environment.apiBaseUrl
+      : 'http://localhost:5000/api';
+  }
+
+  // Vercel static hosting — use absolute API from environment.prod (or /api rewrite after deploy)
+  if (host.endsWith('.vercel.app')) {
     return environment.apiBaseUrl;
   }
 
